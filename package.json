@@ -1,0 +1,20 @@
+{
+  "name": "mi-iptv-backend",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Mi IPTV / Media Center backend API (Clean Architecture)",
+  "type": "module",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "dev": "tsx watch src/main.ts",
+    "build": "tsc -p tsconfig.build.json",
+    "start": "node dist/main.js",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "tsx --test tests/unit/**/*.test.ts",
+    "lint": "eslint ."
+  },
+  "dependencies": {},
+  "devDependencies": {}
+}

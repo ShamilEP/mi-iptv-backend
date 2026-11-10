@@ -1,0 +1,13 @@
+---
+description: Human-approved dependencies and adapter wrapping
+alwaysApply: true
+---
+
+# Third-Party Packages
+
+- The AI may **propose** packages (name, purpose, alternatives, rationale).
+- Do **not** add, install, or import a third-party package until the human explicitly approves it.
+- After approval, use the package **only behind a simple adapter** (port + infrastructure/presentation adapter).
+- Domain and application use cases must never import vendor SDKs directly.
+- Node.js built-ins (`node:http`, `node:crypto`, etc.) do not need an adapter unless wrapping improves testability for a domain concern.
+- Prefer proposing one focused package per concern; avoid overlapping libraries.

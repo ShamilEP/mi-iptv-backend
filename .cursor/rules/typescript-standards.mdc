@@ -1,0 +1,13 @@
+---
+description: TypeScript standards for Mi IPTV backend
+globs: "**/*.{ts,tsx}"
+alwaysApply: false
+---
+
+# TypeScript Standards
+
+- Use strict TypeScript. Avoid `any`; if unavoidable, justify in a short comment.
+- Prefer explicit return types on exported functions and use cases.
+- Validate untrusted input at the presentation/config boundary; keep domain types trusted.
+- Use `unknown` for caught errors and narrow before use.
+- Keep modules ESM-friendly and side-effect free except composition root / adapters.

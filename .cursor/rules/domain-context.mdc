@@ -1,0 +1,15 @@
+---
+description: Mi IPTV backend domain and API context
+alwaysApply: true
+---
+
+# Mi IPTV Backend Context
+
+MVP backend for accounts, auth, profiles, IPTV sources/catalog, offline-first sync, devices, and companion→TV realtime.
+
+- Public API prefix: `/api/v1`
+- Modules: `auth`, `sources`/`catalog`, `sync`, `devices`, realtime notifications
+- Persistence: PostgreSQL (`app` schema). Cache/pubsub: Redis/Valkey.
+- Sync: server clock authoritative; LWW + `syncVersion`; playback conflict prefers higher `position` in 60s window; idempotent via `clientEventId`
+- Catalog: normalize M3U / Xtream / proprietary into a canonical content model
+- Security: JWT access + refresh (device-bound); encrypt source credentials; never expose clear source passwords in API responses

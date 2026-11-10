@@ -1,0 +1,13 @@
+---
+description: Clean Code, SOLID, DRY, and file size limits
+alwaysApply: true
+---
+
+# Clean Code, SOLID, DRY
+
+- Write clear names, small functions, and obvious control flow.
+- Apply SOLID: single responsibility, depend on abstractions (ports), keep modules open for extension.
+- Apply DRY: extract shared logic once; do not copy-paste across layers or contexts.
+- Soft limit ~300 lines per file. Split by responsibility before a file grows large.
+- No god classes, no mega route files, no catch-all utility dumps.
+- Prefer explicit errors over silent failures.

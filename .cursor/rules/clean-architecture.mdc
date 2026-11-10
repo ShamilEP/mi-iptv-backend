@@ -1,0 +1,18 @@
+---
+description: Clean Architecture layer boundaries for Mi IPTV backend
+alwaysApply: true
+---
+
+# Clean Architecture
+
+Dependency rule (inward only):
+
+`presentation` / `infrastructure` → `application` → `domain`
+
+- `domain`: entities, value objects, domain errors. No frameworks, no I/O, no vendor imports.
+- `application`: use cases + ports (interfaces). No Fastify/pg/Redis/Zod/vendor imports.
+- `infrastructure`: adapters implementing ports (DB, cache, crypto, external HTTP).
+- `presentation`: transport adapters (HTTP routes, DTOs, realtime). Framework stays here.
+- `main.ts`: composition root only — wires adapters to use cases.
+
+When adding behavior: define/extend a port, implement an adapter, keep use cases framework-free.
