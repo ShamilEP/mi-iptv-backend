@@ -3,13 +3,23 @@ import type {
   KmsKeyResolver,
 } from '../application/ports/kms-key-resolver.js';
 import type { SecretStore } from '../application/ports/secret-store.js';
+import { getEnvironmentDefaults } from './environments/index.js';
 
 export type AppConfig = {
   readonly appEnv: AppEnvironment;
   readonly nodeEnv: string;
   readonly port: number;
+  readonly logLevel: 'debug' | 'info' | 'warn' | 'error';
   /** KMS key id/ARN for this environment — never key material. */
   readonly kmsKeyId: string;
+};
+
+export type InjectedSecrets = {
+  readonly databaseUrl: string | undefined;
+  readonly redisUrl: string | undefined;
+  readonly jwtPrivateKey: string | undefined;
+  readonly jwtPublicKey: string | undefined;
+  readonly sourceCredentialsDataKey: string | undefined;
 };
 
 const APP_ENVS = new Set<AppEnvironment>(['dev', 'qa', 'prod']);
@@ -17,19 +27,22 @@ const APP_ENVS = new Set<AppEnvironment>(['dev', 'qa', 'prod']);
 /**
  * Reads non-secret configuration from `process.env` only.
  * Agents must never open `.env*` files; local tooling may load them into the process.
+ * Per-environment defaults come from `src/config/environments/*`.
  */
 export function loadConfig(
   env: NodeJS.ProcessEnv = process.env,
   kmsKeyResolver?: KmsKeyResolver,
 ): AppConfig {
-  const portRaw = env.PORT ?? '3000';
+  const appEnv = parseAppEnv(env.APP_ENV ?? inferAppEnv(env.NODE_ENV));
+  const defaults = getEnvironmentDefaults(appEnv);
+
+  const portRaw = env.PORT ?? String(defaults.defaultPort);
   const port = Number.parseInt(portRaw, 10);
 
   if (!Number.isFinite(port) || port <= 0) {
     throw new Error(`Invalid PORT: ${portRaw}`);
   }
 
-  const appEnv = parseAppEnv(env.APP_ENV ?? inferAppEnv(env.NODE_ENV));
   const kmsKeyId = kmsKeyResolver
     ? kmsKeyResolver.resolveKeyId(appEnv)
     : requireEnvStyle(env.KMS_KEY_ID);
@@ -40,28 +53,26 @@ export function loadConfig(
     );
   }
 
+  const logLevel = parseLogLevel(env.LOG_LEVEL ?? defaults.logLevel);
+
   return {
     appEnv,
     nodeEnv: env.NODE_ENV ?? 'development',
     port,
+    logLevel,
     kmsKeyId,
   };
 }
 
 /**
- * Resolves injected secrets for the active environment via SecretStore.
- * Secret values are returned for composition only — never log them.
+ * Resolves injected secrets for the active environment via SecretStore
+ * (INF-013 env-injected mock or later AWS Secrets Manager adapter).
+ * Secret values are for composition only — never log them.
  */
 export async function loadInjectedSecrets(
   appEnv: AppEnvironment,
   secretStore: SecretStore,
-): Promise<{
-  readonly databaseUrl: string | undefined;
-  readonly redisUrl: string | undefined;
-  readonly jwtPrivateKey: string | undefined;
-  readonly jwtPublicKey: string | undefined;
-  readonly sourceCredentialsDataKey: string | undefined;
-}> {
+): Promise<InjectedSecrets> {
   const prefix = `mi-iptv/${appEnv}`;
   const [
     databaseUrl,
@@ -102,6 +113,19 @@ function inferAppEnv(nodeEnv: string | undefined): AppEnvironment {
     return 'qa';
   }
   return 'dev';
+}
+
+function parseLogLevel(raw: string): 'debug' | 'info' | 'warn' | 'error' {
+  const normalized = raw.trim().toLowerCase();
+  if (
+    normalized === 'debug' ||
+    normalized === 'info' ||
+    normalized === 'warn' ||
+    normalized === 'error'
+  ) {
+    return normalized;
+  }
+  throw new Error(`Invalid LOG_LEVEL: ${raw}`);
 }
 
 function requireEnvStyle(value: string | undefined): string | undefined {

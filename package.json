@@ -13,8 +13,17 @@
     "start": "node dist/main.js",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "test": "tsx --test tests/unit/**/*.test.ts",
-    "lint": "eslint ."
+    "lint": "eslint .",
+    "format": "prettier --write \"src/**/*.{ts,js}\" \"tests/**/*.{ts,js}\" \"*.{js,json}\"",
+    "format:check": "prettier --check \"src/**/*.{ts,js}\" \"tests/**/*.{ts,js}\" \"*.{js,json}\""
   },
-  "dependencies": {},
-  "devDependencies": {}
+  "devDependencies": {
+    "@types/node": "^26.6.6",
+    "eslint": "^10.14.0",
+    "eslint-config-prettier": "^10.1.8",
+    "prettier": "^3.9.10",
+    "tsx": "^4.23.15",
+    "typescript": "^6.0.3",
+    "typescript-eslint": "^8.72.2"
+  }
 }
