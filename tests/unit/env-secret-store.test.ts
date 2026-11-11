@@ -14,7 +14,10 @@ describe('EnvSecretStore', () => {
       await store.getSecret('mi-iptv/dev/database_url'),
       'postgresql://local/db',
     );
-    assert.equal(await store.getSecret('database_url'), 'postgresql://local/db');
+    assert.equal(
+      await store.getSecret('database_url'),
+      'postgresql://local/db',
+    );
     assert.equal(await store.getSecret('unknown'), undefined);
   });
 });

@@ -12,7 +12,9 @@ export type HttpResponse = {
   readonly body?: unknown;
 };
 
-export type HttpRouteHandler = (request: HttpRequest) => Promise<HttpResponse> | HttpResponse;
+export type HttpRouteHandler = (
+  request: HttpRequest,
+) => Promise<HttpResponse> | HttpResponse;
 
 export type HttpRoute = {
   readonly method: HttpMethod;

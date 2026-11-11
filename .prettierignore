@@ -1,0 +1,9 @@
+dist
+node_modules
+coverage
+package-lock.json
+.cursor
+task-tracker
+tools
+*.md
+docs

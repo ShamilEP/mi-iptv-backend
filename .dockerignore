@@ -1,0 +1,14 @@
+node_modules
+dist
+coverage
+.git
+.cursor
+task-tracker
+tools
+docs
+**/*.md
+.env
+.env.*
+!.env.example
+*.log
+tests
