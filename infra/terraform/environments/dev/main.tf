@@ -6,5 +6,11 @@ module "naming_tags" {
   cost_center = var.cost_center
 }
 
-# Platform resources (VPC, ECS, RDS, Redis, KMS, …) land in later INF tasks.
-# This root establishes remote state + required tags for all future resources.
+module "network" {
+  source = "../../modules/network"
+
+  name_prefix = module.naming_tags.name_prefix
+  tags        = module.naming_tags.tags
+  vpc_cidr    = var.vpc_cidr
+  app_port    = var.app_port
+}
