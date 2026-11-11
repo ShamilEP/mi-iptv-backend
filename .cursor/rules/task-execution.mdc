@@ -1,0 +1,21 @@
+---
+description: Autonomous Excel task execution workflow and safety gates
+alwaysApply: true
+---
+
+# Task Execution
+
+When working from the project task tracker, follow `.cursor/skills/execute-next-task/SKILL.md`.
+
+## Hard rules
+
+- Execute **one** task at a time (Backend, Infra, or Security only).
+- Use Excel status strings exactly: `Not started`, `In progress`, `In review`, `Blocked`, `Done`.
+- Never change Status of a `Done` task. Never edit Dashboard or Read me.
+- Only mutate Status, Owner, Est. (pts), Notes via `tools.task_tracker`.
+- After implementation: run verifier → write `docs/task-reports/<ID>.md` → set `In review` → **stop**.
+- Set `Done` only after the human explicitly approves that task ID (`--approve-done`).
+- Ambiguity, missing deps, or unsafe scope → set `Blocked` and report the reason in Notes.
+- Before coding: analyze the codebase, respect Clean Architecture, secrets, and third-party approval rules.
+- Git: branch `task/<ID>-slug`; never force-push, hard-reset, or overwrite unrelated dirty work.
+- Do not auto-start the next task after approval unless the human asks.
