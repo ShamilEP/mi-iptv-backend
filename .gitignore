@@ -27,3 +27,8 @@ Thumbs.db
 !.vscode/extensions.json
 
 /task-tracker
+
+# Python task-tracker tooling
+tools/task_tracker/.venv/
+tools/**/__pycache__/
+*.xlsx.bak.*
