@@ -113,3 +113,40 @@ output "acm_certificate_arn" {
 output "acm_auto_renewal" {
   value = module.dns_acm.auto_renewal
 }
+
+output "ci_role_arn" {
+  value = module.ci_oidc.role_arn
+}
+
+output "ci_role_name" {
+  value = module.ci_oidc.role_name
+}
+
+output "ecs_cluster_name" {
+  value = aws_ecs_cluster.dev.name
+}
+
+output "ecs_cluster_arn" {
+  value = aws_ecs_cluster.dev.arn
+}
+
+output "api_log_group_name" {
+  value = aws_cloudwatch_log_group.api.name
+}
+
+# Contract consumed by CI / internal tests (INF-010).
+output "environment_contract" {
+  value = {
+    environment = "dev"
+    purpose     = "ci_and_internal_tests"
+    account     = "mi-iptv-dev"
+    app_env     = "dev"
+    api_hostname      = module.dns_acm.api_hostname
+    realtime_hostname = module.dns_acm.realtime_hostname
+    health_path       = "/health"
+    ci_role_arn       = module.ci_oidc.role_arn
+    ecs_cluster_name  = aws_ecs_cluster.dev.name
+    api_log_group     = aws_cloudwatch_log_group.api.name
+    vpc_id            = module.network.vpc_id
+  }
+}

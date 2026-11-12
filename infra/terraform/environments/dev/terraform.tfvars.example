@@ -1,0 +1,15 @@
+# Copy to terraform.tfvars locally for live apply (never commit real secrets).
+# INF-010 — DEV environment for CI and internal tests.
+
+aws_region  = "us-east-1"
+project     = "mi-iptv"
+cost_center = "mi-iptv-mvp"
+vpc_cidr    = "10.10.0.0/16"
+app_port    = 3000
+
+github_org  = "mi-iptv"
+github_repo = "mi-iptv-backend"
+
+# After INF-030 ALB exists, set these to create api/realtime alias records:
+# alb_dns_name = "dualstack.mi-iptv-dev-alb-....elb.amazonaws.com"
+# alb_zone_id  = "Z35SXDOTRQ7X7K"
