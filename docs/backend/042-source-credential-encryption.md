@@ -52,6 +52,8 @@ Documented in INF-023; summary for BE-042 operators:
 
 `CredentialEncryptionKeyCatalog.rotationIntervalDays` exposes the DEK policy (365) to the composition root.
 
+Operational dual-read / re-encrypt drill: **SEC-030** (`docs/security/030-credential-encryption-review.md`, `DualReadSourceCredentialCipher`).
+
 ## Code map
 
 | Concern | Location |
