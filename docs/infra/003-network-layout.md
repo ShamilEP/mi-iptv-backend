@@ -37,8 +37,9 @@ Default CIDRs (overridable):
 ### Controlled egress / SSRF
 
 - Data subnets have **no** NAT route — DB/Redis cannot initiate internet access.
-- App egress is **not** `0.0.0.0/0 all traffic`; HTTPS + DNS only via NAT.
-- IPTV source URL fetching should later add application allowlists (separate Backend/Security task); network controls are defense in depth.
+- App egress is **not** `0.0.0.0/0 all traffic`; HTTPS + DNS only via NAT (no TCP/80 → IMDS blocked at SG).
+- Private-app **NACL** (SEC-031) additionally **denies** `169.254.0.0/16` egress before allow rules.
+- Application SSRF guards (BE-041) re-check DNS/redirects; attack matrix in `docs/security/031-ssrf-protection-tests.md`.
 
 MVP uses **one NAT gateway** (cost). Prod HA (NAT per AZ) is a follow-up.
 
