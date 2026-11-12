@@ -10,3 +10,5 @@
 | Refresh TTL | **30 days**, device-bound, hashed in `app.refresh_tokens` |
 
 HS256 is out of scope for MVP.
+
+Implementation: **BE-023** — `docs/backend/023-jwt-issuance-and-keys.md`.
