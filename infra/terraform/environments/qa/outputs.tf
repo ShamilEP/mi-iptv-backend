@@ -113,3 +113,15 @@ output "acm_certificate_arn" {
 output "acm_auto_renewal" {
   value = module.dns_acm.auto_renewal
 }
+
+output "ecr_repository_url" {
+  value = module.ecr.repository_url
+}
+
+output "ecr_repository_name" {
+  value = module.ecr.repository_name
+}
+
+output "ecr_scan_on_push" {
+  value = module.ecr.scan_on_push
+}
