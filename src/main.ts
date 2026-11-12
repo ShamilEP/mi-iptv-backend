@@ -1,10 +1,17 @@
 import { randomBytes } from 'node:crypto';
+import { ParseM3uPlaylist } from './application/catalog/parse-m3u-playlist.js';
 import { GetHealthStatus } from './application/health/get-health-status.js';
+import { CreateSource } from './application/sources/create-source.js';
+import { DeleteSource } from './application/sources/delete-source.js';
 import { FetchSourceUrlSafely } from './application/sources/fetch-source-url-safely.js';
+import { ListSources } from './application/sources/list-sources.js';
+import { UpdateSource } from './application/sources/update-source.js';
 import { ValidateSourceUrl } from './application/sources/validate-source-url.js';
 import { loadConfig, loadInjectedSecrets } from './config/env.js';
+import { loadM3uParserLimits } from './config/m3u-parser.js';
 import { loadPasswordHashParams } from './config/password-hashing.js';
 import { loadSourceHttpGuardConfig } from './config/source-http-guard.js';
+import { IsolatedM3uPlaylistParser } from './infrastructure/catalog/isolated-m3u-playlist-parser.js';
 import { Argon2PasswordHasher } from './infrastructure/crypto/argon2-password-hasher.js';
 import {
   Aes256GcmSourceCredentialCipher,
@@ -13,6 +20,7 @@ import {
 import { NodeSourceHttpClient } from './infrastructure/http/node-source-http-client.js';
 import { JsonConsoleLogger } from './infrastructure/logging/json-console-logger.js';
 import { NodeDnsResolver } from './infrastructure/net/node-dns-resolver.js';
+import { InMemorySourceRepository } from './infrastructure/persistence/in-memory-source-repository.js';
 import { EnvSecretStore } from './infrastructure/secrets/env-secret-store.js';
 import { StaticCredentialEncryptionKeyCatalog } from './infrastructure/secrets/static-credential-encryption-key-catalog.js';
 import { StaticKmsKeyResolver } from './infrastructure/secrets/static-kms-key-resolver.js';
@@ -70,6 +78,13 @@ async function bootstrap(): Promise<void> {
     sourceHttpGuard,
   );
 
+  // BE-044: isolated streaming M3U parser (ingest / source test).
+  const m3uParserLimits = loadM3uParserLimits(process.env);
+  const parseM3uPlaylist = new ParseM3uPlaylist(
+    new IsolatedM3uPlaylistParser(m3uParserLimits),
+    m3uParserLimits,
+  );
+
   const getHealthStatus = new GetHealthStatus();
   const httpServer = new NodeHttpServer(logger);
 
@@ -107,6 +122,10 @@ async function bootstrap(): Promise<void> {
     sourceHttpMaxResponseBytes: sourceHttpGuard.maxResponseBytes,
     sourceHttpTimeoutMs: sourceHttpGuard.timeoutMs,
     sourceUrlGuardReady: Boolean(fetchSourceUrlSafely),
+    m3uParserMaxBytes: m3uParserLimits.maxBytes,
+    m3uParserMaxEntries: m3uParserLimits.maxEntries,
+    m3uParserTimeoutMs: m3uParserLimits.timeoutMs,
+    m3uParserReady: Boolean(parseM3uPlaylist),
     secretsLoaded,
   });
 }
