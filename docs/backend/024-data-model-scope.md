@@ -10,4 +10,4 @@
 - `app.password_reset_tokens`
 - `app.refresh_tokens`
 
-MVP settings live on `app.profiles` JSON columns unless BE-011 adds a dedicated syncable settings table.
+MVP settings: `app.profile_settings` (syncable JSONB payload; BE-011) plus legacy convenience columns on `app.profiles`.

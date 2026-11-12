@@ -23,7 +23,8 @@ Secrets are never stored cleartext. Ciphertext columns are written by the applic
 
 ## Out of scope (owned by later tasks)
 
-- Extra tables already present in `001` (favorites, sync_events, refresh_tokens, catalog_*, …) are refined by **BE-011** / catalog tasks — not removed here.
+- Extended SRS tables / aliases: **BE-011** (`docs/backend/011-missing-srs-tables.md`) — favorites.`type`, `profile_settings`, `sync_log` view.
+- Catalog_* tables remain ingestion follow-ons.
 - Unique email / FK cascade / delta-index / server timestamps: **BE-012** (`docs/backend/012-constraints-indexes-timestamps.md`).
 - Live migrate-before-deploy: **INF-024**.
 

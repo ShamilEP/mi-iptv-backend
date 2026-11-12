@@ -22,10 +22,10 @@ Backend §5.1 lists five core tables (`accounts`, `devices`, `profiles`, `playba
 | playback / progress | `app.playback_states` | In §5.1 + schema |
 | user IPTV sources | `app.user_sources` | In §5.1 + schema |
 | favorites | `app.favorites` | Schema present (beyond §5.1 list) |
-| sync_log | `app.sync_events` | Schema present (idempotency + conflict audit) |
+| sync_log | `app.sync_events` (+ view `app.sync_log`, BE-011) | Schema present (idempotency + conflict audit) |
 | password-reset tokens | `app.password_reset_tokens` | Schema present |
 | refresh-token metadata | `app.refresh_tokens` | Schema present |
-| settings | MVP: profile JSON (`subtitle_prefs`, `restrictions`, …); dedicated `settings` / `profile_settings` only if BE-011 still needs a syncable table after gap review | BE-011 |
+| settings | **`app.profile_settings`** (syncable JSONB; BE-011) + legacy profile JSON columns | Done (BE-011) |
 
 3. Backend §5.1 docs must **reference** the extended tables (or point to the migration) so Product/Backend stay aligned — not pretend only five tables exist in the database.
 
