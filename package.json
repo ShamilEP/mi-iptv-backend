@@ -14,8 +14,10 @@
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "test": "tsx --test tests/unit/**/*.test.ts",
     "lint": "eslint .",
-    "format": "prettier --write \"src/**/*.{ts,js}\" \"tests/**/*.{ts,js}\" \"*.{js,json}\"",
-    "format:check": "prettier --check \"src/**/*.{ts,js}\" \"tests/**/*.{ts,js}\" \"*.{js,json}\""
+    "format": "prettier --write \"src/**/*.{ts,js}\" \"tests/**/*.{ts,js}\" \"scripts/**/*.{ts,js}\" \"*.{js,json}\" \"openapi/**/*.json\"",
+    "format:check": "prettier --check \"src/**/*.{ts,js}\" \"tests/**/*.{ts,js}\" \"scripts/**/*.{ts,js}\" \"*.{js,json}\" \"openapi/**/*.json\"",
+    "openapi:verify": "tsx scripts/verify-openapi.ts",
+    "ci": "npm run format:check && npm run lint && npm run typecheck && npm test && npm run openapi:verify"
   },
   "devDependencies": {
     "@types/node": "^26.6.6",
