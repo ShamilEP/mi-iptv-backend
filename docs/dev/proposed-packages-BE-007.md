@@ -1,6 +1,7 @@
 # Proposed packages for BE-007 (DB access)
 
-**Status:** Proposed — **do not install** until human approves.
+**Status:** Proposed — **do not install** until human approves.  
+**Note (BE-040):** Source Registry CRUD uses an in-memory repository until `pg` is approved for a Postgres adapter.
 
 BE-007 ships migration/seed tooling via **`psql`** (no new npm dependency). When use cases need in-process Postgres access, approve one client and wrap it behind an adapter.
 

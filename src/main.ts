@@ -1,3 +1,4 @@
+import { randomBytes } from 'node:crypto';
 import { GetHealthStatus } from './application/health/get-health-status.js';
 import { FetchSourceUrlSafely } from './application/sources/fetch-source-url-safely.js';
 import { ValidateSourceUrl } from './application/sources/validate-source-url.js';
@@ -17,6 +18,7 @@ import { StaticCredentialEncryptionKeyCatalog } from './infrastructure/secrets/s
 import { StaticKmsKeyResolver } from './infrastructure/secrets/static-kms-key-resolver.js';
 import { NodeHttpServer } from './presentation/http/node-http-server.js';
 import { createHealthRoute } from './presentation/http/routes/health-route.js';
+import { createSourcesRoutes } from './presentation/http/routes/sources-routes.js';
 
 async function bootstrap(): Promise<void> {
   const logger = new JsonConsoleLogger();
@@ -39,13 +41,25 @@ async function bootstrap(): Promise<void> {
     sourceCredentialsDataKey: Boolean(secrets.sourceCredentialsDataKey),
   };
 
-  // BE-042: envelope cipher when DEK is injected (KMS-managed via Secrets Manager).
-  const sourceCredentialCipher = secrets.sourceCredentialsDataKey
-    ? new Aes256GcmSourceCredentialCipher(
-        decodeSourceCredentialsDataKey(secrets.sourceCredentialsDataKey),
-        credentialKmsKey.keyId,
-      )
-    : null;
+  // BE-042/BE-040: envelope cipher. Process-local DEK if unset (in-memory store only).
+  const sourceCredentialCipher = new Aes256GcmSourceCredentialCipher(
+    secrets.sourceCredentialsDataKey
+      ? decodeSourceCredentialsDataKey(secrets.sourceCredentialsDataKey)
+      : randomBytes(32),
+    credentialKmsKey.keyId,
+  );
+
+  const sourceRepository = new InMemorySourceRepository();
+  const listSources = new ListSources(sourceRepository);
+  const createSource = new CreateSource(
+    sourceRepository,
+    sourceCredentialCipher,
+  );
+  const updateSource = new UpdateSource(
+    sourceRepository,
+    sourceCredentialCipher,
+  );
+  const deleteSource = new DeleteSource(sourceRepository);
 
   // BE-041: SSRF-safe source URL validation / fetch (wired for sources ingest).
   const sourceHttpGuard = loadSourceHttpGuardConfig(process.env);
@@ -60,6 +74,14 @@ async function bootstrap(): Promise<void> {
   const httpServer = new NodeHttpServer(logger);
 
   httpServer.register(createHealthRoute(getHealthStatus));
+  for (const route of createSourcesRoutes({
+    listSources,
+    createSource,
+    updateSource,
+    deleteSource,
+  })) {
+    httpServer.register(route);
+  }
 
   await httpServer.listen(config.port);
   logger.info('Mi IPTV backend listening', {
@@ -76,7 +98,9 @@ async function bootstrap(): Promise<void> {
     passwordHashTimeCost: passwordHashParams.timeCost,
     passwordHashParallelism: passwordHashParams.parallelism,
     passwordHasherReady: Boolean(passwordHasher),
-    sourceCredentialCipherReady: sourceCredentialCipher !== null,
+    sourceCredentialCipherReady: true,
+    sourceCredentialsDataKeyInjected: secretsLoaded.sourceCredentialsDataKey,
+    sourceRegistryPersistence: 'in-memory',
     sourceCredentialsAutomaticCmkRotation:
       credentialKmsKey.automaticCmkRotation,
     sourceHttpMaxRedirects: sourceHttpGuard.maxRedirects,
