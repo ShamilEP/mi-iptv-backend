@@ -1,6 +1,10 @@
 import { randomBytes } from 'node:crypto';
 import { FetchXtreamCatalog } from './application/catalog/fetch-xtream-catalog.js';
 import { ParseM3uPlaylist } from './application/catalog/parse-m3u-playlist.js';
+import { DeviceHeartbeat } from './application/devices/device-heartbeat.js';
+import { ListDevices } from './application/devices/list-devices.js';
+import { RegisterDevice } from './application/devices/register-device.js';
+import { UnlinkDevice } from './application/devices/unlink-device.js';
 import { GetHealthStatus } from './application/health/get-health-status.js';
 import { CreateSource } from './application/sources/create-source.js';
 import { DeleteSource } from './application/sources/delete-source.js';
@@ -23,11 +27,13 @@ import {
 import { NodeSourceHttpClient } from './infrastructure/http/node-source-http-client.js';
 import { JsonConsoleLogger } from './infrastructure/logging/json-console-logger.js';
 import { NodeDnsResolver } from './infrastructure/net/node-dns-resolver.js';
+import { InMemoryDeviceRepository } from './infrastructure/persistence/in-memory-device-repository.js';
 import { InMemorySourceRepository } from './infrastructure/persistence/in-memory-source-repository.js';
 import { EnvSecretStore } from './infrastructure/secrets/env-secret-store.js';
 import { StaticCredentialEncryptionKeyCatalog } from './infrastructure/secrets/static-credential-encryption-key-catalog.js';
 import { StaticKmsKeyResolver } from './infrastructure/secrets/static-kms-key-resolver.js';
 import { NodeHttpServer } from './presentation/http/node-http-server.js';
+import { createDevicesRoutes } from './presentation/http/routes/devices-routes.js';
 import { createHealthRoute } from './presentation/http/routes/health-route.js';
 import { createSourcesRoutes } from './presentation/http/routes/sources-routes.js';
 
@@ -102,6 +108,13 @@ async function bootstrap(): Promise<void> {
     sourceHttpGuard.timeoutMs,
   );
 
+  // BE-075: device registration / list / unlink / heartbeat.
+  const deviceRepository = new InMemoryDeviceRepository();
+  const listDevices = new ListDevices(deviceRepository);
+  const registerDevice = new RegisterDevice(deviceRepository);
+  const unlinkDevice = new UnlinkDevice(deviceRepository);
+  const deviceHeartbeat = new DeviceHeartbeat(deviceRepository);
+
   const getHealthStatus = new GetHealthStatus();
   const httpServer = new NodeHttpServer(logger);
 
@@ -112,6 +125,14 @@ async function bootstrap(): Promise<void> {
     updateSource,
     deleteSource,
     testSource,
+  })) {
+    httpServer.register(route);
+  }
+  for (const route of createDevicesRoutes({
+    listDevices,
+    registerDevice,
+    unlinkDevice,
+    deviceHeartbeat,
   })) {
     httpServer.register(route);
   }
@@ -134,6 +155,7 @@ async function bootstrap(): Promise<void> {
     sourceCredentialCipherReady: true,
     sourceCredentialsDataKeyInjected: secretsLoaded.sourceCredentialsDataKey,
     sourceRegistryPersistence: 'in-memory',
+    deviceRegistryPersistence: 'in-memory',
     sourceCredentialsAutomaticCmkRotation:
       credentialKmsKey.automaticCmkRotation,
     sourceHttpMaxRedirects: sourceHttpGuard.maxRedirects,

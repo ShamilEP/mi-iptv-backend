@@ -41,4 +41,24 @@ export const ROUTE_CATALOG: readonly RouteCatalogEntry[] = [
     path: '/api/v1/sources/{id}/test',
     operationId: 'testSource',
   },
+  {
+    method: 'GET',
+    path: '/api/v1/devices',
+    operationId: 'listDevices',
+  },
+  {
+    method: 'POST',
+    path: '/api/v1/devices/register',
+    operationId: 'registerDevice',
+  },
+  {
+    method: 'DELETE',
+    path: '/api/v1/devices/{id}',
+    operationId: 'unlinkDevice',
+  },
+  {
+    method: 'POST',
+    path: '/api/v1/devices/{id}/heartbeat',
+    operationId: 'deviceHeartbeat',
+  },
 ] as const;
