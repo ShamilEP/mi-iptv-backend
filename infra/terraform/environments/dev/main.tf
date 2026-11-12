@@ -31,3 +31,15 @@ module "rds_postgres" {
   deletion_protection      = var.db_deletion_protection
   skip_final_snapshot      = var.db_skip_final_snapshot
 }
+
+module "elasticache_redis" {
+  source = "../../modules/elasticache_redis"
+
+  name_prefix              = module.naming_tags.name_prefix
+  tags                     = module.naming_tags.tags
+  private_data_subnet_ids  = module.network.private_data_subnet_ids
+  redis_security_group_id  = module.network.redis_security_group_id
+  node_type                = var.redis_node_type
+  multi_az                 = var.redis_multi_az
+  auth_token               = var.redis_auth_token
+}

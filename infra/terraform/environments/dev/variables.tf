@@ -58,3 +58,22 @@ variable "db_skip_final_snapshot" {
   type    = bool
   default = true
 }
+
+# INF-022 — ElastiCache Redis (dev: single-AZ micro)
+variable "redis_node_type" {
+  type    = string
+  default = "cache.t4g.micro"
+}
+
+variable "redis_multi_az" {
+  type    = bool
+  default = false
+}
+
+variable "redis_auth_token" {
+  type        = string
+  description = "Redis AUTH token for live apply (TF_VAR_redis_auth_token); never commit."
+  sensitive   = true
+  default     = null
+  nullable    = true
+}
