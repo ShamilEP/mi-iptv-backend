@@ -67,3 +67,11 @@ module "ci_oidc" {
   github_repo          = var.github_repo
   create_oidc_provider = var.create_github_oidc_provider
 }
+
+# INF-005 — ECR for multi-stage non-root API images (scan-on-push enabled).
+module "ecr" {
+  source = "../../modules/ecr"
+
+  name_prefix = module.naming_tags.name_prefix
+  tags        = module.naming_tags.tags
+}

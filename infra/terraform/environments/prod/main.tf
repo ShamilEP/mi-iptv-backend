@@ -55,3 +55,11 @@ module "dns_acm" {
   alb_dns_name       = var.alb_dns_name
   alb_zone_id        = var.alb_zone_id
 }
+
+# INF-005 — ECR for multi-stage non-root API images (scan-on-push enabled).
+module "ecr" {
+  source = "../../modules/ecr"
+
+  name_prefix = module.naming_tags.name_prefix
+  tags        = module.naming_tags.tags
+}

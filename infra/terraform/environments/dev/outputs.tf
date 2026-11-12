@@ -134,6 +134,18 @@ output "api_log_group_name" {
   value = aws_cloudwatch_log_group.api.name
 }
 
+output "ecr_repository_url" {
+  value = module.ecr.repository_url
+}
+
+output "ecr_repository_name" {
+  value = module.ecr.repository_name
+}
+
+output "ecr_scan_on_push" {
+  value = module.ecr.scan_on_push
+}
+
 # Contract consumed by CI / internal tests (INF-010).
 output "environment_contract" {
   value = {
@@ -147,6 +159,7 @@ output "environment_contract" {
     ci_role_arn       = module.ci_oidc.role_arn
     ecs_cluster_name  = aws_ecs_cluster.dev.name
     api_log_group     = aws_cloudwatch_log_group.api.name
+    ecr_repository_url = module.ecr.repository_url
     vpc_id            = module.network.vpc_id
   }
 }

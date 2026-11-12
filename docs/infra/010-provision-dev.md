@@ -31,12 +31,13 @@ Provision the **DEV** environment as the target for **CI** and **internal develo
 | CI OIDC deploy/test role | `ci_oidc` | **INF-010** |
 | API log group | CloudWatch `/mi-iptv/dev/api` | **INF-010** |
 | ECS cluster (Fargate) | `dev` cluster, no service yet | **INF-010** (service/image/ALB later) |
+| ECR API repository | `ecr` | **INF-005** |
 
 Deferred to dedicated tasks (not duplicated here):
 
 | Capability | Task |
 | --- | --- |
-| ECR + non-root image baseline | INF-005 |
+| ECR + non-root image baseline | INF-005 (module `ecr` + container-image workflow) |
 | ALB HTTPS listener | INF-030 |
 | PR validation / deploy pipelines | INF-040+ |
 | PROD autoscaling 1–5 | INF-012 |
