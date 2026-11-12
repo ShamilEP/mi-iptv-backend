@@ -1,18 +1,18 @@
 import { randomBytes } from 'node:crypto';
 import { GetHealthStatus } from './application/health/get-health-status.js';
-import { CreateSource } from './application/sources/create-source.js';
-import { DeleteSource } from './application/sources/delete-source.js';
-import { ListSources } from './application/sources/list-sources.js';
-import { UpdateSource } from './application/sources/update-source.js';
+import { FetchSourceUrlSafely } from './application/sources/fetch-source-url-safely.js';
+import { ValidateSourceUrl } from './application/sources/validate-source-url.js';
 import { loadConfig, loadInjectedSecrets } from './config/env.js';
 import { loadPasswordHashParams } from './config/password-hashing.js';
+import { loadSourceHttpGuardConfig } from './config/source-http-guard.js';
 import { Argon2PasswordHasher } from './infrastructure/crypto/argon2-password-hasher.js';
 import {
   Aes256GcmSourceCredentialCipher,
   decodeSourceCredentialsDataKey,
 } from './infrastructure/crypto/aes256-gcm-source-credential-cipher.js';
+import { NodeSourceHttpClient } from './infrastructure/http/node-source-http-client.js';
 import { JsonConsoleLogger } from './infrastructure/logging/json-console-logger.js';
-import { InMemorySourceRepository } from './infrastructure/persistence/in-memory-source-repository.js';
+import { NodeDnsResolver } from './infrastructure/net/node-dns-resolver.js';
 import { EnvSecretStore } from './infrastructure/secrets/env-secret-store.js';
 import { StaticCredentialEncryptionKeyCatalog } from './infrastructure/secrets/static-credential-encryption-key-catalog.js';
 import { StaticKmsKeyResolver } from './infrastructure/secrets/static-kms-key-resolver.js';
@@ -61,6 +61,15 @@ async function bootstrap(): Promise<void> {
   );
   const deleteSource = new DeleteSource(sourceRepository);
 
+  // BE-041: SSRF-safe source URL validation / fetch (wired for sources ingest).
+  const sourceHttpGuard = loadSourceHttpGuardConfig(process.env);
+  const validateSourceUrl = new ValidateSourceUrl(new NodeDnsResolver());
+  const fetchSourceUrlSafely = new FetchSourceUrlSafely(
+    validateSourceUrl,
+    new NodeSourceHttpClient(),
+    sourceHttpGuard,
+  );
+
   const getHealthStatus = new GetHealthStatus();
   const httpServer = new NodeHttpServer(logger);
 
@@ -94,6 +103,10 @@ async function bootstrap(): Promise<void> {
     sourceRegistryPersistence: 'in-memory',
     sourceCredentialsAutomaticCmkRotation:
       credentialKmsKey.automaticCmkRotation,
+    sourceHttpMaxRedirects: sourceHttpGuard.maxRedirects,
+    sourceHttpMaxResponseBytes: sourceHttpGuard.maxResponseBytes,
+    sourceHttpTimeoutMs: sourceHttpGuard.timeoutMs,
+    sourceUrlGuardReady: Boolean(fetchSourceUrlSafely),
     secretsLoaded,
   });
 }
