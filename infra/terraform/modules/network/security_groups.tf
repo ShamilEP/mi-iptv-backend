@@ -37,7 +37,7 @@ resource "aws_vpc_security_group_egress_rule" "alb_to_app" {
 
 resource "aws_security_group" "app" {
   name        = "${var.name_prefix}-app"
-  description = "ECS app tasks; controlled egress for SSRF reduction"
+  description = "ECS app tasks; controlled egress for SSRF reduction (SEC-031 + INF-003)"
   vpc_id      = aws_vpc.this.id
 
   tags = merge(var.tags, {
@@ -54,9 +54,11 @@ resource "aws_vpc_security_group_ingress_rule" "app_from_alb" {
   referenced_security_group_id = aws_security_group.alb.id
 }
 
+# Intentionally no TCP/80: blocks IMDS (http://169.254.169.254) at SG layer.
+# Plain-HTTP IPTV sources stay app-blocked or need a future scoped allow + NACL.
 resource "aws_vpc_security_group_egress_rule" "app_https" {
   security_group_id = aws_security_group.app.id
-  description       = "HTTPS egress via NAT (APIs, IPTV sources over TLS)"
+  description       = "HTTPS egress via NAT (APIs, IPTV sources over TLS); no all-traffic"
   ip_protocol       = "tcp"
   from_port         = 443
   to_port           = 443

@@ -40,7 +40,11 @@ Composition root wires:
 
 Sources HTTP routes (BE-040 follow-ups) must use these use cases; do not call raw `fetch`/`http.request` for user URLs.
 
+## Related
+
+- SEC-031 attack matrix + private-app NACL: `docs/security/031-ssrf-protection-tests.md`
+
 ## Out of scope
 
 - Full source CRUD / playlist parsers (separate tasks)
-- Network egress SG rules (INF-003 already documents defense in depth)
+- Opening TCP/80 for plain-HTTP playlists (kept closed to block IMDS; see SEC-031)
