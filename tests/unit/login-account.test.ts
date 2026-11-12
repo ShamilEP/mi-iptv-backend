@@ -3,6 +3,7 @@ import { generateKeyPairSync, randomUUID } from 'node:crypto';
 import { describe, it } from 'node:test';
 import { IssueAuthTokenPair } from '../../src/application/auth/issue-auth-token-pair.js';
 import { LoginAccount } from '../../src/application/auth/login-account.js';
+import { RefreshAuthSession } from '../../src/application/auth/refresh-auth-session.js';
 import { loadJwtTokenTtlConfig } from '../../src/config/jwt-tokens.js';
 import { loadPasswordHashParams } from '../../src/config/password-hashing.js';
 import { DomainError } from '../../src/domain/shared/domain-error.js';
@@ -23,6 +24,7 @@ const testHashParams = loadPasswordHashParams({
 
 async function createLoginStack(): Promise<{
   readonly login: LoginAccount;
+  readonly refreshSession: RefreshAuthSession;
   readonly accounts: InMemoryAccountRepository;
   readonly refreshTokens: InMemoryRefreshTokenRepository;
   readonly hasher: Argon2PasswordHasher;
@@ -44,13 +46,20 @@ async function createLoginStack(): Promise<{
   const hasher = new Argon2PasswordHasher(testHashParams);
   const accounts = new InMemoryAccountRepository();
   const refreshTokens = new InMemoryRefreshTokenRepository();
+  const issuePair = new IssueAuthTokenPair(access, refresh);
   const login = new LoginAccount(
     accounts,
     hasher,
-    new IssueAuthTokenPair(access, refresh),
+    issuePair,
     refreshTokens,
   );
-  return { login, accounts, refreshTokens, hasher, access };
+  const refreshSession = new RefreshAuthSession(
+    accounts,
+    refresh,
+    refreshTokens,
+    issuePair,
+  );
+  return { login, refreshSession, accounts, refreshTokens, hasher, access };
 }
 
 describe('BE-022 LoginAccount', () => {
@@ -171,8 +180,11 @@ describe('BE-022 LoginAccount', () => {
   });
 
   it('HTTP login route maps AUTH_INVALID to 401 uniformly', async () => {
-    const { login } = await createLoginStack();
-    const [route] = createAuthRoutes({ loginAccount: login });
+    const { login, refreshSession } = await createLoginStack();
+    const [route] = createAuthRoutes({
+      loginAccount: login,
+      refreshAuthSession: refreshSession,
+    });
     assert.ok(route);
 
     const catalog = ROUTE_CATALOG.find(

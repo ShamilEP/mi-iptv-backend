@@ -77,6 +77,55 @@
         }
       }
     },
+    "/api/v1/auth/refresh": {
+      "post": {
+        "operationId": "refresh",
+        "summary": "Rotate refresh token and issue a new access JWT",
+        "description": "Marks the presented refresh token as used, returns a new access + refresh pair in the same family. Reuse of a spent token revokes the family.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/RefreshRequest" }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Rotated session tokens",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/RefreshResponse" }
+              }
+            }
+          },
+          "400": {
+            "description": "Missing or invalid input",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/AuthError" }
+              }
+            }
+          },
+          "401": {
+            "description": "Invalid, revoked, expired, or reused refresh token",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/AuthError" }
+              }
+            }
+          },
+          "403": {
+            "description": "Account inactive",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/AuthError" }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/sources": {
       "get": {
         "operationId": "listSources",
@@ -535,6 +584,33 @@
           "accountId": { "type": "string", "format": "uuid" },
           "accessToken": { "type": "string" },
           "refreshToken": { "type": "string" },
+          "expiresIn": {
+            "type": "integer",
+            "description": "Access token TTL in seconds",
+            "example": 3600
+          }
+        }
+      },
+      "RefreshRequest": {
+        "type": "object",
+        "required": ["refreshToken"],
+        "properties": {
+          "refreshToken": {
+            "type": "string",
+            "description": "Opaque refresh token from login or prior rotation"
+          }
+        }
+      },
+      "RefreshResponse": {
+        "type": "object",
+        "required": ["accountId", "accessToken", "refreshToken", "expiresIn"],
+        "properties": {
+          "accountId": { "type": "string", "format": "uuid" },
+          "accessToken": { "type": "string" },
+          "refreshToken": {
+            "type": "string",
+            "description": "Rotated refresh token; previous token is spent"
+          },
           "expiresIn": {
             "type": "integer",
             "description": "Access token TTL in seconds",
