@@ -189,6 +189,137 @@
           }
         }
       }
+    },
+    "/api/v1/devices": {
+      "get": {
+        "operationId": "listDevices",
+        "summary": "List linked devices for the account",
+        "parameters": [
+          {
+            "name": "x-account-id",
+            "in": "header",
+            "required": true,
+            "schema": { "type": "string", "format": "uuid" }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Active devices (push tokens never returned)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["items"],
+                  "properties": {
+                    "items": {
+                      "type": "array",
+                      "items": { "$ref": "#/components/schemas/DevicePublic" }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/devices/register": {
+      "post": {
+        "operationId": "registerDevice",
+        "summary": "Register a TV or Companion device",
+        "parameters": [
+          {
+            "name": "x-account-id",
+            "in": "header",
+            "required": true,
+            "schema": { "type": "string", "format": "uuid" }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/RegisterDeviceRequest" }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Registered",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/DevicePublic" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/devices/{id}": {
+      "delete": {
+        "operationId": "unlinkDevice",
+        "summary": "Unlink (revoke) a device",
+        "parameters": [
+          {
+            "name": "x-account-id",
+            "in": "header",
+            "required": true,
+            "schema": { "type": "string", "format": "uuid" }
+          },
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string", "format": "uuid" }
+          }
+        ],
+        "responses": {
+          "204": { "description": "Unlinked" }
+        }
+      }
+    },
+    "/api/v1/devices/{id}/heartbeat": {
+      "post": {
+        "operationId": "deviceHeartbeat",
+        "summary": "Update device last_seen_at (optional push token refresh)",
+        "parameters": [
+          {
+            "name": "x-account-id",
+            "in": "header",
+            "required": true,
+            "schema": { "type": "string", "format": "uuid" }
+          },
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string", "format": "uuid" }
+          }
+        ],
+        "requestBody": {
+          "required": false,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "pushToken": { "type": "string" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Heartbeat accepted",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/DevicePublic" }
+              }
+            }
+          }
+        }
+      }
     }
   },
   "components": {
@@ -287,6 +418,52 @@
               "token": { "type": "string" }
             }
           }
+        }
+      },
+      "DevicePublic": {
+        "type": "object",
+        "required": [
+          "id",
+          "deviceType",
+          "platform",
+          "name",
+          "model",
+          "appVersion",
+          "osVersion",
+          "pushTokenConfigured",
+          "pairedAt",
+          "lastSeenAt"
+        ],
+        "properties": {
+          "id": { "type": "string", "format": "uuid" },
+          "deviceType": { "type": "string", "enum": ["tv", "companion"] },
+          "platform": {
+            "type": "string",
+            "enum": ["android_tv", "android", "ios"]
+          },
+          "name": { "type": ["string", "null"] },
+          "model": { "type": ["string", "null"] },
+          "appVersion": { "type": ["string", "null"] },
+          "osVersion": { "type": ["string", "null"] },
+          "pushTokenConfigured": { "type": "boolean" },
+          "pairedAt": { "type": "string", "format": "date-time" },
+          "lastSeenAt": { "type": ["string", "null"], "format": "date-time" }
+        }
+      },
+      "RegisterDeviceRequest": {
+        "type": "object",
+        "required": ["deviceType", "platform"],
+        "properties": {
+          "deviceType": { "type": "string", "enum": ["tv", "companion"] },
+          "platform": {
+            "type": "string",
+            "enum": ["android_tv", "android", "ios"]
+          },
+          "name": { "type": "string" },
+          "model": { "type": "string" },
+          "appVersion": { "type": "string" },
+          "osVersion": { "type": "string" },
+          "pushToken": { "type": "string" }
         }
       }
     }
