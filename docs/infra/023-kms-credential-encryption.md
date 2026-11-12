@@ -52,8 +52,11 @@ Human SSO sets (INF-001) do **not** get `kms:Decrypt` on PROD credential keys by
 
 Policy stubs (mock JSON for later IaC):
 
-- `docs/infra/policies/kms-source-credentials-task-role.json`
+- `docs/infra/policies/kms-source-credentials-task-role.json` (CMK use + DEK secret read)
 - `docs/infra/policies/kms-source-credentials-deny-cross-env.json`
+- `docs/infra/policies/kms-source-credentials-ci-role.json` (DescribeKey only; deny decrypt)
+
+SEC-030 reviewed these stubs and added the CI role + DEK secret ARN scope.
 
 ## Verification checklist (DoD) — mock complete
 

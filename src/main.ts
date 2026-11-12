@@ -58,11 +58,12 @@ async function bootstrap(): Promise<void> {
     sourceCredentialsDataKey: Boolean(secrets.sourceCredentialsDataKey),
   };
 
-  // BE-042/BE-040: envelope cipher. Process-local DEK if unset (in-memory store only).
+  // BE-042/SEC-030: AES-256-GCM with KMS-managed DEK. Fail closed outside dev.
   const sourceCredentialCipher = new Aes256GcmSourceCredentialCipher(
-    secrets.sourceCredentialsDataKey
-      ? decodeSourceCredentialsDataKey(secrets.sourceCredentialsDataKey)
-      : randomBytes(32),
+    resolveSourceCredentialsDataKey(
+      config.appEnv,
+      secrets.sourceCredentialsDataKey,
+    ),
     credentialKmsKey.keyId,
   );
 
@@ -169,6 +170,22 @@ async function bootstrap(): Promise<void> {
     xtreamAdapterReady: Boolean(fetchXtreamCatalog),
     secretsLoaded,
   });
+}
+
+function resolveSourceCredentialsDataKey(
+  appEnv: string,
+  injected: string | undefined,
+): Uint8Array {
+  if (injected !== undefined && injected.trim() !== '') {
+    return decodeSourceCredentialsDataKey(injected);
+  }
+  if (appEnv === 'dev') {
+    // Sprint 0 local/in-memory only — never for qa/prod.
+    return randomBytes(32);
+  }
+  throw new Error(
+    'SOURCE_CREDENTIALS_DATA_KEY is required outside APP_ENV=dev (SEC-030)',
+  );
 }
 
 bootstrap().catch((error: unknown) => {
