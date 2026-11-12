@@ -9,6 +9,7 @@ export type SourcePublicView = {
   readonly priority: number;
   readonly enabled: boolean;
   readonly status: string;
+  readonly statusReason: string | null;
   readonly syncVersion: number;
   readonly credentialsConfigured: boolean;
   readonly username: null;
@@ -28,6 +29,7 @@ export function toSourcePublicView(source: UserSource): SourcePublicView {
     priority: source.priority,
     enabled: source.enabled,
     status: source.status,
+    statusReason: source.statusReason,
     syncVersion: source.syncVersion,
     ...masked,
   };

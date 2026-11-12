@@ -2,6 +2,7 @@ import { DomainError } from '../../../domain/shared/domain-error.js';
 import type { CreateSource } from '../../../application/sources/create-source.js';
 import type { DeleteSource } from '../../../application/sources/delete-source.js';
 import type { ListSources } from '../../../application/sources/list-sources.js';
+import type { TestSource } from '../../../application/sources/test-source.js';
 import type { UpdateSource } from '../../../application/sources/update-source.js';
 import type {
   HttpRequest,
@@ -18,6 +19,7 @@ export function createSourcesRoutes(deps: {
   readonly createSource: CreateSource;
   readonly updateSource: UpdateSource;
   readonly deleteSource: DeleteSource;
+  readonly testSource: TestSource;
 }): readonly HttpRoute[] {
   return [
     {
@@ -39,6 +41,11 @@ export function createSourcesRoutes(deps: {
       method: 'DELETE',
       path: '/api/v1/sources/{id}',
       handler: (request) => handleDelete(request, deps.deleteSource),
+    },
+    {
+      method: 'POST',
+      path: '/api/v1/sources/{id}/test',
+      handler: (request) => handleTest(request, deps.testSource),
     },
   ];
 }
@@ -157,6 +164,34 @@ async function handleDelete(
   }
 }
 
+async function handleTest(
+  request: HttpRequest,
+  testSource: TestSource,
+): Promise<HttpResponse> {
+  const accountId = requireAccountId(request);
+  if (typeof accountId !== 'string') {
+    return accountId;
+  }
+  const sourceId = request.params?.id;
+  if (!sourceId) {
+    return {
+      statusCode: 400,
+      headers: JSON_HEADERS,
+      body: { error: 'Source id required' },
+    };
+  }
+  try {
+    const result = await testSource.execute(accountId, sourceId);
+    return {
+      statusCode: result.ok ? 200 : 422,
+      headers: JSON_HEADERS,
+      body: result,
+    };
+  } catch (error: unknown) {
+    return mapDomainError(error);
+  }
+}
+
 function requireAccountId(request: HttpRequest): string | HttpResponse {
   if (request.accountId === undefined || request.accountId === null) {
     return {
@@ -174,7 +209,8 @@ function mapDomainError(error: unknown): HttpResponse {
       error.code === 'SOURCE_NOT_FOUND'
         ? 404
         : error.code === 'SOURCE_NOT_EDITABLE' ||
-            error.code === 'SOURCE_NOT_DELETABLE'
+            error.code === 'SOURCE_NOT_DELETABLE' ||
+            error.code === 'SOURCE_NOT_TESTABLE'
           ? 403
           : 400;
     return {

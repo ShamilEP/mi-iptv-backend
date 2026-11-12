@@ -6,6 +6,7 @@ import { CreateSource } from './application/sources/create-source.js';
 import { DeleteSource } from './application/sources/delete-source.js';
 import { FetchSourceUrlSafely } from './application/sources/fetch-source-url-safely.js';
 import { ListSources } from './application/sources/list-sources.js';
+import { TestSource } from './application/sources/test-source.js';
 import { UpdateSource } from './application/sources/update-source.js';
 import { ValidateSourceUrl } from './application/sources/validate-source-url.js';
 import { loadConfig, loadInjectedSecrets } from './config/env.js';
@@ -88,8 +89,17 @@ async function bootstrap(): Promise<void> {
   );
 
   // BE-045: Xtream Codes player_api adapter (SSRF-safe fetch).
-  const fetchXtreamCatalog = new FetchXtreamCatalog(
-    new HttpXtreamCodesClient(fetchSourceUrlSafely),
+  const xtreamClient = new HttpXtreamCodesClient(fetchSourceUrlSafely);
+  const fetchXtreamCatalog = new FetchXtreamCatalog(xtreamClient);
+
+  // BE-043: source connectivity test with classified reasons.
+  const testSource = new TestSource(
+    sourceRepository,
+    sourceCredentialCipher,
+    fetchSourceUrlSafely,
+    parseM3uPlaylist,
+    xtreamClient,
+    sourceHttpGuard.timeoutMs,
   );
 
   const getHealthStatus = new GetHealthStatus();
@@ -101,6 +111,7 @@ async function bootstrap(): Promise<void> {
     createSource,
     updateSource,
     deleteSource,
+    testSource,
   })) {
     httpServer.register(route);
   }
