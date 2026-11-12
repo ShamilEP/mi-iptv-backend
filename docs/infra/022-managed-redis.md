@@ -18,6 +18,7 @@ Provision **Amazon ElastiCache for Redis** in private data subnets for sessions 
 | Access | `redis` SG — TCP **6379** from `app` SG only |
 | Encryption | At-rest + in-transit; AUTH token via `TF_VAR` / Secrets Manager at live apply |
 | App config | **`REDIS_URL`** (session/deny-list/pubsub) and **`REDIS_CACHE_URL`** (catalog cache); names only in app |
+| Node client | Approved **`ioredis`** behind `RedisClient` / `IoredisRedisClient` — see `docs/dev/proposed-packages-redis.md` |
 
 Refresh tokens remain authoritative in **PostgreSQL** (hashed). Redis holds only ephemeral deny-list / cache / presence / pub/sub (Backend §5.2 + schema notes).
 

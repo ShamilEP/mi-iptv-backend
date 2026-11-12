@@ -25,7 +25,7 @@ Auth stand-in: `x-account-id` until JWT (BE-023).
 
 - `tv` ↔ `android_tv`; `companion` ↔ `android` \| `ios`
 - API never returns raw `pushToken` — only `pushTokenConfigured`
-- Sprint 0 persistence: `InMemoryDeviceRepository` (Postgres after `pg` approval)
+- Sprint 0 persistence: `InMemoryDeviceRepository` (`pg` approved — wire Postgres adapter over `RelationalDatabase` next)
 
 ## Out of scope
 

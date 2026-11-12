@@ -1,15 +1,23 @@
-# Proposed packages for BE-007 (DB access)
+# Approved packages for DB access (BE-007 / persistence)
 
-**Status:** Proposed — **do not install** until human approves.  
-**Note (BE-040):** Source Registry CRUD uses an in-memory repository until `pg` is approved for a Postgres adapter.
+**Status:** **Approved** (2026-11-12) — `pg` + `@types/pg`.  
+**Note:** Source/device registries still use in-memory repositories until Postgres adapters are wired onto `RelationalDatabase`.
 
-BE-007 ships migration/seed tooling via **`psql`** (no new npm dependency). When use cases need in-process Postgres access, approve one client and wrap it behind an adapter.
+Migrations/seeds continue via **`psql`** + `DATABASE_URL`. In-process SQL uses the approved client **behind a port**.
 
-| Package | Purpose | Alternatives |
+| Package | Purpose | Alternatives (not selected) |
 | --- | --- | --- |
-| `pg` | Official node-postgres driver for app repositories / optional migrate runner | `postgres` (porsager), `pg-promise` |
-| `@types/pg` | TypeScript types (if `pg` lacks bundled types for our TS version) | — |
+| **`pg`** | Official node-postgres driver for repository / SQL adapters | `postgres` (porsager), `pg-promise` |
+| **`@types/pg`** | TypeScript types | — |
 
-Not proposed for BE-007 DoD: Prisma / Drizzle / Knex (heavier; can revisit later).
+Not approved: Prisma / Drizzle / Knex (heavier; revisit later if needed).
 
-After approval: implement `infrastructure/persistence/pg-*` adapters only; domain/application never import `pg`.
+## Adapter boundary
+
+| Layer | Rule |
+| --- | --- |
+| Domain / application | Depend on `RelationalDatabase` only — never import `pg` |
+| Infrastructure | `PgPoolRelationalDatabase` in `src/infrastructure/persistence/pg-pool-relational-database.ts` |
+| Composition | Optional via `DATABASE_URL` (`createPgPoolRelationalDatabaseFromEnv`) |
+
+Repository adapters (`pg-source-repository`, `pg-device-repository`, …) should take `RelationalDatabase`, not `pg.Pool` directly.

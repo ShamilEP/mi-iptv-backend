@@ -22,7 +22,7 @@ Auth stand-in: header `x-account-id` until JWT (BE-023). SSRF validation of `uri
 
 ## Persistence
 
-Sprint 0 uses `InMemorySourceRepository`. Durable Postgres adapter waits on approving **`pg`** (`docs/dev/proposed-packages-BE-007.md`).
+Sprint 0 still uses `InMemorySourceRepository`. **`pg` is approved** — wire a `SourceRepository` adapter over `RelationalDatabase` when replacing in-memory persistence (`docs/dev/proposed-packages-BE-007.md`).
 
 ## Verification checklist (DoD)
 
