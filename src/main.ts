@@ -1,4 +1,5 @@
-import { randomBytes } from 'node:crypto';
+import { generateKeyPairSync, randomBytes } from 'node:crypto';
+import { IssueAuthTokenPair } from './application/auth/issue-auth-token-pair.js';
 import { FetchXtreamCatalog } from './application/catalog/fetch-xtream-catalog.js';
 import { ParseM3uPlaylist } from './application/catalog/parse-m3u-playlist.js';
 import { DeviceHeartbeat } from './application/devices/device-heartbeat.js';
@@ -6,6 +7,7 @@ import { ListDevices } from './application/devices/list-devices.js';
 import { RegisterDevice } from './application/devices/register-device.js';
 import { UnlinkDevice } from './application/devices/unlink-device.js';
 import { GetHealthStatus } from './application/health/get-health-status.js';
+import type { JwtSigningKeyStore } from './application/ports/jwt-signing-key-store.js';
 import { CreateSource } from './application/sources/create-source.js';
 import { DeleteSource } from './application/sources/delete-source.js';
 import { FetchSourceUrlSafely } from './application/sources/fetch-source-url-safely.js';
@@ -14,6 +16,7 @@ import { TestSource } from './application/sources/test-source.js';
 import { UpdateSource } from './application/sources/update-source.js';
 import { ValidateSourceUrl } from './application/sources/validate-source-url.js';
 import { loadConfig, loadInjectedSecrets } from './config/env.js';
+import { loadJwtTokenTtlConfig } from './config/jwt-tokens.js';
 import { loadM3uParserLimits } from './config/m3u-parser.js';
 import { loadPasswordHashParams } from './config/password-hashing.js';
 import { loadSourceHttpGuardConfig } from './config/source-http-guard.js';
@@ -24,11 +27,14 @@ import {
   Aes256GcmSourceCredentialCipher,
   decodeSourceCredentialsDataKey,
 } from './infrastructure/crypto/aes256-gcm-source-credential-cipher.js';
+import { NodeRs256AccessTokenService } from './infrastructure/crypto/node-rs256-access-token-service.js';
+import { OpaqueRefreshTokenService } from './infrastructure/crypto/opaque-refresh-token-service.js';
 import { NodeSourceHttpClient } from './infrastructure/http/node-source-http-client.js';
 import { JsonConsoleLogger } from './infrastructure/logging/json-console-logger.js';
 import { NodeDnsResolver } from './infrastructure/net/node-dns-resolver.js';
 import { InMemoryDeviceRepository } from './infrastructure/persistence/in-memory-device-repository.js';
 import { InMemorySourceRepository } from './infrastructure/persistence/in-memory-source-repository.js';
+import { EnvJwtSigningKeyStore } from './infrastructure/secrets/env-jwt-signing-key-store.js';
 import { EnvSecretStore } from './infrastructure/secrets/env-secret-store.js';
 import { StaticCredentialEncryptionKeyCatalog } from './infrastructure/secrets/static-credential-encryption-key-catalog.js';
 import { StaticKmsKeyResolver } from './infrastructure/secrets/static-kms-key-resolver.js';
@@ -47,6 +53,7 @@ async function bootstrap(): Promise<void> {
   // Wired for auth use cases (BE-020+); plaintext passwords never logged.
   const passwordHasher = new Argon2PasswordHasher(passwordHashParams);
   const credentialKmsKey = credentialKeyCatalog.get(config.appEnv);
+  const jwtTtl = loadJwtTokenTtlConfig(process.env);
 
   // Secrets from secret manager port (INF-013). Values are never logged.
   const secrets = await loadInjectedSecrets(config.appEnv, secretStore);
@@ -57,6 +64,23 @@ async function bootstrap(): Promise<void> {
     jwtPublicKey: Boolean(secrets.jwtPublicKey),
     sourceCredentialsDataKey: Boolean(secrets.sourceCredentialsDataKey),
   };
+
+  // BE-023: RS256 access JWT + opaque device-bound refresh (ADR-004).
+  const jwtSigningKeys = resolveJwtSigningKeyStore(
+    config.appEnv,
+    secrets.jwtPrivateKey,
+    secrets.jwtPublicKey,
+    process.env,
+  );
+  const accessTokenService = new NodeRs256AccessTokenService(
+    jwtSigningKeys,
+    jwtTtl,
+  );
+  const refreshTokenService = new OpaqueRefreshTokenService(jwtTtl);
+  const issueAuthTokenPair = new IssueAuthTokenPair(
+    accessTokenService,
+    refreshTokenService,
+  );
 
   // BE-042/SEC-030: AES-256-GCM with KMS-managed DEK. Fail closed outside dev.
   const sourceCredentialCipher = new Aes256GcmSourceCredentialCipher(
@@ -153,6 +177,11 @@ async function bootstrap(): Promise<void> {
     passwordHashTimeCost: passwordHashParams.timeCost,
     passwordHashParallelism: passwordHashParams.parallelism,
     passwordHasherReady: Boolean(passwordHasher),
+    jwtAccessTtlSeconds: jwtTtl.accessTokenTtlSeconds,
+    jwtRefreshTtlSeconds: jwtTtl.refreshTokenTtlSeconds,
+    jwtIssuer: jwtTtl.issuer,
+    jwtActiveKid: jwtSigningKeys.getActiveSigningKey().kid,
+    jwtSigningReady: Boolean(issueAuthTokenPair),
     sourceCredentialCipherReady: true,
     sourceCredentialsDataKeyInjected: secretsLoaded.sourceCredentialsDataKey,
     sourceRegistryPersistence: 'in-memory',
@@ -185,6 +214,45 @@ function resolveSourceCredentialsDataKey(
   }
   throw new Error(
     'SOURCE_CREDENTIALS_DATA_KEY is required outside APP_ENV=dev (SEC-030)',
+  );
+}
+
+function resolveJwtSigningKeyStore(
+  appEnv: string,
+  privateKeyPem: string | undefined,
+  publicKeyPem: string | undefined,
+  env: NodeJS.ProcessEnv,
+): JwtSigningKeyStore {
+  const activeKid = env['JWT_KEY_ID']?.trim();
+  if (
+    privateKeyPem !== undefined &&
+    privateKeyPem.trim() !== '' &&
+    publicKeyPem !== undefined &&
+    publicKeyPem.trim() !== '' &&
+    activeKid !== undefined &&
+    activeKid.length > 0
+  ) {
+    return new EnvJwtSigningKeyStore({
+      privateKeyPem,
+      publicKeyPem,
+      activeKid,
+      previousPublicKeysJson: env['JWT_PREVIOUS_PUBLIC_KEYS'],
+    });
+  }
+  if (appEnv === 'dev') {
+    const { privateKey, publicKey } = generateKeyPairSync('rsa', {
+      modulusLength: 2048,
+      publicKeyEncoding: { type: 'spki', format: 'pem' },
+      privateKeyEncoding: { type: 'pkcs8', format: 'pem' },
+    });
+    return new EnvJwtSigningKeyStore({
+      privateKeyPem: privateKey,
+      publicKeyPem: publicKey,
+      activeKid: activeKid !== undefined && activeKid.length > 0 ? activeKid : 'dev-ephemeral',
+    });
+  }
+  throw new Error(
+    'JWT_PRIVATE_KEY, JWT_PUBLIC_KEY, and JWT_KEY_ID are required outside APP_ENV=dev (BE-023)',
   );
 }
 
