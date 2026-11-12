@@ -37,3 +37,27 @@ output "db_security_group_id" {
 output "redis_security_group_id" {
   value = module.network.redis_security_group_id
 }
+
+output "db_endpoint" {
+  value = module.rds_postgres.db_endpoint
+}
+
+output "db_port" {
+  value = module.rds_postgres.db_port
+}
+
+output "db_name" {
+  value = module.rds_postgres.db_name
+}
+
+output "db_multi_az" {
+  value = module.rds_postgres.multi_az
+}
+
+output "db_parameter_group_name" {
+  value = module.rds_postgres.parameter_group_name
+}
+
+output "db_required_extensions" {
+  value = module.rds_postgres.required_extensions
+}

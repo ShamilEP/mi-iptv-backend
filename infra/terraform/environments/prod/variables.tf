@@ -22,3 +22,39 @@ variable "app_port" {
   type    = number
   default = 3000
 }
+
+# INF-020 — RDS PostgreSQL (prod: Multi-AZ for ≥99% / NFR-014)
+variable "db_instance_class" {
+  type    = string
+  default = "db.t4g.medium"
+}
+
+variable "db_allocated_storage_gb" {
+  type    = number
+  default = 100
+}
+
+variable "db_max_allocated_storage_gb" {
+  type    = number
+  default = 500
+}
+
+variable "db_multi_az" {
+  type    = bool
+  default = true
+}
+
+variable "db_backup_retention_days" {
+  type    = number
+  default = 7
+}
+
+variable "db_deletion_protection" {
+  type    = bool
+  default = true
+}
+
+variable "db_skip_final_snapshot" {
+  type    = bool
+  default = false
+}
