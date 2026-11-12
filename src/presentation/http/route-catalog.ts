@@ -17,6 +17,11 @@ export const ROUTE_CATALOG: readonly RouteCatalogEntry[] = [
     operationId: 'getHealth',
   },
   {
+    method: 'POST',
+    path: '/api/v1/auth/login',
+    operationId: 'login',
+  },
+  {
     method: 'GET',
     path: '/api/v1/sources',
     operationId: 'listSources',

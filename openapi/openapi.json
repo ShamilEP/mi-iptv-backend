@@ -28,6 +28,55 @@
         }
       }
     },
+    "/api/v1/auth/login": {
+      "post": {
+        "operationId": "login",
+        "summary": "Authenticate with email and password",
+        "description": "Binds the session to deviceId. Wrong email and wrong password return the same AUTH_INVALID error.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/LoginRequest" }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Authenticated session",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/LoginResponse" }
+              }
+            }
+          },
+          "400": {
+            "description": "Missing or invalid input",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/AuthError" }
+              }
+            }
+          },
+          "401": {
+            "description": "Invalid email or password (uniform)",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/AuthError" }
+              }
+            }
+          },
+          "403": {
+            "description": "Account inactive",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/AuthError" }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/sources": {
       "get": {
         "operationId": "listSources",
@@ -464,6 +513,41 @@
           "appVersion": { "type": "string" },
           "osVersion": { "type": "string" },
           "pushToken": { "type": "string" }
+        }
+      },
+      "LoginRequest": {
+        "type": "object",
+        "required": ["email", "password", "deviceId"],
+        "properties": {
+          "email": { "type": "string", "format": "email" },
+          "password": { "type": "string", "format": "password" },
+          "deviceId": {
+            "type": "string",
+            "format": "uuid",
+            "description": "Device that owns the refresh session (BE-023)"
+          }
+        }
+      },
+      "LoginResponse": {
+        "type": "object",
+        "required": ["accountId", "accessToken", "refreshToken", "expiresIn"],
+        "properties": {
+          "accountId": { "type": "string", "format": "uuid" },
+          "accessToken": { "type": "string" },
+          "refreshToken": { "type": "string" },
+          "expiresIn": {
+            "type": "integer",
+            "description": "Access token TTL in seconds",
+            "example": 3600
+          }
+        }
+      },
+      "AuthError": {
+        "type": "object",
+        "required": ["error", "code"],
+        "properties": {
+          "error": { "type": "string" },
+          "code": { "type": "string" }
         }
       }
     }
