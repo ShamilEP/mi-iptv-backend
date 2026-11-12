@@ -1,5 +1,6 @@
 import { generateKeyPairSync, randomBytes } from 'node:crypto';
 import { IssueAuthTokenPair } from './application/auth/issue-auth-token-pair.js';
+import { LoginAccount } from './application/auth/login-account.js';
 import { FetchXtreamCatalog } from './application/catalog/fetch-xtream-catalog.js';
 import { ParseM3uPlaylist } from './application/catalog/parse-m3u-playlist.js';
 import { DeviceHeartbeat } from './application/devices/device-heartbeat.js';
@@ -32,13 +33,16 @@ import { OpaqueRefreshTokenService } from './infrastructure/crypto/opaque-refres
 import { NodeSourceHttpClient } from './infrastructure/http/node-source-http-client.js';
 import { JsonConsoleLogger } from './infrastructure/logging/json-console-logger.js';
 import { NodeDnsResolver } from './infrastructure/net/node-dns-resolver.js';
+import { InMemoryAccountRepository } from './infrastructure/persistence/in-memory-account-repository.js';
 import { InMemoryDeviceRepository } from './infrastructure/persistence/in-memory-device-repository.js';
+import { InMemoryRefreshTokenRepository } from './infrastructure/persistence/in-memory-refresh-token-repository.js';
 import { InMemorySourceRepository } from './infrastructure/persistence/in-memory-source-repository.js';
 import { EnvJwtSigningKeyStore } from './infrastructure/secrets/env-jwt-signing-key-store.js';
 import { EnvSecretStore } from './infrastructure/secrets/env-secret-store.js';
 import { StaticCredentialEncryptionKeyCatalog } from './infrastructure/secrets/static-credential-encryption-key-catalog.js';
 import { StaticKmsKeyResolver } from './infrastructure/secrets/static-kms-key-resolver.js';
 import { NodeHttpServer } from './presentation/http/node-http-server.js';
+import { createAuthRoutes } from './presentation/http/routes/auth-routes.js';
 import { createDevicesRoutes } from './presentation/http/routes/devices-routes.js';
 import { createHealthRoute } from './presentation/http/routes/health-route.js';
 import { createSourcesRoutes } from './presentation/http/routes/sources-routes.js';
@@ -80,6 +84,16 @@ async function bootstrap(): Promise<void> {
   const issueAuthTokenPair = new IssueAuthTokenPair(
     accessTokenService,
     refreshTokenService,
+  );
+
+  // BE-022: email/password login with device-bound session (in-memory until Postgres adapters).
+  const accountRepository = new InMemoryAccountRepository();
+  const refreshTokenRepository = new InMemoryRefreshTokenRepository();
+  const loginAccount = new LoginAccount(
+    accountRepository,
+    passwordHasher,
+    issueAuthTokenPair,
+    refreshTokenRepository,
   );
 
   // BE-042/SEC-030: AES-256-GCM with KMS-managed DEK. Fail closed outside dev.
@@ -144,6 +158,9 @@ async function bootstrap(): Promise<void> {
   const httpServer = new NodeHttpServer(logger);
 
   httpServer.register(createHealthRoute(getHealthStatus));
+  for (const route of createAuthRoutes({ loginAccount })) {
+    httpServer.register(route);
+  }
   for (const route of createSourcesRoutes({
     listSources,
     createSource,
@@ -182,6 +199,9 @@ async function bootstrap(): Promise<void> {
     jwtIssuer: jwtTtl.issuer,
     jwtActiveKid: jwtSigningKeys.getActiveSigningKey().kid,
     jwtSigningReady: Boolean(issueAuthTokenPair),
+    authLoginReady: Boolean(loginAccount),
+    accountPersistence: 'in-memory',
+    refreshTokenPersistence: 'in-memory',
     sourceCredentialCipherReady: true,
     sourceCredentialsDataKeyInjected: secretsLoaded.sourceCredentialsDataKey,
     sourceRegistryPersistence: 'in-memory',
