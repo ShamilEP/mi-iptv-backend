@@ -1,6 +1,7 @@
 import { generateKeyPairSync, randomBytes } from 'node:crypto';
 import { IssueAuthTokenPair } from './application/auth/issue-auth-token-pair.js';
 import { LoginAccount } from './application/auth/login-account.js';
+import { RefreshAuthSession } from './application/auth/refresh-auth-session.js';
 import { FetchXtreamCatalog } from './application/catalog/fetch-xtream-catalog.js';
 import { ParseM3uPlaylist } from './application/catalog/parse-m3u-playlist.js';
 import { DeviceHeartbeat } from './application/devices/device-heartbeat.js';
@@ -95,6 +96,12 @@ async function bootstrap(): Promise<void> {
     issueAuthTokenPair,
     refreshTokenRepository,
   );
+  const refreshAuthSession = new RefreshAuthSession(
+    accountRepository,
+    refreshTokenService,
+    refreshTokenRepository,
+    issueAuthTokenPair,
+  );
 
   // BE-042/SEC-030: AES-256-GCM with KMS-managed DEK. Fail closed outside dev.
   const sourceCredentialCipher = new Aes256GcmSourceCredentialCipher(
@@ -158,7 +165,7 @@ async function bootstrap(): Promise<void> {
   const httpServer = new NodeHttpServer(logger);
 
   httpServer.register(createHealthRoute(getHealthStatus));
-  for (const route of createAuthRoutes({ loginAccount })) {
+  for (const route of createAuthRoutes({ loginAccount, refreshAuthSession })) {
     httpServer.register(route);
   }
   for (const route of createSourcesRoutes({
@@ -200,6 +207,7 @@ async function bootstrap(): Promise<void> {
     jwtActiveKid: jwtSigningKeys.getActiveSigningKey().kid,
     jwtSigningReady: Boolean(issueAuthTokenPair),
     authLoginReady: Boolean(loginAccount),
+    authRefreshReady: Boolean(refreshAuthSession),
     accountPersistence: 'in-memory',
     refreshTokenPersistence: 'in-memory',
     sourceCredentialCipherReady: true,

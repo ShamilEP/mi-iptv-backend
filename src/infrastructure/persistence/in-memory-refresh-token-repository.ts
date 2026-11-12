@@ -2,10 +2,11 @@ import type {
   NewRefreshTokenRecord,
   RefreshTokenRecord,
   RefreshTokenRepository,
+  RefreshTokenRevokeReason,
 } from '../../application/ports/refresh-token-repository.js';
 
 /**
- * Sprint 0 refresh-token hash store. Replace with Postgres adapter.
+ * Sprint 0 refresh-token hash store. Replace with a Postgres adapter.
  */
 export class InMemoryRefreshTokenRepository implements RefreshTokenRepository {
   private readonly byId = new Map<string, RefreshTokenRecord>();
@@ -15,6 +16,7 @@ export class InMemoryRefreshTokenRepository implements RefreshTokenRepository {
     const record: RefreshTokenRecord = {
       ...row,
       usedAt: row.usedAt ?? null,
+      replacedBy: row.replacedBy ?? null,
       revokedAt: row.revokedAt ?? null,
       revokedReason: row.revokedReason ?? null,
     };
@@ -35,6 +37,47 @@ export class InMemoryRefreshTokenRepository implements RefreshTokenRepository {
       return null;
     }
     return this.byId.get(id) ?? null;
+  }
+
+  async markRotated(
+    id: string,
+    usedAt: Date,
+    replacedBy: string,
+  ): Promise<RefreshTokenRecord> {
+    const current = this.byId.get(id);
+    if (current === undefined) {
+      throw new Error(`Refresh token not found: ${id}`);
+    }
+    if (current.usedAt !== null || current.revokedAt !== null) {
+      throw new Error(`Refresh token already spent: ${id}`);
+    }
+    const updated: RefreshTokenRecord = {
+      ...current,
+      usedAt,
+      replacedBy,
+    };
+    this.byId.set(id, updated);
+    return updated;
+  }
+
+  async revokeFamily(
+    familyId: string,
+    reason: RefreshTokenRevokeReason,
+    revokedAt: Date,
+  ): Promise<number> {
+    let count = 0;
+    for (const [id, row] of this.byId) {
+      if (row.familyId !== familyId || row.revokedAt !== null) {
+        continue;
+      }
+      this.byId.set(id, {
+        ...row,
+        revokedAt,
+        revokedReason: reason,
+      });
+      count += 1;
+    }
+    return count;
   }
 }
 

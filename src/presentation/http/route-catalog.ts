@@ -22,6 +22,11 @@ export const ROUTE_CATALOG: readonly RouteCatalogEntry[] = [
     operationId: 'login',
   },
   {
+    method: 'POST',
+    path: '/api/v1/auth/refresh',
+    operationId: 'refresh',
+  },
+  {
     method: 'GET',
     path: '/api/v1/sources',
     operationId: 'listSources',
