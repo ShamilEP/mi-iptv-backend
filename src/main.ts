@@ -2,6 +2,10 @@ import { GetHealthStatus } from './application/health/get-health-status.js';
 import { loadConfig, loadInjectedSecrets } from './config/env.js';
 import { loadPasswordHashParams } from './config/password-hashing.js';
 import { Argon2PasswordHasher } from './infrastructure/crypto/argon2-password-hasher.js';
+import {
+  Aes256GcmSourceCredentialCipher,
+  decodeSourceCredentialsDataKey,
+} from './infrastructure/crypto/aes256-gcm-source-credential-cipher.js';
 import { JsonConsoleLogger } from './infrastructure/logging/json-console-logger.js';
 import { EnvSecretStore } from './infrastructure/secrets/env-secret-store.js';
 import { StaticCredentialEncryptionKeyCatalog } from './infrastructure/secrets/static-credential-encryption-key-catalog.js';
@@ -30,6 +34,14 @@ async function bootstrap(): Promise<void> {
     sourceCredentialsDataKey: Boolean(secrets.sourceCredentialsDataKey),
   };
 
+  // BE-042: envelope cipher when DEK is injected (KMS-managed via Secrets Manager).
+  const sourceCredentialCipher = secrets.sourceCredentialsDataKey
+    ? new Aes256GcmSourceCredentialCipher(
+        decodeSourceCredentialsDataKey(secrets.sourceCredentialsDataKey),
+        credentialKmsKey.keyId,
+      )
+    : null;
+
   const getHealthStatus = new GetHealthStatus();
   const httpServer = new NodeHttpServer(logger);
 
@@ -50,6 +62,9 @@ async function bootstrap(): Promise<void> {
     passwordHashTimeCost: passwordHashParams.timeCost,
     passwordHashParallelism: passwordHashParams.parallelism,
     passwordHasherReady: Boolean(passwordHasher),
+    sourceCredentialCipherReady: sourceCredentialCipher !== null,
+    sourceCredentialsAutomaticCmkRotation:
+      credentialKmsKey.automaticCmkRotation,
     secretsLoaded,
   });
 }
