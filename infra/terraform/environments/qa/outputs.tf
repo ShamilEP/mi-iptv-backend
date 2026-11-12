@@ -61,3 +61,27 @@ output "db_parameter_group_name" {
 output "db_required_extensions" {
   value = module.rds_postgres.required_extensions
 }
+
+output "redis_cache_endpoint" {
+  value = module.elasticache_redis.cache_primary_endpoint
+}
+
+output "redis_session_endpoint" {
+  value = module.elasticache_redis.session_primary_endpoint
+}
+
+output "redis_port" {
+  value = module.elasticache_redis.port
+}
+
+output "redis_multi_az" {
+  value = module.elasticache_redis.multi_az
+}
+
+output "redis_eviction_policies" {
+  value = module.elasticache_redis.eviction_policies
+}
+
+output "redis_keyspace_prefixes" {
+  value = module.elasticache_redis.keyspace_prefixes
+}
