@@ -18,6 +18,8 @@
     "format:check": "prettier --check \"src/**/*.{ts,js}\" \"tests/**/*.{ts,js}\" \"scripts/**/*.{ts,js}\" \"*.{js,json}\" \"openapi/**/*.json\"",
     "openapi:verify": "tsx scripts/verify-openapi.ts",
     "security:deps": "npm audit --audit-level=high",
+    "db:migrate": "tsx scripts/db-migrate.ts",
+    "db:seed": "tsx scripts/db-seed.ts",
     "ci": "npm run format:check && npm run lint && npm run typecheck && npm test && npm run openapi:verify"
   },
   "devDependencies": {

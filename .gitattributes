@@ -1,0 +1,2 @@
+# Keep SQL checksums stable across Windows/Linux (BE-007 migration ledger).
+*.sql text eol=lf

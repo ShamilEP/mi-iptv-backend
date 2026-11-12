@@ -61,3 +61,55 @@ jobs:
           fi
           echo "No apps/ tree in mi-iptv-backend."
           echo "Android TV / companion PR validation runs in their repositories (packaging: INF-041)."
+
+  migrations:
+    name: DB migrations + DEV/QA seeds
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: mi_iptv
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d mi_iptv"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      DATABASE_URL: postgresql://postgres:postgres@localhost:5432/mi_iptv
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install psql client
+        run: sudo apt-get update && sudo apt-get install -y postgresql-client
+
+      - name: Apply migrations
+        run: npm run db:migrate
+
+      - name: Seed DEV
+        run: npm run db:seed
+        env:
+          APP_ENV: dev
+
+      - name: Seed QA
+        run: npm run db:seed
+        env:
+          APP_ENV: qa
+
+      - name: Re-run migrations (idempotent)
+        run: npm run db:migrate
