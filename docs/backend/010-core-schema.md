@@ -24,7 +24,7 @@ Secrets are never stored cleartext. Ciphertext columns are written by the applic
 ## Out of scope (owned by later tasks)
 
 - Extra tables already present in `001` (favorites, sync_events, refresh_tokens, catalog_*, …) are refined by **BE-011** / catalog tasks — not removed here.
-- Unique email / FK cascade / delta-index polish: **BE-012**.
+- Unique email / FK cascade / delta-index / server timestamps: **BE-012** (`docs/backend/012-constraints-indexes-timestamps.md`).
 - Live migrate-before-deploy: **INF-024**.
 
 ## Verification
