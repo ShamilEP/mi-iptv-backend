@@ -9,6 +9,7 @@ export type LogFields = {
 /**
  * Structured application logger (Infra §4.1).
  * Implementations must emit JSON with timestamp, level, service, trace_id, account_id, message.
+ * Implementations must redact tokens, passwords, and source credentials (SEC-003).
  */
 export interface Logger {
   child(bindings: LogFields): Logger;

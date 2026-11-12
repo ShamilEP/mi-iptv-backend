@@ -3,9 +3,13 @@ import type {
   LogLevel,
   Logger,
 } from '../../application/ports/logger.js';
+import { redactLogFields } from './redact-log-fields.js';
 
 const SERVICE_NAME = 'mi-iptv-backend';
 
+/**
+ * Structured JSON logger. Sensitive fields are redacted before emit (SEC-003).
+ */
 export class JsonConsoleLogger implements Logger {
   constructor(private readonly bindings: LogFields = {}) {}
 
@@ -31,6 +35,7 @@ export class JsonConsoleLogger implements Logger {
 
   private write(level: LogLevel, message: string, fields?: LogFields): void {
     const merged = { ...this.bindings, ...fields };
+    const safeRest = redactLogFields(omitReserved(merged));
     const line = {
       timestamp: new Date().toISOString(),
       level,
@@ -38,7 +43,7 @@ export class JsonConsoleLogger implements Logger {
       trace_id: merged.trace_id ?? null,
       account_id: merged.account_id ?? null,
       message,
-      ...omitReserved(merged),
+      ...safeRest,
     };
     const payload = JSON.stringify(line);
     if (level === 'error') {
