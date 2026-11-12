@@ -27,6 +27,205 @@
           }
         }
       }
+    },
+    "/api/v1/sources": {
+      "get": {
+        "operationId": "listSources",
+        "summary": "List account IPTV sources",
+        "parameters": [
+          {
+            "name": "x-account-id",
+            "in": "header",
+            "required": true,
+            "schema": { "type": "string", "format": "uuid" },
+            "description": "Sprint 0 stand-in for JWT account scope"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Source list (credentials masked)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["items"],
+                  "properties": {
+                    "items": {
+                      "type": "array",
+                      "items": { "$ref": "#/components/schemas/SourcePublic" }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "operationId": "createSource",
+        "summary": "Add an M3U or Xtream source",
+        "parameters": [
+          {
+            "name": "x-account-id",
+            "in": "header",
+            "required": true,
+            "schema": { "type": "string", "format": "uuid" }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/CreateSourceRequest" }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Created (credentials masked)",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/SourcePublic" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/sources/{id}": {
+      "patch": {
+        "operationId": "updateSource",
+        "summary": "Edit, prioritize, or deactivate a source",
+        "parameters": [
+          {
+            "name": "x-account-id",
+            "in": "header",
+            "required": true,
+            "schema": { "type": "string", "format": "uuid" }
+          },
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string", "format": "uuid" }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/UpdateSourceRequest" }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Updated (credentials masked)",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/SourcePublic" }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "operationId": "deleteSource",
+        "summary": "Delete (tombstone) a source",
+        "parameters": [
+          {
+            "name": "x-account-id",
+            "in": "header",
+            "required": true,
+            "schema": { "type": "string", "format": "uuid" }
+          },
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string", "format": "uuid" }
+          }
+        ],
+        "responses": {
+          "204": { "description": "Deleted" }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "SourcePublic": {
+        "type": "object",
+        "required": [
+          "id",
+          "kind",
+          "name",
+          "uriRef",
+          "priority",
+          "enabled",
+          "status",
+          "syncVersion",
+          "credentialsConfigured",
+          "username",
+          "password",
+          "token"
+        ],
+        "properties": {
+          "id": { "type": "string", "format": "uuid" },
+          "kind": {
+            "type": "string",
+            "enum": ["m3u", "xtream", "proprietary"]
+          },
+          "name": { "type": "string" },
+          "uriRef": { "type": ["string", "null"] },
+          "priority": { "type": "integer" },
+          "enabled": { "type": "boolean" },
+          "status": { "type": "string" },
+          "syncVersion": { "type": "integer" },
+          "credentialsConfigured": { "type": "boolean" },
+          "username": { "type": "null" },
+          "password": { "type": "null" },
+          "token": { "type": "null" }
+        }
+      },
+      "CreateSourceRequest": {
+        "type": "object",
+        "required": ["kind", "name", "uriRef"],
+        "properties": {
+          "kind": { "type": "string", "enum": ["m3u", "xtream"] },
+          "name": { "type": "string" },
+          "uriRef": { "type": "string" },
+          "priority": { "type": "integer" },
+          "credentials": {
+            "type": "object",
+            "properties": {
+              "username": { "type": "string" },
+              "password": { "type": "string" },
+              "token": { "type": "string" }
+            }
+          }
+        }
+      },
+      "UpdateSourceRequest": {
+        "type": "object",
+        "properties": {
+          "name": { "type": "string" },
+          "uriRef": { "type": "string" },
+          "priority": { "type": "integer" },
+          "enabled": {
+            "type": "boolean",
+            "description": "false deactivates without deleting"
+          },
+          "credentials": {
+            "type": "object",
+            "properties": {
+              "username": { "type": "string" },
+              "password": { "type": "string" },
+              "token": { "type": "string" }
+            }
+          }
+        }
+      }
     }
   }
 }

@@ -1,4 +1,9 @@
+import { randomBytes } from 'node:crypto';
 import { GetHealthStatus } from './application/health/get-health-status.js';
+import { CreateSource } from './application/sources/create-source.js';
+import { DeleteSource } from './application/sources/delete-source.js';
+import { ListSources } from './application/sources/list-sources.js';
+import { UpdateSource } from './application/sources/update-source.js';
 import { loadConfig, loadInjectedSecrets } from './config/env.js';
 import { loadPasswordHashParams } from './config/password-hashing.js';
 import { Argon2PasswordHasher } from './infrastructure/crypto/argon2-password-hasher.js';
@@ -7,11 +12,13 @@ import {
   decodeSourceCredentialsDataKey,
 } from './infrastructure/crypto/aes256-gcm-source-credential-cipher.js';
 import { JsonConsoleLogger } from './infrastructure/logging/json-console-logger.js';
+import { InMemorySourceRepository } from './infrastructure/persistence/in-memory-source-repository.js';
 import { EnvSecretStore } from './infrastructure/secrets/env-secret-store.js';
 import { StaticCredentialEncryptionKeyCatalog } from './infrastructure/secrets/static-credential-encryption-key-catalog.js';
 import { StaticKmsKeyResolver } from './infrastructure/secrets/static-kms-key-resolver.js';
 import { NodeHttpServer } from './presentation/http/node-http-server.js';
 import { createHealthRoute } from './presentation/http/routes/health-route.js';
+import { createSourcesRoutes } from './presentation/http/routes/sources-routes.js';
 
 async function bootstrap(): Promise<void> {
   const logger = new JsonConsoleLogger();
@@ -34,18 +41,38 @@ async function bootstrap(): Promise<void> {
     sourceCredentialsDataKey: Boolean(secrets.sourceCredentialsDataKey),
   };
 
-  // BE-042: envelope cipher when DEK is injected (KMS-managed via Secrets Manager).
-  const sourceCredentialCipher = secrets.sourceCredentialsDataKey
-    ? new Aes256GcmSourceCredentialCipher(
-        decodeSourceCredentialsDataKey(secrets.sourceCredentialsDataKey),
-        credentialKmsKey.keyId,
-      )
-    : null;
+  // BE-042/BE-040: envelope cipher. Process-local DEK if unset (in-memory store only).
+  const sourceCredentialCipher = new Aes256GcmSourceCredentialCipher(
+    secrets.sourceCredentialsDataKey
+      ? decodeSourceCredentialsDataKey(secrets.sourceCredentialsDataKey)
+      : randomBytes(32),
+    credentialKmsKey.keyId,
+  );
+
+  const sourceRepository = new InMemorySourceRepository();
+  const listSources = new ListSources(sourceRepository);
+  const createSource = new CreateSource(
+    sourceRepository,
+    sourceCredentialCipher,
+  );
+  const updateSource = new UpdateSource(
+    sourceRepository,
+    sourceCredentialCipher,
+  );
+  const deleteSource = new DeleteSource(sourceRepository);
 
   const getHealthStatus = new GetHealthStatus();
   const httpServer = new NodeHttpServer(logger);
 
   httpServer.register(createHealthRoute(getHealthStatus));
+  for (const route of createSourcesRoutes({
+    listSources,
+    createSource,
+    updateSource,
+    deleteSource,
+  })) {
+    httpServer.register(route);
+  }
 
   await httpServer.listen(config.port);
   logger.info('Mi IPTV backend listening', {
@@ -62,7 +89,9 @@ async function bootstrap(): Promise<void> {
     passwordHashTimeCost: passwordHashParams.timeCost,
     passwordHashParallelism: passwordHashParams.parallelism,
     passwordHasherReady: Boolean(passwordHasher),
-    sourceCredentialCipherReady: sourceCredentialCipher !== null,
+    sourceCredentialCipherReady: true,
+    sourceCredentialsDataKeyInjected: secretsLoaded.sourceCredentialsDataKey,
+    sourceRegistryPersistence: 'in-memory',
     sourceCredentialsAutomaticCmkRotation:
       credentialKmsKey.automaticCmkRotation,
     secretsLoaded,

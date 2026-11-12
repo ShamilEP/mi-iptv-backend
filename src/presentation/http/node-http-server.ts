@@ -7,6 +7,7 @@ import type {
 } from '../../application/ports/http-server.js';
 import type { Logger } from '../../application/ports/logger.js';
 import { resolveTraceId } from '../../shared/trace-id.js';
+import { matchRoutePath } from './match-route-path.js';
 
 /**
  * Thin adapter over Node's built-in `node:http`.
@@ -65,14 +66,30 @@ export class NodeHttpServer implements HttpServer {
       account_id: accountId,
     });
 
-    const route = this.routes.find(
-      (candidate) =>
-        candidate.method === method && candidate.path === url.pathname,
-    );
+    const matched = this.routes
+      .map((candidate) => {
+        if (candidate.method !== method) {
+          return null;
+        }
+        const pathMatch = matchRoutePath(candidate.path, url.pathname);
+        if (!pathMatch) {
+          return null;
+        }
+        return { route: candidate, params: pathMatch.params };
+      })
+      .find((entry) => entry !== null);
 
-    if (!route) {
+    if (!matched) {
       requestLogger?.warn('HTTP not found', { method, path: url.pathname });
       this.write(res, 404, { error: 'Not Found' }, traceId);
+      return;
+    }
+
+    let body: unknown;
+    try {
+      body = await readJsonBody(req);
+    } catch {
+      this.write(res, 400, { error: 'Invalid JSON body' }, traceId);
       return;
     }
 
@@ -80,10 +97,13 @@ export class NodeHttpServer implements HttpServer {
       method,
       url: url.pathname,
       headers: req.headers,
+      body,
+      params: matched.params,
+      accountId,
     };
 
     try {
-      const response = await route.handler(request);
+      const response = await matched.route.handler(request);
       requestLogger?.info('HTTP request completed', {
         method,
         path: url.pathname,
@@ -131,4 +151,24 @@ function readOptionalHeader(
     return null;
   }
   return value.trim();
+}
+
+async function readJsonBody(req: http.IncomingMessage): Promise<unknown> {
+  const method = (req.method ?? 'GET').toUpperCase();
+  if (method === 'GET' || method === 'HEAD' || method === 'DELETE') {
+    return undefined;
+  }
+
+  const chunks: Buffer[] = [];
+  for await (const chunk of req) {
+    chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk));
+  }
+  if (chunks.length === 0) {
+    return undefined;
+  }
+  const raw = Buffer.concat(chunks).toString('utf8').trim();
+  if (raw === '') {
+    return undefined;
+  }
+  return JSON.parse(raw) as unknown;
 }
