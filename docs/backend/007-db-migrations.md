@@ -51,7 +51,7 @@ Seeds are idempotent (`ON CONFLICT DO NOTHING`) and use placeholder password has
 
 ### Relation to BE-010 / INF-024
 
-- `001_postgres_schema.sql` is the current baseline SQL; **BE-010** owns validating/finalizing the core schema DoD.
+- `001_postgres_schema.sql` is the current baseline SQL; **BE-010** finalized §5.1 core tables (`user_sources.credentials_encrypted`, etc.) — see `docs/backend/010-core-schema.md`.
 - **INF-024** wires migrate-before-deploy + rollback notes once deploy pipelines exist (INF-042).
 
 ## Verification checklist (DoD)
