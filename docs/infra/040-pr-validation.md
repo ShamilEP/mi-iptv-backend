@@ -19,6 +19,7 @@ Run **lint**, **format**, **unit tests**, and **OpenAPI-vs-code** checks on ever
 | Unit tests | `npm test` | Backend `tests/unit` |
 | OpenAPI vs code | `npm run openapi:verify` | `openapi/openapi.json` ↔ `route-catalog` |
 | Apps | workflow job `apps` | Skips when `apps/` absent (TV/companion live in other repos; packaging = INF-041) |
+| DB migrations + seeds | workflow job `migrations` | Postgres 16 service; `db:migrate` then DEV/QA `db:seed` (BE-007) |
 
 ### Workflow
 
