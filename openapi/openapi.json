@@ -150,6 +150,45 @@
           "204": { "description": "Deleted" }
         }
       }
+    },
+    "/api/v1/sources/{id}/test": {
+      "post": {
+        "operationId": "testSource",
+        "summary": "Connectivity-check an IPTV source",
+        "description": "Probes M3U playlist fetch/parse or Xtream player_api auth. Returns a classified reason without clearing user input.",
+        "parameters": [
+          {
+            "name": "x-account-id",
+            "in": "header",
+            "required": true,
+            "schema": { "type": "string", "format": "uuid" }
+          },
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string", "format": "uuid" }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Connectivity check succeeded",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/SourceTestResult" }
+              }
+            }
+          },
+          "422": {
+            "description": "Connectivity check failed with classified reason",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/SourceTestResult" }
+              }
+            }
+          }
+        }
+      }
     }
   },
   "components": {
@@ -164,6 +203,7 @@
           "priority",
           "enabled",
           "status",
+          "statusReason",
           "syncVersion",
           "credentialsConfigured",
           "username",
@@ -181,11 +221,34 @@
           "priority": { "type": "integer" },
           "enabled": { "type": "boolean" },
           "status": { "type": "string" },
+          "statusReason": {
+            "type": ["string", "null"],
+            "description": "Last connectivity classification from POST /test"
+          },
           "syncVersion": { "type": "integer" },
           "credentialsConfigured": { "type": "boolean" },
           "username": { "type": "null" },
           "password": { "type": "null" },
           "token": { "type": "null" }
+        }
+      },
+      "SourceTestResult": {
+        "type": "object",
+        "required": ["ok", "reason", "message", "source"],
+        "properties": {
+          "ok": { "type": "boolean" },
+          "reason": {
+            "type": "string",
+            "enum": [
+              "ok",
+              "unreachable",
+              "auth_failed",
+              "invalid_playlist",
+              "timeout"
+            ]
+          },
+          "message": { "type": "string" },
+          "source": { "$ref": "#/components/schemas/SourcePublic" }
         }
       },
       "CreateSourceRequest": {

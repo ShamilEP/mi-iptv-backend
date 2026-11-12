@@ -36,4 +36,9 @@ export const ROUTE_CATALOG: readonly RouteCatalogEntry[] = [
     path: '/api/v1/sources/{id}',
     operationId: 'deleteSource',
   },
+  {
+    method: 'POST',
+    path: '/api/v1/sources/{id}/test',
+    operationId: 'testSource',
+  },
 ] as const;

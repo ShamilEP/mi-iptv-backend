@@ -67,6 +67,7 @@ export class CreateSource {
       priority: input.priority ?? 100,
       enabled: true,
       status: 'pending',
+      statusReason: null,
     });
     return toSourcePublicView(created);
   }
