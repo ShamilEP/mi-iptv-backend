@@ -1,0 +1,11 @@
+title = "mi-iptv-backend"
+
+[extend]
+useDefault = true
+
+# Placeholder env templates document secret *names* only — never real values.
+[[allowlists]]
+description = "Env example files with placeholder values"
+paths = [
+  '''(.*[/\\])?\.env\.example$''',
+]

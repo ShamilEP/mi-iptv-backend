@@ -1,0 +1,17 @@
+name: "Mi IPTV backend CodeQL"
+
+paths:
+  - src
+  - scripts
+  - tests
+
+paths-ignore:
+  - node_modules
+  - dist
+  - coverage
+  - infra
+  - docs
+  - '**/*.md'
+
+queries:
+  - uses: security-and-quality
