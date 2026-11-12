@@ -43,3 +43,15 @@ module "elasticache_redis" {
   multi_az                 = var.redis_multi_az
   auth_token               = var.redis_auth_token
 }
+
+module "dns_acm" {
+  source = "../../modules/dns_acm"
+
+  name_prefix        = module.naming_tags.name_prefix
+  tags               = module.naming_tags.tags
+  zone_name          = var.dns_zone_name
+  api_hostname       = var.api_hostname
+  realtime_hostname  = var.realtime_hostname
+  alb_dns_name       = var.alb_dns_name
+  alb_zone_id        = var.alb_zone_id
+}

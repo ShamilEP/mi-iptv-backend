@@ -85,3 +85,31 @@ output "redis_eviction_policies" {
 output "redis_keyspace_prefixes" {
   value = module.elasticache_redis.keyspace_prefixes
 }
+
+output "dns_zone_id" {
+  value = module.dns_acm.zone_id
+}
+
+output "dns_zone_name" {
+  value = module.dns_acm.zone_name
+}
+
+output "dns_name_servers" {
+  value = module.dns_acm.name_servers
+}
+
+output "api_hostname" {
+  value = module.dns_acm.api_hostname
+}
+
+output "realtime_hostname" {
+  value = module.dns_acm.realtime_hostname
+}
+
+output "acm_certificate_arn" {
+  value = module.dns_acm.certificate_arn
+}
+
+output "acm_auto_renewal" {
+  value = module.dns_acm.auto_renewal
+}
