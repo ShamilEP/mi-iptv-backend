@@ -14,7 +14,7 @@ describe('migration-files', () => {
   it('lists versioned migrations in order with checksums', () => {
     const files = listMigrationFiles(join(root, 'db', 'migrations'));
     assertUniqueVersions(files);
-    assert.ok(files.length >= 2);
+    assert.ok(files.length >= 3);
     assert.equal(files[0]?.version, '001');
     assert.equal(files[0]?.fileName, '001_postgres_schema.sql');
     assert.match(files[0]?.checksum ?? '', /^[a-f0-9]{64}$/);
@@ -24,6 +24,9 @@ describe('migration-files', () => {
       '002_constraints_indexes_timestamps.sql',
     );
     assert.match(files[1]?.checksum ?? '', /^[a-f0-9]{64}$/);
+    assert.equal(files[2]?.version, '003');
+    assert.equal(files[2]?.fileName, '003_missing_srs_tables.sql');
+    assert.match(files[2]?.checksum ?? '', /^[a-f0-9]{64}$/);
   });
 
   it('lists DEV and QA seed files', () => {

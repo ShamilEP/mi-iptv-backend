@@ -53,6 +53,7 @@ Seeds are idempotent (`ON CONFLICT DO NOTHING`) and use placeholder password has
 
 - `001_postgres_schema.sql` is the current baseline SQL; **BE-010** finalized §5.1 core tables (`user_sources.credentials_encrypted`, etc.) — see `docs/backend/010-core-schema.md`.
 - `002_constraints_indexes_timestamps.sql` (**BE-012**) adds unique-email guard, FK polish, `updated_at`/`sync_version` delta indexes, and server-forced timestamps — see `docs/backend/012-constraints-indexes-timestamps.md`.
+- `003_missing_srs_tables.sql` (**BE-011**) adds favorites.`type`, `profile_settings`, and `sync_log` view — see `docs/backend/011-missing-srs-tables.md`.
 - **INF-024** wires migrate-before-deploy + rollback notes once deploy pipelines exist (INF-042).
 
 ## Verification checklist (DoD)
