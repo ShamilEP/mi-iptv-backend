@@ -1,4 +1,5 @@
 import { randomBytes } from 'node:crypto';
+import { FetchXtreamCatalog } from './application/catalog/fetch-xtream-catalog.js';
 import { ParseM3uPlaylist } from './application/catalog/parse-m3u-playlist.js';
 import { GetHealthStatus } from './application/health/get-health-status.js';
 import { CreateSource } from './application/sources/create-source.js';
@@ -11,6 +12,7 @@ import { loadConfig, loadInjectedSecrets } from './config/env.js';
 import { loadM3uParserLimits } from './config/m3u-parser.js';
 import { loadPasswordHashParams } from './config/password-hashing.js';
 import { loadSourceHttpGuardConfig } from './config/source-http-guard.js';
+import { HttpXtreamCodesClient } from './infrastructure/catalog/http-xtream-codes-client.js';
 import { IsolatedM3uPlaylistParser } from './infrastructure/catalog/isolated-m3u-playlist-parser.js';
 import { Argon2PasswordHasher } from './infrastructure/crypto/argon2-password-hasher.js';
 import {
@@ -85,6 +87,11 @@ async function bootstrap(): Promise<void> {
     m3uParserLimits,
   );
 
+  // BE-045: Xtream Codes player_api adapter (SSRF-safe fetch).
+  const fetchXtreamCatalog = new FetchXtreamCatalog(
+    new HttpXtreamCodesClient(fetchSourceUrlSafely),
+  );
+
   const getHealthStatus = new GetHealthStatus();
   const httpServer = new NodeHttpServer(logger);
 
@@ -126,6 +133,7 @@ async function bootstrap(): Promise<void> {
     m3uParserMaxEntries: m3uParserLimits.maxEntries,
     m3uParserTimeoutMs: m3uParserLimits.timeoutMs,
     m3uParserReady: Boolean(parseM3uPlaylist),
+    xtreamAdapterReady: Boolean(fetchXtreamCatalog),
     secretsLoaded,
   });
 }
