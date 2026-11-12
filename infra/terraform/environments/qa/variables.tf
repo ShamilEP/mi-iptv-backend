@@ -77,3 +77,31 @@ variable "redis_auth_token" {
   default     = null
   nullable    = true
 }
+
+# INF-004 — DNS + ACM (mock .example zone until real domain)
+variable "dns_zone_name" {
+  type    = string
+  default = "qa.mi-iptv.example"
+}
+
+variable "api_hostname" {
+  type    = string
+  default = "api.qa.mi-iptv.example"
+}
+
+variable "realtime_hostname" {
+  type    = string
+  default = "realtime.qa.mi-iptv.example"
+}
+
+variable "alb_dns_name" {
+  type     = string
+  default  = null
+  nullable = true
+}
+
+variable "alb_zone_id" {
+  type     = string
+  default  = null
+  nullable = true
+}
