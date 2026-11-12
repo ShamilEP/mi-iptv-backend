@@ -22,7 +22,7 @@ Provide **versioned, backward-compatible** SQL migrations that can run from **CI
 
 ### Why `psql` (for now)
 
-Application code still has no approved PostgreSQL client package. The migrator shells out to `psql` (Node built-ins + CI `postgresql-client`). When the app needs query access, prefer proposing **`pg`** (node-postgres) behind a port — see `docs/dev/proposed-packages-BE-007.md`.
+In-process SQL uses approved **`pg`** behind `RelationalDatabase` / `PgPoolRelationalDatabase` — see `docs/dev/proposed-packages-BE-007.md`. The migrator still shells out to `psql` (CI `postgresql-client`) + `DATABASE_URL`.
 
 ### Backward compatibility
 
