@@ -9,15 +9,16 @@
 --
 -- Conventions
 --  * Server clock only. Every timestamp comes from the DB; client clocks are informational.
---  * Synced entities (favorites, playback_states, sources) carry:
+--  * Synced entities (favorites, playback_states, user_sources) carry:
 --      sync_version  per-row counter (optimistic concurrency, returned to clients)
 --      change_seq    per-ACCOUNT monotonic clock allocated from accounts.change_seq
 --      deleted_at    tombstone (so other devices learn about deletions)
 --    Delta pull = "rows of this account with change_seq > cursor" (see app.sync_delta).
 --  * CHECK constraints instead of ENUM types: adding a value later is a one-line migration.
 --  * Ingestion must never fail on messy third-party metadata, so no CHECKs on year/rating/etc.
---  * Secrets are never stored in clear: *_enc columns hold AES-256-GCM ciphertext produced by the
---    application with a KMS-wrapped data key (Security spec §5). The DB never sees the key.
+--  * Secrets are never stored in clear: uri_enc / credentials_encrypted (and other *_enc) hold
+--    AES-256-GCM ciphertext produced by the application with a KMS-wrapped data key
+--    (Security spec §5). The DB never sees the key.
 -- =============================================================================
 
 CREATE SCHEMA IF NOT EXISTS app;
@@ -146,9 +147,10 @@ CREATE INDEX ix_pwreset_account ON app.password_reset_tokens (account_id);
 -- -----------------------------------------------------------------------------
 -- Model:
 --   catalog_providers  proprietary catalog operators (system rows, shared by all accounts)
---   sources            what an ACCOUNT has configured: M3U / Xtream (secret) or the proprietary catalog (no secret)
+--   user_sources       what an ACCOUNT has configured: M3U / Xtream (secret) or the proprietary catalog (no secret)
+--                      (Backend §5.1 name; credentials_encrypted BYTEA — never cleartext)
 --   catalog_items      canonical content. Either SHARED (provider_id) or PRIVATE to one account (account_id).
---                      Private items are de-duplicated across the account's sources so a channel can carry
+--                      Private items are de-duplicated across the account's user_sources so a channel can carry
 --                      several streams -> "switch source" on failure (US-04, BE-048).
 --   catalog_streams    playable references. Never returned by list endpoints; resolved at play time.
 
@@ -163,17 +165,17 @@ CREATE TABLE app.catalog_providers (
 -- Seed example (contract pending, PRD-002):
 -- INSERT INTO app.catalog_providers (code, name) VALUES ('miiptv', 'Mi IPTV Catalog');
 
-CREATE TABLE app.sources (
-  id               uuid        PRIMARY KEY DEFAULT gen_random_uuid(),
-  account_id       uuid        NOT NULL REFERENCES app.accounts(id) ON DELETE CASCADE,
-  kind             text        NOT NULL CHECK (kind IN ('m3u','xtream','proprietary')),
-  provider_id      uuid        REFERENCES app.catalog_providers(id),    -- proprietary only
-  name             text        NOT NULL,
-  display_host     text,                                                -- non-secret host for UI/diagnostics
-  uri_enc          bytea,                                               -- M3U URL / Xtream server URL (encrypted)
-  credentials_enc  bytea,                                               -- Xtream user/password JSON (encrypted)
-  enc_key_id       text,                                                -- KMS key / data-key id (rotation)
-  priority         int         NOT NULL DEFAULT 100,                    -- lower = preferred
+CREATE TABLE app.user_sources (
+  id                    uuid        PRIMARY KEY DEFAULT gen_random_uuid(),
+  account_id            uuid        NOT NULL REFERENCES app.accounts(id) ON DELETE CASCADE,
+  kind                  text        NOT NULL CHECK (kind IN ('m3u','xtream','proprietary')),
+  provider_id           uuid        REFERENCES app.catalog_providers(id),    -- proprietary only
+  name                  text        NOT NULL,
+  uri_ref               text,                                               -- Backend §5.1: non-secret URI/host for UI
+  uri_enc               bytea,                                              -- M3U URL / Xtream server URL (encrypted)
+  credentials_encrypted bytea,                                              -- Backend §5.1: AES-256-GCM ciphertext
+  enc_key_id            text,                                               -- KMS key / data-key id (rotation)
+  priority              int         NOT NULL DEFAULT 100,                   -- lower = preferred
   enabled          boolean     NOT NULL DEFAULT true,
   status           text        NOT NULL DEFAULT 'pending' CHECK (status IN ('pending','ok','degraded','error')),
   status_reason    text,                                                -- unreachable | auth_failed | invalid_playlist | timeout ...
@@ -189,10 +191,10 @@ CREATE TABLE app.sources (
   CHECK ((kind = 'proprietary') = (provider_id IS NOT NULL)),
   CHECK (kind = 'proprietary' OR deleted_at IS NOT NULL OR uri_enc IS NOT NULL)
 );
-CREATE UNIQUE INDEX uq_sources_account_provider ON app.sources (account_id, provider_id)
+CREATE UNIQUE INDEX uq_user_sources_account_provider ON app.user_sources (account_id, provider_id)
   WHERE provider_id IS NOT NULL AND deleted_at IS NULL;
-CREATE INDEX ix_sources_account_priority ON app.sources (account_id, priority) WHERE deleted_at IS NULL;
-CREATE INDEX ix_sources_delta ON app.sources (account_id, change_seq);
+CREATE INDEX ix_user_sources_account_priority ON app.user_sources (account_id, priority) WHERE deleted_at IS NULL;
+CREATE INDEX ix_user_sources_delta ON app.user_sources (account_id, change_seq);
 
 CREATE TABLE app.catalog_items (
   id             uuid        PRIMARY KEY DEFAULT gen_random_uuid(),       -- = contentId in the API
@@ -243,7 +245,7 @@ CREATE INDEX ix_items_genres        ON app.catalog_items USING gin (genres);
 CREATE TABLE app.catalog_streams (
   id             uuid        PRIMARY KEY DEFAULT gen_random_uuid(),
   item_id        uuid        NOT NULL REFERENCES app.catalog_items(id) ON DELETE CASCADE,
-  source_id      uuid        REFERENCES app.sources(id)           ON DELETE CASCADE,  -- user source (m3u / xtream)
+  source_id      uuid        REFERENCES app.user_sources(id)           ON DELETE CASCADE,  -- user source (m3u / xtream)
   provider_id    uuid        REFERENCES app.catalog_providers(id) ON DELETE CASCADE,  -- proprietary catalog
   stream_key     text        NOT NULL,       -- stable id inside the source (xtream stream_id / hash of M3U URL / asset id)
   external_ref   text,                       -- what the playback resolver needs (xtream stream_id, provider asset id)
@@ -285,11 +287,12 @@ CREATE TABLE app.favorites (
 CREATE INDEX ix_favorites_delta ON app.favorites (account_id, change_seq);
 CREATE INDEX ix_favorites_list  ON app.favorites (profile_id, sort_order, created_at) WHERE deleted_at IS NULL;
 
+-- Backend §5.1: PRIMARY KEY (profile_id, content_id). position/duration stored as *_sec.
 CREATE TABLE app.playback_states (
   profile_id      uuid        NOT NULL,
   account_id      uuid        NOT NULL,
   content_id      uuid        NOT NULL REFERENCES app.catalog_items(id) ON DELETE CASCADE,  -- movie or episode (VOD)
-  source_id       uuid        REFERENCES app.sources(id) ON DELETE SET NULL,
+  source_id       uuid        REFERENCES app.user_sources(id) ON DELETE SET NULL,
   position_sec    int         NOT NULL CHECK (position_sec >= 0),
   duration_sec    int         CHECK (duration_sec >= 0),
   completed       boolean     NOT NULL DEFAULT false,
@@ -527,11 +530,11 @@ LANGUAGE sql STABLE AS $$
      WHERE f.account_id = p_account_id AND f.change_seq > p_cursor
     UNION ALL
     SELECT 'source', s.change_seq, (s.deleted_at IS NOT NULL),
-           jsonb_build_object('id', s.id, 'kind', s.kind, 'name', s.name, 'displayHost', s.display_host,
+           jsonb_build_object('id', s.id, 'kind', s.kind, 'name', s.name, 'uriRef', s.uri_ref,
                               'priority', s.priority, 'enabled', s.enabled, 'status', s.status,
                               'statusReason', s.status_reason, 'itemCount', s.item_count,
                               'lastIngestedAt', s.last_ingested_at, 'syncVersion', s.sync_version)
-      FROM app.sources s
+      FROM app.user_sources s
      WHERE s.account_id = p_account_id AND s.change_seq > p_cursor
   ) d
   ORDER BY d.seq
@@ -589,14 +592,14 @@ SELECT st.id AS stream_id, st.item_id, s.account_id, s.id AS source_id, s.kind,
        s.priority AS source_priority, st.priority AS stream_priority,
        st.protocol, st.external_ref, (st.uri_enc IS NOT NULL) AS has_stored_uri
   FROM app.catalog_streams st
-  JOIN app.sources s ON s.id = st.source_id
+  JOIN app.user_sources s ON s.id = st.source_id
  WHERE st.available AND s.enabled AND s.deleted_at IS NULL
 UNION ALL
 SELECT st.id, st.item_id, s.account_id, s.id, s.kind,
        s.priority, st.priority,
        st.protocol, st.external_ref, (st.uri_enc IS NOT NULL)
   FROM app.catalog_streams st
-  JOIN app.sources s ON s.provider_id = st.provider_id
+  JOIN app.user_sources s ON s.provider_id = st.provider_id
  WHERE st.available AND s.enabled AND s.deleted_at IS NULL;
 
 -- -----------------------------------------------------------------------------
@@ -609,7 +612,7 @@ CREATE OR REPLACE FUNCTION app.purge_tombstones(p_retention interval DEFAULT int
 LANGUAGE sql AS $$
   WITH f AS (DELETE FROM app.favorites       WHERE deleted_at < now() - p_retention RETURNING account_id, change_seq),
        p AS (DELETE FROM app.playback_states WHERE deleted_at < now() - p_retention RETURNING account_id, change_seq),
-       s AS (DELETE FROM app.sources         WHERE deleted_at < now() - p_retention RETURNING account_id, change_seq),
+       s AS (DELETE FROM app.user_sources         WHERE deleted_at < now() - p_retention RETURNING account_id, change_seq),
        m AS (SELECT account_id, max(change_seq) AS max_seq
                FROM (SELECT * FROM f UNION ALL SELECT * FROM p UNION ALL SELECT * FROM s) x
               GROUP BY account_id)
@@ -774,7 +777,7 @@ $$;
 DO $body$
 DECLARE t text;
 BEGIN
-  FOREACH t IN ARRAY ARRAY['profiles','sources','catalog_items','catalog_streams','favorites','playback_states']
+  FOREACH t IN ARRAY ARRAY['profiles','user_sources','catalog_items','catalog_streams','favorites','playback_states']
   LOOP
     EXECUTE format('CREATE TRIGGER trg_%1$s_touch BEFORE UPDATE ON app.%1$I
                     FOR EACH ROW EXECUTE FUNCTION app.touch_updated_at()', t);
@@ -816,7 +819,7 @@ ALTER DEFAULT PRIVILEGES IN SCHEMA telemetry GRANT SELECT, INSERT, UPDATE, DELET
 DO $body$
 DECLARE t text;
 BEGIN
-  FOREACH t IN ARRAY ARRAY['profiles','devices','sources','favorites','playback_states','device_commands','sync_events']
+  FOREACH t IN ARRAY ARRAY['profiles','devices','user_sources','favorites','playback_states','device_commands','sync_events']
   LOOP
     EXECUTE format('ALTER TABLE app.%I ENABLE ROW LEVEL SECURITY', t);
     EXECUTE format('CREATE POLICY tenant_isolation ON app.%I FOR ALL TO mi_iptv_api
