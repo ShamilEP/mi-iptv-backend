@@ -55,3 +55,15 @@ module "dns_acm" {
   alb_dns_name       = var.alb_dns_name
   alb_zone_id        = var.alb_zone_id
 }
+
+# INF-010 — CI identity for DEV (CI + internal tests); QA/PROD attach in later env tasks.
+module "ci_oidc" {
+  source = "../../modules/ci_oidc"
+
+  name_prefix          = module.naming_tags.name_prefix
+  tags                 = module.naming_tags.tags
+  environment          = "dev"
+  github_org           = var.github_org
+  github_repo          = var.github_repo
+  create_oidc_provider = var.create_github_oidc_provider
+}

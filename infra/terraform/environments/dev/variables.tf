@@ -105,3 +105,19 @@ variable "alb_zone_id" {
   default  = null
   nullable = true
 }
+
+# INF-010 — DEV CI OIDC trust
+variable "github_org" {
+  type    = string
+  default = "mi-iptv"
+}
+
+variable "github_repo" {
+  type    = string
+  default = "mi-iptv-backend"
+}
+
+variable "create_github_oidc_provider" {
+  type    = bool
+  default = true
+}
