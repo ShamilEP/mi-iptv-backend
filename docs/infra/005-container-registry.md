@@ -46,7 +46,7 @@ Provide an **Amazon ECR** repository per environment, freeze the **multi-stage /
 4. If `ECR_REGISTRY` + AWS OIDC role are configured: login, tag, **push**.
 5. If registry vars are absent (Sprint 0 mock): scan still runs; push step is skipped with a clear notice.
 
-Full app packaging (APK/IPA) remains **INF-041**. Deploy pipelines that consume the image remain **INF-042**.
+Full app packaging (APK/IPA) is **INF-041** (`docs/infra/041-build-package-workflows.md`); Docker packaging is reused via `workflow_call`. Deploy pipelines that consume the image remain **INF-042**.
 
 ## Module
 

@@ -1,0 +1,183 @@
+name: Package companion
+
+# INF-041 — Companion Android AAB (ubuntu) + iOS IPA (macOS runners + signing secret names).
+on:
+  workflow_dispatch:
+  workflow_call:
+    inputs:
+      android_project_path:
+        description: Relative path to the companion Android Gradle project
+        type: string
+        required: false
+        default: apps/companion/android
+      ios_project_path:
+        description: Relative path to the companion iOS / Flutter / Xcode project
+        type: string
+        required: false
+        default: apps/companion/ios
+      run_when_missing:
+        description: If true, fail when a required project path is absent
+        type: boolean
+        required: false
+        default: false
+
+concurrency:
+  group: package-companion-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  package-aab:
+    name: Companion AAB
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Resolve Android path
+        id: path
+        env:
+          PROJECT_PATH: ${{ inputs.android_project_path || 'apps/companion/android' }}
+          FAIL_IF_MISSING: ${{ inputs.run_when_missing || false }}
+        run: |
+          echo "project_path=${PROJECT_PATH}" >> "$GITHUB_OUTPUT"
+          if [ -d "${PROJECT_PATH}" ]; then
+            echo "present=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "present=false" >> "$GITHUB_OUTPUT"
+            echo "No companion Android project at ${PROJECT_PATH}."
+            if [ "${FAIL_IF_MISSING}" = "true" ]; then
+              exit 1
+            fi
+          fi
+
+      - name: Set up JDK 17
+        if: steps.path.outputs.present == 'true'
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Set up Android SDK
+        if: steps.path.outputs.present == 'true'
+        uses: android-actions/setup-android@v3
+
+      - name: Decode keystore (optional)
+        if: steps.path.outputs.present == 'true' && env.ANDROID_KEYSTORE_BASE64 != ''
+        env:
+          ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+        run: |
+          mkdir -p "${{ steps.path.outputs.project_path }}/signing"
+          echo "$ANDROID_KEYSTORE_BASE64" | base64 -d > "${{ steps.path.outputs.project_path }}/signing/release.jks"
+
+      - name: Build release AAB
+        if: steps.path.outputs.present == 'true'
+        working-directory: ${{ steps.path.outputs.project_path }}
+        env:
+          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        run: |
+          chmod +x ./gradlew
+          ./gradlew --no-daemon bundleRelease
+
+      - name: Upload companion AAB
+        if: steps.path.outputs.present == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: companion-android-aab
+          path: ${{ steps.path.outputs.project_path }}/app/build/outputs/bundle/release/*.aab
+          if-no-files-found: warn
+
+      - name: Skip companion AAB (project not in this repository)
+        if: steps.path.outputs.present != 'true'
+        run: |
+          echo "Companion AAB packaging workflow is defined (INF-041)."
+          echo "Signing secret names: ANDROID_KEYSTORE_BASE64, ANDROID_KEYSTORE_PASSWORD, ANDROID_KEY_ALIAS, ANDROID_KEY_PASSWORD."
+
+  package-ipa:
+    name: Companion IPA (macOS)
+    runs-on: macos-latest
+    timeout-minutes: 60
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Resolve iOS path
+        id: path
+        env:
+          PROJECT_PATH: ${{ inputs.ios_project_path || 'apps/companion/ios' }}
+          FAIL_IF_MISSING: ${{ inputs.run_when_missing || false }}
+        run: |
+          echo "project_path=${PROJECT_PATH}" >> "$GITHUB_OUTPUT"
+          if [ -d "${PROJECT_PATH}" ]; then
+            echo "present=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "present=false" >> "$GITHUB_OUTPUT"
+            echo "No companion iOS project at ${PROJECT_PATH}."
+            echo "Requires macos-latest runners + Apple signing secrets (INF-041)."
+            if [ "${FAIL_IF_MISSING}" = "true" ]; then
+              exit 1
+            fi
+          fi
+
+      - name: Import Apple signing material (optional)
+        if: steps.path.outputs.present == 'true' && env.APPLE_CERTIFICATE_P12_BASE64 != ''
+        env:
+          APPLE_CERTIFICATE_P12_BASE64: ${{ secrets.APPLE_CERTIFICATE_P12_BASE64 }}
+          APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
+          APPLE_PROVISIONING_PROFILE_BASE64: ${{ secrets.APPLE_PROVISIONING_PROFILE_BASE64 }}
+        run: |
+          CERT_PATH="$RUNNER_TEMP/certificate.p12"
+          PROFILE_PATH="$RUNNER_TEMP/profile.mobileprovision"
+          echo "$APPLE_CERTIFICATE_P12_BASE64" | base64 -d > "$CERT_PATH"
+          security create-keychain -p "" build.keychain
+          security default-keychain -s build.keychain
+          security unlock-keychain -p "" build.keychain
+          security import "$CERT_PATH" -k build.keychain -P "$APPLE_CERTIFICATE_PASSWORD" -T /usr/bin/codesign
+          security set-key-partition-list -S apple-tool:,apple: -s -k "" build.keychain
+          if [ -n "$APPLE_PROVISIONING_PROFILE_BASE64" ]; then
+            mkdir -p "$HOME/Library/MobileDevice/Provisioning Profiles"
+            echo "$APPLE_PROVISIONING_PROFILE_BASE64" | base64 -d > "$PROFILE_PATH"
+            cp "$PROFILE_PATH" "$HOME/Library/MobileDevice/Provisioning Profiles/"
+          fi
+
+      - name: Build IPA
+        if: steps.path.outputs.present == 'true'
+        working-directory: ${{ steps.path.outputs.project_path }}
+        env:
+          APPLE_API_KEY_ID: ${{ secrets.APPLE_API_KEY_ID }}
+          APPLE_API_ISSUER_ID: ${{ secrets.APPLE_API_ISSUER_ID }}
+          APPLE_API_KEY_P8_BASE64: ${{ secrets.APPLE_API_KEY_P8_BASE64 }}
+        run: |
+          if [ -f "./build-ipa.sh" ]; then
+            chmod +x ./build-ipa.sh
+            ./build-ipa.sh
+          elif [ -f "Podfile" ] || ls *.xcworkspace >/dev/null 2>&1 || ls *.xcodeproj >/dev/null 2>&1; then
+            xcodebuild -list
+            echo "Wire scheme/archive export in the companion iOS project (INF-041)."
+            exit 1
+          else
+            echo "Unsupported iOS project layout under ${{ steps.path.outputs.project_path }}."
+            exit 1
+          fi
+
+      - name: Upload IPA artifact
+        if: steps.path.outputs.present == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: companion-ios-ipa
+          path: |
+            ${{ steps.path.outputs.project_path }}/**/*.ipa
+            ${{ steps.path.outputs.project_path }}/build/**/*.ipa
+          if-no-files-found: warn
+
+      - name: Skip companion IPA (project not in this repository)
+        if: steps.path.outputs.present != 'true'
+        run: |
+          echo "Companion IPA packaging uses macos-latest (INF-041)."
+          echo "Signing secret names: APPLE_CERTIFICATE_P12_BASE64, APPLE_CERTIFICATE_PASSWORD,"
+          echo "APPLE_PROVISIONING_PROFILE_BASE64, APPLE_API_KEY_ID, APPLE_API_ISSUER_ID, APPLE_API_KEY_P8_BASE64."

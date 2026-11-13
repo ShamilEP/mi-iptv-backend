@@ -1,0 +1,98 @@
+name: Package Android TV
+
+# INF-041 — Android TV APK + AAB packaging (signing via secret names only).
+# Intended for `apps/android-tv` in this monorepo or as a reusable workflow from the TV repo.
+on:
+  workflow_dispatch:
+  workflow_call:
+    inputs:
+      project_path:
+        description: Relative path to the Android TV Gradle project
+        type: string
+        required: false
+        default: apps/android-tv
+      run_when_missing:
+        description: If true, fail when the project path is absent; otherwise skip
+        type: boolean
+        required: false
+        default: false
+
+concurrency:
+  group: package-android-tv-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  package-apk-aab:
+    name: Android TV APK / AAB
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Resolve project path
+        id: path
+        env:
+          PROJECT_PATH: ${{ inputs.project_path || 'apps/android-tv' }}
+          FAIL_IF_MISSING: ${{ inputs.run_when_missing || false }}
+        run: |
+          echo "project_path=${PROJECT_PATH}" >> "$GITHUB_OUTPUT"
+          if [ -d "${PROJECT_PATH}" ]; then
+            echo "present=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "present=false" >> "$GITHUB_OUTPUT"
+            echo "No Android TV project at ${PROJECT_PATH}."
+            echo "Copy this workflow into mi-iptv-tv or add apps/android-tv (INF-041)."
+            if [ "${FAIL_IF_MISSING}" = "true" ]; then
+              exit 1
+            fi
+          fi
+
+      - name: Set up JDK 17
+        if: steps.path.outputs.present == 'true'
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Set up Android SDK
+        if: steps.path.outputs.present == 'true'
+        uses: android-actions/setup-android@v3
+
+      - name: Decode keystore (optional)
+        if: steps.path.outputs.present == 'true' && env.ANDROID_KEYSTORE_BASE64 != ''
+        env:
+          ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+        run: |
+          mkdir -p "${{ steps.path.outputs.project_path }}/signing"
+          echo "$ANDROID_KEYSTORE_BASE64" | base64 -d > "${{ steps.path.outputs.project_path }}/signing/release.jks"
+
+      - name: Build release APK and AAB
+        if: steps.path.outputs.present == 'true'
+        working-directory: ${{ steps.path.outputs.project_path }}
+        env:
+          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        run: |
+          chmod +x ./gradlew
+          ./gradlew --no-daemon assembleRelease bundleRelease
+
+      - name: Upload APK / AAB artifacts
+        if: steps.path.outputs.present == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: android-tv-release
+          path: |
+            ${{ steps.path.outputs.project_path }}/app/build/outputs/apk/release/*.apk
+            ${{ steps.path.outputs.project_path }}/app/build/outputs/bundle/release/*.aab
+          if-no-files-found: warn
+
+      - name: Skip (project not in this repository)
+        if: steps.path.outputs.present != 'true'
+        run: |
+          echo "Android TV packaging workflow is defined (INF-041)."
+          echo "Secret names for signing: ANDROID_KEYSTORE_BASE64, ANDROID_KEYSTORE_PASSWORD, ANDROID_KEY_ALIAS, ANDROID_KEY_PASSWORD."
