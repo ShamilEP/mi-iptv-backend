@@ -9,6 +9,8 @@
 
 Close the gap between Backend §5.1’s core five and SRS §6 entities: favorites (with `type`), settings, sync_log, password-reset tokens, and refresh-token metadata.
 
+Privacy inventory / minimization (email-only personal data): **SEC-040** (`docs/security/040-data-inventory-and-minimization.md`).
+
 ## Migration
 
 `db/migrations/003_missing_srs_tables.sql` (additive after `001` + `002`).
