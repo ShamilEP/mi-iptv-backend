@@ -71,4 +71,9 @@ export const ROUTE_CATALOG: readonly RouteCatalogEntry[] = [
     path: '/api/v1/devices/{id}/heartbeat',
     operationId: 'deviceHeartbeat',
   },
+  {
+    method: 'POST',
+    path: '/api/v1/sync/playback-state',
+    operationId: 'upsertPlaybackState',
+  },
 ] as const;

@@ -418,6 +418,64 @@
           }
         }
       }
+    },
+    "/api/v1/sync/playback-state": {
+      "post": {
+        "operationId": "upsertPlaybackState",
+        "summary": "Upsert playback progress (offline-first sync)",
+        "description": "Idempotent via clientEventId. Applies syncVersion optimistic concurrency, server-clock LWW, and a 60s max-position window unless forceReset is true (ADR-005 / BE-061).",
+        "parameters": [
+          {
+            "name": "x-account-id",
+            "in": "header",
+            "required": true,
+            "schema": { "type": "string", "format": "uuid" }
+          },
+          {
+            "name": "x-profile-id",
+            "in": "header",
+            "required": true,
+            "schema": { "type": "string", "format": "uuid" },
+            "description": "Sprint 0 stand-in for active profile context"
+          },
+          {
+            "name": "x-device-id",
+            "in": "header",
+            "required": true,
+            "schema": { "type": "string", "format": "uuid" },
+            "description": "Sprint 0 stand-in for JWT deviceId claim"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/UpsertPlaybackStateRequest" }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Decision applied or idempotent replay (accepted may be false)",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/UpsertPlaybackStateResponse" }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid payload or domain validation failure",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/AuthError" }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing account/profile/device context headers"
+          }
+        }
+      }
     }
   },
   "components": {
@@ -624,6 +682,75 @@
         "properties": {
           "error": { "type": "string" },
           "code": { "type": "string" }
+        }
+      },
+      "UpsertPlaybackStateRequest": {
+        "type": "object",
+        "required": [
+          "clientEventId",
+          "contentId",
+          "position",
+          "completed",
+          "syncVersion"
+        ],
+        "properties": {
+          "clientEventId": {
+            "type": "string",
+            "format": "uuid",
+            "description": "Stable across retries (idempotency key)"
+          },
+          "contentId": { "type": "string", "format": "uuid" },
+          "position": {
+            "type": "integer",
+            "minimum": 0,
+            "description": "Playback position in seconds"
+          },
+          "duration": {
+            "type": "integer",
+            "minimum": 0,
+            "description": "Content duration in seconds"
+          },
+          "completed": { "type": "boolean" },
+          "sourceId": { "type": "string", "format": "uuid" },
+          "syncVersion": {
+            "type": "integer",
+            "minimum": 0,
+            "description": "Last sync_version observed by the client (baseVersion)"
+          },
+          "forceReset": {
+            "type": "boolean",
+            "default": false,
+            "description": "When true, wins over the 60s max-position window"
+          },
+          "clientReportedAt": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Informational only; never used for LWW"
+          }
+        }
+      },
+      "UpsertPlaybackStateResponse": {
+        "type": "object",
+        "required": [
+          "status",
+          "accepted",
+          "currentVersion",
+          "serverTimestamp",
+          "resolvedBy"
+        ],
+        "properties": {
+          "status": { "type": "string", "enum": ["OK"] },
+          "accepted": { "type": "boolean" },
+          "currentVersion": { "type": "integer" },
+          "serverTimestamp": { "type": "string", "format": "date-time" },
+          "resolvedBy": {
+            "type": "string",
+            "enum": ["accepted", "lww", "max_position", "force_reset"]
+          },
+          "changeSeq": {
+            "type": ["integer", "null"],
+            "description": "Account change_seq when accepted; null when rejected"
+          }
         }
       }
     }
