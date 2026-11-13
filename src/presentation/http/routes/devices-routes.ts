@@ -1,6 +1,7 @@
 import { DomainError } from '../../../domain/shared/domain-error.js';
 import type { DeviceHeartbeat } from '../../../application/devices/device-heartbeat.js';
 import type { ListDevices } from '../../../application/devices/list-devices.js';
+import type { NotifyCompanionStatusFallback } from '../../../application/devices/notify-companion-status-fallback.js';
 import type { RegisterDevice } from '../../../application/devices/register-device.js';
 import type { UnlinkDevice } from '../../../application/devices/unlink-device.js';
 import type {
@@ -18,6 +19,7 @@ export function createDevicesRoutes(deps: {
   readonly registerDevice: RegisterDevice;
   readonly unlinkDevice: UnlinkDevice;
   readonly deviceHeartbeat: DeviceHeartbeat;
+  readonly notifyCompanionStatusFallback: NotifyCompanionStatusFallback;
 }): readonly HttpRoute[] {
   return [
     {
@@ -29,6 +31,12 @@ export function createDevicesRoutes(deps: {
       method: 'POST',
       path: '/api/v1/devices/register',
       handler: (request) => handleRegister(request, deps.registerDevice),
+    },
+    {
+      method: 'POST',
+      path: '/api/v1/devices/companion-status',
+      handler: (request) =>
+        handleCompanionStatus(request, deps.notifyCompanionStatusFallback),
     },
     {
       method: 'DELETE',
@@ -112,6 +120,50 @@ async function handleUnlink(
   try {
     await unlinkDevice.execute(accountId, deviceId);
     return { statusCode: 204, headers: JSON_HEADERS };
+  } catch (error: unknown) {
+    return mapDomainError(error);
+  }
+}
+
+async function handleCompanionStatus(
+  request: HttpRequest,
+  notifyCompanionStatusFallback: NotifyCompanionStatusFallback,
+): Promise<HttpResponse> {
+  const accountId = requireAccountId(request);
+  if (typeof accountId !== 'string') {
+    return accountId;
+  }
+  const body = asObject(request.body);
+  if (!body) {
+    return {
+      statusCode: 400,
+      headers: JSON_HEADERS,
+      body: { error: 'JSON object body required' },
+    };
+  }
+  try {
+    const subjectDeviceId = optionalString(body.subjectDeviceId);
+    const result = await notifyCompanionStatusFallback.execute({
+      accountId,
+      status: String(body.status ?? ''),
+      ...(subjectDeviceId !== undefined ? { subjectDeviceId } : {}),
+    });
+    return {
+      statusCode: 200,
+      headers: JSON_HEADERS,
+      body: {
+        status: result.status,
+        sent: result.sent,
+        attempted: result.attempted.map((item) => ({
+          deviceId: item.deviceId,
+          platform: item.platform,
+          skippedBecauseSocketOpen: item.skippedBecauseSocketOpen,
+          skippedBecauseNoToken: item.skippedBecauseNoToken,
+          channel: item.result?.channel ?? null,
+          accepted: item.result?.accepted ?? false,
+        })),
+      },
+    };
   } catch (error: unknown) {
     return mapDomainError(error);
   }
