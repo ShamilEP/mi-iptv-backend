@@ -25,6 +25,9 @@ Provide a **PasswordHasher** port with configurable Argon2id cost parameters. Ne
 2. `password_hash` / PHC strings are redacted by SEC-003 log rules when present in structured fields.
 3. Verify is constant-time at the library layer; application returns boolean only.
 4. Cost parameters are configurable per environment without code changes.
+5. `hash` enforces Security §2.1 complexity before Argon2 (SEC-010 review).
+
+Formal review: `docs/security/010-password-storage-policy-review.md`.
 
 ## Verification checklist (DoD)
 

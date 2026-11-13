@@ -86,7 +86,7 @@ describe('BE-022 LoginAccount', () => {
       await createLoginStack();
     const accountId = randomUUID();
     const deviceId = randomUUID();
-    const password = 'correct-horse-battery';
+    const password = 'correct-horse-battery-1!';
     const now = new Date();
 
     await accounts.insert({
@@ -134,7 +134,7 @@ describe('BE-022 LoginAccount', () => {
     await accounts.insert({
       id: randomUUID(),
       email: 'known@example.com',
-      passwordHash: await hasher.hash('right-password'),
+      passwordHash: await hasher.hash('right-password-1!'),
       role: 'user',
       status: 'active',
       lastLoginAt: null,
@@ -177,7 +177,7 @@ describe('BE-022 LoginAccount', () => {
     await accounts.insert({
       id: randomUUID(),
       email: 'suspended@example.com',
-      passwordHash: await hasher.hash('password'),
+      passwordHash: await hasher.hash('password-1!'),
       role: 'user',
       status: 'suspended',
       lastLoginAt: null,
@@ -189,7 +189,7 @@ describe('BE-022 LoginAccount', () => {
       () =>
         login.execute({
           email: 'suspended@example.com',
-          password: 'password',
+          password: 'password-1!',
           deviceId: randomUUID(),
         }),
       (error: unknown) =>

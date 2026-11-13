@@ -3,10 +3,12 @@ import type {
   Argon2idHashParams,
   PasswordHasher,
 } from '../../application/ports/password-hasher.js';
+import { assertPasswordMeetsPolicy } from '../../domain/auth/password-policy.js';
 
 /**
  * Argon2id password hasher (Security §2.1) via approved `@node-rs/argon2`.
  * Plaintext passwords are never logged or stored — only PHC-encoded hashes leave this adapter.
+ * `hash` enforces the §2.1 complexity policy before Argon2 runs (SEC-010).
  */
 export class Argon2PasswordHasher implements PasswordHasher {
   constructor(private readonly params: Argon2idHashParams) {
@@ -19,6 +21,7 @@ export class Argon2PasswordHasher implements PasswordHasher {
 
   async hash(plainPassword: string): Promise<string> {
     assertNonEmptyPassword(plainPassword);
+    assertPasswordMeetsPolicy(plainPassword);
     return hash(plainPassword, {
       algorithm: Algorithm.Argon2id,
       memoryCost: this.params.memoryKiB,

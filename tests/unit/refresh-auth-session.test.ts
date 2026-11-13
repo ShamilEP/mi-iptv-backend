@@ -109,7 +109,7 @@ describe('BE-024 RefreshAuthSession', () => {
       refreshService,
       accounts,
     } = await createAuthStack();
-    const password = 'rotate-me';
+    const password = 'rotate-me-1!';
     const { accountId, email } = await seedActiveAccount(
       accounts,
       hasher,
@@ -155,7 +155,7 @@ describe('BE-024 RefreshAuthSession', () => {
       refreshService,
       accounts,
     } = await createAuthStack();
-    const password = 'reuse-me';
+    const password = 'reuse-me-1!';
     const { email } = await seedActiveAccount(accounts, hasher, password);
     const deviceId = randomUUID();
 
@@ -203,7 +203,7 @@ describe('BE-024 RefreshAuthSession', () => {
   it('HTTP refresh route is catalogued and maps reuse to 401', async () => {
     const { login, refreshSession, logout, accounts, hasher } =
       await createAuthStack();
-    const password = 'http-refresh';
+    const password = 'http-refresh-1!';
     const { email } = await seedActiveAccount(accounts, hasher, password);
     const routes = createAuthRoutes({
       loginAccount: login,
