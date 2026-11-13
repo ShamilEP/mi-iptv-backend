@@ -1,6 +1,9 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
+import { ListFavorites } from '../../src/application/sync/list-favorites.js';
+import { SetFavorite } from '../../src/application/sync/set-favorite.js';
 import { UpsertPlaybackState } from '../../src/application/sync/upsert-playback-state.js';
+import { InMemoryFavoriteSyncRepository } from '../../src/infrastructure/persistence/in-memory-favorite-sync-repository.js';
 import { InMemoryPlaybackSyncRepository } from '../../src/infrastructure/persistence/in-memory-playback-sync-repository.js';
 import { createSyncRoutes } from '../../src/presentation/http/routes/sync-routes.js';
 import { SyncError } from '../../src/domain/sync/sync-error.js';
@@ -206,10 +209,19 @@ describe('UpsertPlaybackState (BE-061)', () => {
   });
 });
 
+function syncRouteDeps(upsert: UpsertPlaybackState) {
+  const favorites = new InMemoryFavoriteSyncRepository();
+  return {
+    upsertPlaybackState: upsert,
+    listFavorites: new ListFavorites(favorites),
+    setFavorite: new SetFavorite(favorites),
+  };
+}
+
 describe('POST /api/v1/sync/playback-state route (BE-061)', () => {
   it('maps headers and body to the use case response contract', async () => {
     const { upsert } = buildUseCase();
-    const [route] = createSyncRoutes({ upsertPlaybackState: upsert });
+    const [route] = createSyncRoutes(syncRouteDeps(upsert));
     assert.ok(route);
 
     const response = await route.handler({
@@ -241,7 +253,7 @@ describe('POST /api/v1/sync/playback-state route (BE-061)', () => {
 
   it('requires profile and device context headers', async () => {
     const { upsert } = buildUseCase();
-    const [route] = createSyncRoutes({ upsertPlaybackState: upsert });
+    const [route] = createSyncRoutes(syncRouteDeps(upsert));
     assert.ok(route);
     const response = await route.handler({
       method: 'POST',
