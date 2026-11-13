@@ -147,3 +147,28 @@ variable "mail_dmarc_policy" {
   description = "DMARC policy for the mail domain."
   default     = "quarantine"
 }
+
+# INF-061 — cost budgets and anomaly alerts
+variable "monthly_budget_usd" {
+  type        = string
+  description = "Monthly AWS COST budget for Environment=dev (USD)."
+  default     = "50"
+}
+
+variable "budget_alert_emails" {
+  type        = list(string)
+  description = "Email subscribers for budget/anomaly SNS (confirm via AWS)."
+  default     = []
+}
+
+variable "anomaly_threshold_usd" {
+  type        = string
+  description = "Cost Anomaly Detection absolute impact threshold (USD)."
+  default     = "20"
+}
+
+variable "enable_cost_allocation_tags" {
+  type        = bool
+  description = "Activate Project/Environment/CostCenter cost allocation tags."
+  default     = true
+}

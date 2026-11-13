@@ -18,6 +18,7 @@ Live `terraform apply` is deferred (no AWS org admin / CLI in agent env; account
 ```text
 infra/terraform/
   modules/naming_tags/     # required tags + name prefix
+  modules/cost_budgets/    # INF-061 budgets + anomaly alerts
   bootstrap/               # remote state bucket + lock table (per account)
   environments/dev|qa|prod # env roots (remote backend + tags wiring)
 ```

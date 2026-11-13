@@ -181,3 +181,23 @@ output "mail_dmarc_record" {
 output "mail_authentication" {
   value = module.ses_email_domain.authentication
 }
+
+output "cost_budget_name" {
+  value = module.cost_budgets.budget_name
+}
+
+output "cost_budget_monthly_usd" {
+  value = module.cost_budgets.monthly_budget_usd
+}
+
+output "cost_alerts_sns_topic_arn" {
+  value = module.cost_budgets.sns_topic_arn
+}
+
+output "cost_anomaly_monitor_arn" {
+  value = module.cost_budgets.anomaly_monitor_arn
+}
+
+output "cost_allocation_tag_keys" {
+  value = module.cost_budgets.cost_allocation_tag_keys
+}
