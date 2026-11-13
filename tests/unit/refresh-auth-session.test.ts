@@ -206,6 +206,11 @@ describe('BE-024 RefreshAuthSession', () => {
     const password = 'http-refresh-1!';
     const { email } = await seedActiveAccount(accounts, hasher, password);
     const routes = createAuthRoutes({
+      registerAccount: {
+        execute: async () => {
+          throw new Error('unused');
+        },
+      } as never,
       loginAccount: login,
       refreshAuthSession: refreshSession,
       logoutAccount: logout,

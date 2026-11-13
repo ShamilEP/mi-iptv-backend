@@ -19,3 +19,28 @@ export type Account = {
 export function normalizeAccountEmail(email: string): string {
   return email.trim().toLowerCase();
 }
+
+/**
+ * Lightweight registration email check (BE-020).
+ * Requires a non-empty local part, `@`, and a domain with a dot.
+ */
+export function isValidAccountEmail(email: string): boolean {
+  const normalized = normalizeAccountEmail(email);
+  if (normalized.length === 0 || normalized.length > 254) {
+    return false;
+  }
+  const at = normalized.lastIndexOf('@');
+  if (at <= 0 || at === normalized.length - 1) {
+    return false;
+  }
+  const local = normalized.slice(0, at);
+  const domain = normalized.slice(at + 1);
+  if (local.length === 0 || local.length > 64) {
+    return false;
+  }
+  if (domain.includes('..') || local.includes('..')) {
+    return false;
+  }
+  const domainDot = domain.indexOf('.');
+  return domainDot > 0 && domainDot < domain.length - 1;
+}

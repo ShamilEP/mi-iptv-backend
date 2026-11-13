@@ -18,6 +18,11 @@ export const ROUTE_CATALOG: readonly RouteCatalogEntry[] = [
   },
   {
     method: 'POST',
+    path: '/api/v1/auth/register',
+    operationId: 'register',
+  },
+  {
+    method: 'POST',
     path: '/api/v1/auth/login',
     operationId: 'login',
   },
