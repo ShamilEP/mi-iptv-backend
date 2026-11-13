@@ -64,3 +64,12 @@ module "ecr" {
   name_prefix = module.naming_tags.name_prefix
   tags        = module.naming_tags.tags
 }
+
+# INF-031 — CloudFront + S3 CDN for catalog artwork / static assets.
+module "cdn_artwork" {
+  source = "../../modules/cdn_artwork"
+
+  name_prefix = module.naming_tags.name_prefix
+  tags        = module.naming_tags.tags
+  price_class = var.cdn_price_class
+}

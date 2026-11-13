@@ -127,3 +127,10 @@ variable "create_github_oidc_provider" {
   type    = bool
   default = true
 }
+
+# INF-031 — CloudFront price class for artwork CDN
+variable "cdn_price_class" {
+  type        = string
+  description = "CloudFront price class (MVP NA/EU)."
+  default     = "PriceClass_100"
+}

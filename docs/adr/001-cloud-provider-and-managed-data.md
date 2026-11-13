@@ -20,7 +20,7 @@ The MVP backend needs a managed cloud host before Infra provisions DEV / QA / PR
 | Cache / pub-sub | **Amazon ElastiCache for Redis** (sessions, refresh-token support, realtime fan-out) |
 | Encryption keys | **AWS KMS** (envelope keys for AES-256-GCM source-credential ciphertext; no keys in source or DB cleartext) |
 | TLS entry | **Application Load Balancer** with ACM certificates; health check on `/health` |
-| Static catalog assets (CDN) | **Amazon CloudFront** (optional Cloudflare DNS/CDN remains acceptable at the edge if Infra prefers it later) |
+| Static catalog assets (CDN) | **Amazon CloudFront** (optional Cloudflare DNS/CDN remains acceptable at the edge if Infra prefers it later) — see **INF-031** |
 | DNS | **Amazon Route 53** (or Cloudflare DNS if edge is unified there) |
 
 Environments remain **DEV**, **QA/Staging**, and **PROD** as separate accounts or strongly isolated projects with least-privilege IAM and MFA (handover to INF-001+).

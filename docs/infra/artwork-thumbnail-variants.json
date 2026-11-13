@@ -1,0 +1,30 @@
+{
+  "task": "INF-031",
+  "strategy": "pre-generated-variants",
+  "pathPattern": "/artwork/{contentId}/{variant}.{ext}",
+  "maxLongestEdgePx": 1920,
+  "preferredFormats": ["webp", "jpg"],
+  "variants": [
+    {
+      "name": "thumb",
+      "maxWidth": 320,
+      "maxHeight": 480,
+      "use": "tv-grid"
+    },
+    {
+      "name": "poster",
+      "maxWidth": 780,
+      "maxHeight": 1170,
+      "use": "detail"
+    },
+    {
+      "name": "banner",
+      "maxWidth": 1920,
+      "maxHeight": 1080,
+      "use": "hero"
+    }
+  ],
+  "deferred": {
+    "onTheFlyResizeQueryKeys": ["w", "h", "format"]
+  }
+}

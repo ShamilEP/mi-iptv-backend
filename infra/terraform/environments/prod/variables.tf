@@ -111,3 +111,10 @@ variable "alb_zone_id" {
   default  = null
   nullable = true
 }
+
+# INF-031 — CloudFront price class for artwork CDN
+variable "cdn_price_class" {
+  type        = string
+  description = "CloudFront price class (MVP NA/EU; raise for broader edge later)."
+  default     = "PriceClass_100"
+}
