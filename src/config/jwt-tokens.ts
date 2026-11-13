@@ -10,12 +10,14 @@ export type JwtTokenTtlConfig = {
   readonly accessTokenTtlSeconds: number;
   /** Refresh token lifetime in seconds (ADR-004: 30 days). */
   readonly refreshTokenTtlSeconds: number;
-  /** JWT issuer claim. */
+  /** JWT issuer claim (`iss`). */
   readonly issuer: string;
+  /** JWT audience claim (`aud`) — API resource identifier. */
+  readonly audience: string;
 };
 
 /**
- * Loads JWT TTLs from env names only (never key material).
+ * Loads JWT TTLs / issuer / audience from env names only (never key material).
  */
 export function loadJwtTokenTtlConfig(
   env: NodeJS.ProcessEnv = process.env,
@@ -33,11 +35,14 @@ export function loadJwtTokenTtlConfig(
     'JWT_REFRESH_TTL_SECONDS',
   );
   const issuer = (env['JWT_ISSUER'] ?? 'mi-iptv').trim() || 'mi-iptv';
+  const audience =
+    (env['JWT_AUDIENCE'] ?? 'mi-iptv-api').trim() || 'mi-iptv-api';
 
   return {
     accessTokenTtlSeconds,
     refreshTokenTtlSeconds,
     issuer,
+    audience,
   };
 }
 

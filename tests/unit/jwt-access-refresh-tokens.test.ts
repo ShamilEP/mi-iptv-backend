@@ -89,6 +89,81 @@ describe('BE-023 JWT access + refresh tokens', () => {
     );
   });
 
+  it('rejects none / HS256 alg headers and wrong iss/aud (SEC-011)', () => {
+    const { store } = makeKeys('kid-a');
+    const ttl = loadJwtTokenTtlConfig({});
+    const access = new NodeRs256AccessTokenService(store, ttl);
+    const issued = access.issue({
+      accountId: 'a',
+      deviceId: 'd',
+      roles: ['user'],
+    });
+    const [, payloadB64, sigB64] = issued.token.split('.') as [
+      string,
+      string,
+      string,
+    ];
+
+    const noneHeader = Buffer.from(
+      JSON.stringify({ alg: 'none', typ: 'JWT', kid: 'kid-a' }),
+      'utf8',
+    )
+      .toString('base64')
+      .replace(/\+/g, '-')
+      .replace(/\//g, '_')
+      .replace(/=+$/g, '');
+    assert.throws(
+      () => access.verify(`${noneHeader}.${payloadB64}.`),
+      (error: unknown) =>
+        error instanceof AuthTokenError && error.code === 'ACCESS_TOKEN_INVALID',
+    );
+
+    const hsHeader = Buffer.from(
+      JSON.stringify({ alg: 'HS256', typ: 'JWT', kid: 'kid-a' }),
+      'utf8',
+    )
+      .toString('base64')
+      .replace(/\+/g, '-')
+      .replace(/\//g, '_')
+      .replace(/=+$/g, '');
+    assert.throws(
+      () => access.verify(`${hsHeader}.${payloadB64}.${sigB64}`),
+      (error: unknown) =>
+        error instanceof AuthTokenError && error.code === 'ACCESS_TOKEN_INVALID',
+    );
+
+    const wrongIssuer = new NodeRs256AccessTokenService(
+      store,
+      loadJwtTokenTtlConfig({ JWT_ISSUER: 'other-issuer' }),
+    );
+    assert.throws(
+      () => wrongIssuer.verify(issued.token),
+      (error: unknown) =>
+        error instanceof AuthTokenError && error.code === 'ACCESS_TOKEN_INVALID',
+    );
+
+    const wrongAudience = new NodeRs256AccessTokenService(
+      store,
+      loadJwtTokenTtlConfig({ JWT_AUDIENCE: 'other-api' }),
+    );
+    assert.throws(
+      () => wrongAudience.verify(issued.token),
+      (error: unknown) =>
+        error instanceof AuthTokenError && error.code === 'ACCESS_TOKEN_INVALID',
+    );
+
+    const [headerB64] = issued.token.split('.') as [string, ...string[]];
+    const header = JSON.parse(
+      Buffer.from(
+        headerB64.replace(/-/g, '+').replace(/_/g, '/'),
+        'base64',
+      ).toString('utf8'),
+    ) as { alg: string };
+    assert.equal(header.alg, 'RS256');
+    assert.equal(ttl.issuer, 'mi-iptv');
+    assert.equal(ttl.audience, 'mi-iptv-api');
+  });
+
   it('issues opaque refresh tokens bound to deviceId with 30-day TTL hash', () => {
     const refresh = new OpaqueRefreshTokenService(loadJwtTokenTtlConfig({}));
     const issued = refresh.issue({

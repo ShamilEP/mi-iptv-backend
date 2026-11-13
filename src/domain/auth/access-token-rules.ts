@@ -63,6 +63,44 @@ export function assertJwtKid(kid: string | undefined): string {
   return kid;
 }
 
+export function assertJwtIssuer(
+  iss: unknown,
+  expectedIssuer: string,
+): void {
+  if (typeof iss !== 'string' || iss.trim() === '' || iss !== expectedIssuer) {
+    throw new AuthTokenError(
+      'Access token issuer is invalid',
+      'ACCESS_TOKEN_INVALID',
+    );
+  }
+}
+
+/**
+ * Accepts a string `aud` or a non-empty array containing the expected audience.
+ */
+export function assertJwtAudience(
+  aud: unknown,
+  expectedAudience: string,
+): void {
+  if (typeof aud === 'string') {
+    if (aud === expectedAudience) {
+      return;
+    }
+  } else if (Array.isArray(aud)) {
+    if (
+      aud.some(
+        (item) => typeof item === 'string' && item === expectedAudience,
+      )
+    ) {
+      return;
+    }
+  }
+  throw new AuthTokenError(
+    'Access token audience is invalid',
+    'ACCESS_TOKEN_INVALID',
+  );
+}
+
 export function assertAccessTokenNotExpired(
   expiresAtUnix: number,
   nowUnix: number,
@@ -77,6 +115,7 @@ export function assertAccessTokenNotExpired(
 
 /**
  * Builds verified claims from decoded JWT payload fields (post-signature).
+ * Caller must already have validated alg, kid, signature, iss, and aud.
  */
 export function parseAccessTokenClaims(input: {
   readonly accountId: unknown;

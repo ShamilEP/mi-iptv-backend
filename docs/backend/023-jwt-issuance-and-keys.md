@@ -32,13 +32,16 @@ No third-party JWT package: Node built-ins only. Optional future wrapper: propos
 | `JWT_ACCESS_TTL_SECONDS` | Default `3600` (bounds 900–3600) |
 | `JWT_REFRESH_TTL_SECONDS` | Default `2592000` (30 days) |
 | `JWT_ISSUER` | Default `mi-iptv` |
+| `JWT_AUDIENCE` | Default `mi-iptv-api` |
 
 Outside `APP_ENV=dev`, missing JWT key trio fails closed at startup. In `dev`, ephemeral RSA keys may be generated for local boot.
 
 ## Access claims
 
 Header: `{ alg: "RS256", typ: "JWT", kid }`  
-Payload: `iss`, `sub`/`accountId`, `deviceId`, `roles[]`, `jti`, `iat`, `exp`
+Payload: `iss`, `aud`, `sub`/`accountId`, `deviceId`, `roles[]`, `jti`, `iat`, `exp`
+
+Hardening review (alg pin, iss/aud/exp, kid rotation): **SEC-011** (`docs/security/011-jwt-hardening-review.md`).
 
 Refresh cleartext is returned **once** to the client; persist only `tokenHash` (+ `deviceId`, `familyId`, expiry) in `app.refresh_tokens` (login/refresh use cases).
 

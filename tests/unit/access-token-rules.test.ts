@@ -7,6 +7,8 @@ import {
   assertAccessTokenIssueInput,
   assertAccessTokenNotExpired,
   assertJwtAccessAlg,
+  assertJwtAudience,
+  assertJwtIssuer,
   assertJwtKid,
   isAllowedAccessTokenTtlSeconds,
   parseAccessTokenClaims,
@@ -74,6 +76,23 @@ describe('access token rules (BE-120 / Security §2.2)', () => {
         error instanceof AuthTokenError && error.code === 'ACCESS_TOKEN_EXPIRED',
     );
     assert.doesNotThrow(() => assertAccessTokenNotExpired(101, 100));
+  });
+
+  it('validates iss and aud (SEC-011)', () => {
+    assert.doesNotThrow(() => assertJwtIssuer('mi-iptv', 'mi-iptv'));
+    assert.throws(() => assertJwtIssuer('other', 'mi-iptv'), AuthTokenError);
+    assert.throws(() => assertJwtIssuer(undefined, 'mi-iptv'), AuthTokenError);
+    assert.doesNotThrow(() =>
+      assertJwtAudience('mi-iptv-api', 'mi-iptv-api'),
+    );
+    assert.doesNotThrow(() =>
+      assertJwtAudience(['mi-iptv-api', 'other'], 'mi-iptv-api'),
+    );
+    assert.throws(
+      () => assertJwtAudience('wrong', 'mi-iptv-api'),
+      AuthTokenError,
+    );
+    assert.throws(() => assertJwtAudience([], 'mi-iptv-api'), AuthTokenError);
   });
 
   it('parses complete claims and rejects incomplete or expired payloads', () => {
