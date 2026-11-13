@@ -33,7 +33,8 @@ Backup window (UTC): `07:00–08:00`. Maintenance: `sun:08:00–sun:09:00` (afte
 1. **Snapshot restore** — restore from the latest (or chosen) automated/manual snapshot to a new identifier.
 2. **PITR restore** — restore to a timestamp within the earliest restorable time … latest restorable time window.
 
-Runbook: [`runbooks/rds-restore.md`](./runbooks/rds-restore.md).
+Runbook: [`runbooks/rds-restore.md`](./runbooks/rds-restore.md).  
+Broader DR index (rollback / key compromise / failover): [`062-disaster-recovery-ops-runbooks.md`](./062-disaster-recovery-ops-runbooks.md).
 
 ## Rehearsed restore (Sprint 0 tabletop)
 

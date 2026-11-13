@@ -1,7 +1,8 @@
-# Runbook: RDS PostgreSQL restore (INF-021)
+# Runbook: RDS PostgreSQL restore (INF-021 / INF-062)
 
 **Audience:** Platform / on-call  
 **Applies to:** `mi-iptv-{env}-postgres` (INF-020 module)  
+**Parent:** [INF-062 DR index](../062-disaster-recovery-ops-runbooks.md)  
 **Safety:** Restore only to a **new** instance. Do not point prod traffic at a drill instance until verified.
 
 Never paste master passwords, `DATABASE_URL` values, or PEMs into tickets/chat.
