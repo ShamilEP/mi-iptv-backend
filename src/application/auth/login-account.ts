@@ -8,6 +8,7 @@ import type { AccountRepository } from '../ports/account-repository.js';
 import type { PasswordHasher } from '../ports/password-hasher.js';
 import type { RefreshTokenRepository } from '../ports/refresh-token-repository.js';
 import { IssueAuthTokenPair } from './issue-auth-token-pair.js';
+import type { LoginBruteForceGuard } from './login-brute-force-guard.js';
 
 /** Fixed Argon2id PHC used only to equalize timing when the email is unknown. */
 export const LOGIN_DUMMY_PASSWORD_HASH =
@@ -18,6 +19,8 @@ export type LoginAccountInput = {
   readonly password: string;
   /** Session / refresh binding (BE-023 / Security §2.2). */
   readonly deviceId: string;
+  /** Client IP for brute-force counters (BE-028). */
+  readonly clientIp?: string | null;
 };
 
 export type LoginAccountResult = {
@@ -30,6 +33,7 @@ export type LoginAccountResult = {
 /**
  * POST /auth/login — email/password auth with device-bound session (BE-022).
  * Wrong email and wrong password return the same AUTH_INVALID error.
+ * Optional {@link LoginBruteForceGuard} enforces Security §4.1 (BE-028).
  */
 export class LoginAccount {
   constructor(
@@ -37,12 +41,14 @@ export class LoginAccount {
     private readonly passwordHasher: PasswordHasher,
     private readonly issueAuthTokenPair: IssueAuthTokenPair,
     private readonly refreshTokens: RefreshTokenRepository,
+    private readonly bruteForce?: LoginBruteForceGuard,
   ) {}
 
   async execute(input: LoginAccountInput): Promise<LoginAccountResult> {
     const email = normalizeAccountEmail(input.email);
     const password = input.password;
     const deviceId = input.deviceId.trim();
+    const clientIp = (input.clientIp ?? 'unknown').trim() || 'unknown';
 
     if (email === '' || password === '' || deviceId === '') {
       throw new DomainError(
@@ -51,11 +57,18 @@ export class LoginAccount {
       );
     }
 
+    if (this.bruteForce) {
+      await this.bruteForce.assertAllowed(clientIp, email);
+    }
+
     const account = await this.accounts.findByEmail(email);
     const passwordHash = account?.passwordHash ?? LOGIN_DUMMY_PASSWORD_HASH;
     const passwordOk = await this.passwordHasher.verify(password, passwordHash);
 
     if (account === null || !passwordOk) {
+      if (this.bruteForce) {
+        await this.bruteForce.recordFailure(clientIp, email);
+      }
       throw new DomainError(
         'Invalid email or password',
         'AUTH_INVALID',
@@ -86,6 +99,10 @@ export class LoginAccount {
     });
 
     await this.accounts.save(touchLastLogin(account));
+
+    if (this.bruteForce) {
+      await this.bruteForce.clearFailures(clientIp, email);
+    }
 
     return {
       accountId: account.id,

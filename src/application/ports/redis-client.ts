@@ -12,6 +12,11 @@ export interface RedisClient {
   del(...keys: string[]): Promise<number>;
   incr(key: string): Promise<number>;
   expire(key: string, ttlSeconds: number): Promise<boolean>;
+  /**
+   * Remaining TTL in whole seconds.
+   * `-2` = missing key; `-1` = no expiry (Redis convention).
+   */
+  ttl(key: string): Promise<number>;
   publish(channel: string, message: string): Promise<number>;
   ping(): Promise<string>;
   close(): Promise<void>;

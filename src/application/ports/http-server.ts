@@ -10,6 +10,8 @@ export type HttpRequest = {
   readonly params?: Readonly<Record<string, string>>;
   /** Sprint 0 account scope from `x-account-id` until JWT auth (BE-023). */
   readonly accountId?: string | null;
+  /** Client IP for rate limits (BE-028); from socket or X-Forwarded-For. */
+  readonly clientIp?: string | null;
 };
 
 export type HttpResponse = {

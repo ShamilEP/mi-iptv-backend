@@ -76,6 +76,22 @@ export class InMemoryRedisClient implements RedisClient {
     return true;
   }
 
+  async ttl(key: string): Promise<number> {
+    const entry = this.store.get(key);
+    if (!entry) {
+      return -2;
+    }
+    if (entry.expiresAtMs === null) {
+      return -1;
+    }
+    const remainingMs = entry.expiresAtMs - Date.now();
+    if (remainingMs <= 0) {
+      this.store.delete(key);
+      return -2;
+    }
+    return Math.ceil(remainingMs / 1000);
+  }
+
   async publish(_channel: string, _message: string): Promise<number> {
     return 0;
   }

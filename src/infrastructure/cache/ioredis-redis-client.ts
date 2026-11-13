@@ -69,6 +69,11 @@ export class IoredisRedisClient implements RedisClient {
     return result === 1;
   }
 
+  async ttl(key: string): Promise<number> {
+    await this.ensureConnected();
+    return await this.client.ttl(key);
+  }
+
   async publish(channel: string, message: string): Promise<number> {
     await this.ensureConnected();
     return await this.client.publish(channel, message);
