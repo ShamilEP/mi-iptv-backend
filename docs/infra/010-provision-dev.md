@@ -35,6 +35,7 @@ Provision the **DEV** environment as the target for **CI** and **internal develo
 | Catalog artwork CDN | `cdn_artwork` | INF-031 |
 | Transactional email (SPF/DKIM/DMARC) | `ses_email_domain` | INF-033 |
 | Companion push (FCM / APNs secrets) | secret catalog + docs | INF-034 |
+| Anonymous crash reporting (TV + companion) | Crashlytics catalog + docs | INF-054 |
 
 Deferred to dedicated tasks (not duplicated here):
 

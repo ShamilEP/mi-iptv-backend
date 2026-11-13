@@ -94,5 +94,5 @@ Message text should not interpolate secrets. Prefer logging ids and outcomes onl
 ## Follow-ups
 
 - Client teams: mirror denylist in TV/Companion logging facades.
-- Crash SDK config task (INF-054) must enable PII/secret scrubbing.
+- Crash SDK config: **INF-054** (`docs/infra/054-crash-reporting.md`) — Firebase Crashlytics with anonymous ids + scrubbing.
 - Expand denylist when new secret field names appear in use cases.
