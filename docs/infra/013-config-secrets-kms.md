@@ -34,6 +34,13 @@ Logical secret names (stable for IaC later). Values are never committed; local/d
 | `mi-iptv/{env}/jwt_private_key` | Access/refresh signing key material | `JWT_PRIVATE_KEY` |
 | `mi-iptv/{env}/jwt_public_key` | Verification key material | `JWT_PUBLIC_KEY` |
 | `mi-iptv/{env}/source_credentials_data_key` | AES-256-GCM DEK for IPTV source credentials at rest (ciphertext in DB) | `SOURCE_CREDENTIALS_DATA_KEY` |
+| `mi-iptv/{env}/fcm_service_account_json` | Firebase Admin JSON for companion FCM (INF-034) | `FCM_SERVICE_ACCOUNT_JSON` |
+| `mi-iptv/{env}/apns_auth_key_p8` | APNs Auth Key `.p8` (base64) for companion (INF-034) | `APNS_AUTH_KEY_P8_BASE64` |
+| `mi-iptv/{env}/apns_key_id` | APNs Key ID | `APNS_KEY_ID` |
+| `mi-iptv/{env}/apns_team_id` | Apple Team ID | `APNS_TEAM_ID` |
+| `mi-iptv/{env}/apns_topic` | APNs topic / iOS bundle id | `APNS_TOPIC` |
+
+Companion push project IDs (non-secret): `docs/infra/034-push-notification-services.md` / `push-notification-projects.json`.
 
 In AWS later: Secrets Manager secrets encrypted with the **environment’s** KMS CMK; ECS task definition injects as env or runtime fetch via task role.
 
