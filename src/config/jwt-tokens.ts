@@ -1,3 +1,10 @@
+import {
+  ACCESS_TOKEN_TTL_DEFAULT_SECONDS,
+  ACCESS_TOKEN_TTL_MAX_SECONDS,
+  ACCESS_TOKEN_TTL_MIN_SECONDS,
+  REFRESH_TOKEN_TTL_DEFAULT_SECONDS,
+} from '../domain/auth/access-token-rules.js';
+
 export type JwtTokenTtlConfig = {
   /** Access token lifetime in seconds (ADR-004: 3600). */
   readonly accessTokenTtlSeconds: number;
@@ -7,11 +14,6 @@ export type JwtTokenTtlConfig = {
   readonly issuer: string;
 };
 
-const DEFAULT_ACCESS_TTL_SEC = 3600;
-const DEFAULT_REFRESH_TTL_SEC = 30 * 24 * 60 * 60;
-const MIN_ACCESS_TTL_SEC = 15 * 60;
-const MAX_ACCESS_TTL_SEC = 60 * 60;
-
 /**
  * Loads JWT TTLs from env names only (never key material).
  */
@@ -20,14 +22,14 @@ export function loadJwtTokenTtlConfig(
 ): JwtTokenTtlConfig {
   const accessTokenTtlSeconds = readBoundedInt(
     env['JWT_ACCESS_TTL_SECONDS'],
-    DEFAULT_ACCESS_TTL_SEC,
-    MIN_ACCESS_TTL_SEC,
-    MAX_ACCESS_TTL_SEC,
+    ACCESS_TOKEN_TTL_DEFAULT_SECONDS,
+    ACCESS_TOKEN_TTL_MIN_SECONDS,
+    ACCESS_TOKEN_TTL_MAX_SECONDS,
     'JWT_ACCESS_TTL_SECONDS',
   );
   const refreshTokenTtlSeconds = readPositiveInt(
     env['JWT_REFRESH_TTL_SECONDS'],
-    DEFAULT_REFRESH_TTL_SEC,
+    REFRESH_TOKEN_TTL_DEFAULT_SECONDS,
     'JWT_REFRESH_TTL_SECONDS',
   );
   const issuer = (env['JWT_ISSUER'] ?? 'mi-iptv').trim() || 'mi-iptv';
