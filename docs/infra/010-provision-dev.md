@@ -32,6 +32,7 @@ Provision the **DEV** environment as the target for **CI** and **internal develo
 | API log group | CloudWatch `/mi-iptv/dev/api` | **INF-010** |
 | ECS cluster (Fargate) | `dev` cluster, no service yet | **INF-010** (service/image/ALB later) |
 | ECR API repository | `ecr` | **INF-005** |
+| Catalog artwork CDN | `cdn_artwork` | INF-031 |
 
 Deferred to dedicated tasks (not duplicated here):
 

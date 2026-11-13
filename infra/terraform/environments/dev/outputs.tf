@@ -158,6 +158,30 @@ output "ecr_scan_on_push" {
   value = module.ecr.scan_on_push
 }
 
+output "cdn_artwork_bucket_name" {
+  value = module.cdn_artwork.bucket_name
+}
+
+output "cdn_artwork_domain_name" {
+  value = module.cdn_artwork.distribution_domain_name
+}
+
+output "cdn_artwork_distribution_id" {
+  value = module.cdn_artwork.distribution_id
+}
+
+output "cdn_artwork_cache_policy_id" {
+  value = module.cdn_artwork.artwork_cache_policy_id
+}
+
+output "cdn_artwork_path_pattern" {
+  value = module.cdn_artwork.artwork_path_pattern
+}
+
+output "cdn_thumbnail_variants" {
+  value = module.cdn_artwork.thumbnail_variants
+}
+
 # Contract consumed by CI / internal tests (INF-010).
 output "environment_contract" {
   value = {
