@@ -13,7 +13,11 @@ import { CreateProfile } from './application/profiles/create-profile.js';
 import { DeleteProfile } from './application/profiles/delete-profile.js';
 import { GetProfile } from './application/profiles/get-profile.js';
 import { ListProfiles } from './application/profiles/list-profiles.js';
+import { ParentalPinThrottle } from './application/profiles/parental-pin-throttle.js';
+import { SetParentalPin } from './application/profiles/set-parental-pin.js';
 import { UpdateProfile } from './application/profiles/update-profile.js';
+import { UpdateProfileRestrictions } from './application/profiles/update-profile-restrictions.js';
+import { VerifyParentalPin } from './application/profiles/verify-parental-pin.js';
 import { FetchXtreamCatalog } from './application/catalog/fetch-xtream-catalog.js';
 import { ParseM3uPlaylist } from './application/catalog/parse-m3u-playlist.js';
 import { ParseXmltvGuide } from './application/catalog/parse-xmltv-guide.js';
@@ -77,6 +81,7 @@ import { createAccountRoutes } from './presentation/http/routes/account-routes.j
 import { createAuthRoutes } from './presentation/http/routes/auth-routes.js';
 import { createDevicesRoutes } from './presentation/http/routes/devices-routes.js';
 import { createHealthRoute } from './presentation/http/routes/health-route.js';
+import { createProfilesParentalRoutes } from './presentation/http/routes/profiles-parental-routes.js';
 import { createProfilesRoutes } from './presentation/http/routes/profiles-routes.js';
 import { createSourcesRoutes } from './presentation/http/routes/sources-routes.js';
 import { createSyncRoutes } from './presentation/http/routes/sync-routes.js';
@@ -305,6 +310,22 @@ async function bootstrap(): Promise<void> {
     favoriteSyncRepository,
     playbackSyncRepository,
   );
+  const parentalPinThrottle = new ParentalPinThrottle(sessionRedis, logger);
+  const setParentalPin = new SetParentalPin(
+    accessTokenService,
+    profileRepository,
+    passwordHasher,
+  );
+  const verifyParentalPin = new VerifyParentalPin(
+    accessTokenService,
+    profileRepository,
+    passwordHasher,
+    parentalPinThrottle,
+  );
+  const updateProfileRestrictions = new UpdateProfileRestrictions(
+    accessTokenService,
+    profileRepository,
+  );
 
   const getHealthStatus = new GetHealthStatus();
   const httpServer = new NodeHttpServer(logger);
@@ -330,6 +351,13 @@ async function bootstrap(): Promise<void> {
     createProfile,
     updateProfile,
     deleteProfile,
+  })) {
+    httpServer.register(route);
+  }
+  for (const route of createProfilesParentalRoutes({
+    setParentalPin,
+    verifyParentalPin,
+    updateProfileRestrictions,
   })) {
     httpServer.register(route);
   }

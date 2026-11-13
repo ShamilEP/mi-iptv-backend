@@ -161,6 +161,7 @@ describe('BE-013 account deletion and export', () => {
       autoplay: true,
       subtitlePrefs: {},
       restrictions: {},
+      pinHash: null,
     });
     await devices.insert({
       id: deviceId,
@@ -301,6 +302,7 @@ describe('BE-013 account deletion and export', () => {
       autoplay: true,
       subtitlePrefs: {},
       restrictions: {},
+      pinHash: null,
     });
     await profiles.insert({
       id: randomUUID(),
@@ -313,6 +315,7 @@ describe('BE-013 account deletion and export', () => {
       autoplay: true,
       subtitlePrefs: {},
       restrictions: {},
+      pinHash: null,
     });
     await devices.insert({
       id: deviceId,

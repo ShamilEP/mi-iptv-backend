@@ -41,6 +41,7 @@ export function buildDefaultProfile(
     autoplay: DEFAULT_PROFILE_AUTOPLAY,
     subtitlePrefs: {},
     restrictions: {},
+    pinHash: null,
     createdAt: now,
     updatedAt: now,
   };

@@ -1,5 +1,9 @@
 import type { Account } from '../../domain/auth/account.js';
 import type { Profile } from '../../domain/profiles/profile.js';
+import {
+  parseParentalRestrictions,
+  type ParentalRestrictions,
+} from '../../domain/profiles/parental-restrictions.js';
 import type { Device } from '../../domain/devices/device.js';
 import type { UserSource } from '../../domain/sources/user-source.js';
 import type { Favorite } from '../../domain/sync/favorite.js';
@@ -26,7 +30,8 @@ export type AccountExportProfileView = {
   readonly isDefault: boolean;
   readonly autoplay: boolean;
   readonly subtitlePrefs: Readonly<Record<string, unknown>>;
-  readonly restrictions: Readonly<Record<string, unknown>>;
+  readonly restrictions: ParentalRestrictions;
+  readonly pinConfigured: boolean;
   readonly createdAt: string;
   readonly updatedAt: string;
 };
@@ -101,7 +106,9 @@ export function toAccountDataExport(input: {
       isDefault: profile.isDefault,
       autoplay: profile.autoplay,
       subtitlePrefs: profile.subtitlePrefs,
-      restrictions: profile.restrictions,
+      restrictions: parseParentalRestrictions(profile.restrictions),
+      pinConfigured:
+        profile.pinHash !== null && profile.pinHash.trim().length > 0,
       createdAt: profile.createdAt.toISOString(),
       updatedAt: profile.updatedAt.toISOString(),
     })),

@@ -39,6 +39,7 @@ Pub/Sub rides the **session** instance so LRU cache eviction never drops pub/sub
 | --- | --- | --- | --- |
 | `jwt:deny:{jti}` | session | remaining access-token life | Revoked access JWT deny-list |
 | `rl:login:ip:{ip}` / `rl:login:acct:{hash}` | session | 900 s | Login rate limit (BE-028) |
+| `rl:pin:{accountId}:{profileId}` | session | 900 s | Parental PIN verify lockout (BE-037) |
 | `rl:api:{accountId}` | session | sliding 60 s | API rate limit (BE-008) |
 | `presence:{deviceId}` | session | ~45 s | Heartbeat / realtime node id |
 | `cache:catalog:{scope}:{queryHash}` | cache | minutes | Home rows / listings (Backend §5.2) |

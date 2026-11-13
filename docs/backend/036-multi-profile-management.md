@@ -22,5 +22,5 @@ Favorites, playback progress, and history are keyed by `profile_id` in the schem
 ## Notes
 
 - Registration still seeds exactly one default via `CreateDefaultProfile` (BE-029).
-- Parental `restrictions` / PIN remain Release 1 follow-up (BE-037).
+- Parental `restrictions` / PIN: **[037-kid-profiles-parental-pin.md](./037-kid-profiles-parental-pin.md)**.
 - Breaking vs BE-035: `GET/PATCH /profiles` without `{id}` is replaced by list + `{id}` routes.

@@ -20,5 +20,6 @@ export async function seedTestProfile(
     autoplay: true,
     subtitlePrefs: {},
     restrictions: {},
+    pinHash: null,
   });
 }

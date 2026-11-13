@@ -74,6 +74,7 @@ export class CreateProfile {
       autoplay: input.autoplay ?? DEFAULT_PROFILE_AUTOPLAY,
       subtitlePrefs: input.subtitlePrefs ?? {},
       restrictions: {},
+      pinHash: null,
       createdAt: now,
       updatedAt: now,
     });

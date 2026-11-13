@@ -20,6 +20,12 @@ export interface PasswordHasher {
   hash(plainPassword: string): Promise<string>;
 
   /**
+   * Hash an opaque secret (e.g. parental PIN) with the same Argon2id parameters.
+   * Does **not** apply account password complexity policy — caller validates shape.
+   */
+  hashOpaque(plainSecret: string): Promise<string>;
+
+  /**
    * Returns true when `plainPassword` matches `passwordHash`.
    * Must not throw on mismatch; must not log either argument.
    */

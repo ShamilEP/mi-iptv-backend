@@ -45,4 +45,12 @@ describe('Argon2PasswordHasher', () => {
     const hasher = new Argon2PasswordHasher(testParams);
     assert.equal(await hasher.verify('any-password', 'not-a-phc'), false);
   });
+
+  it('hashOpaque accepts short numeric parental PINs without password policy', async () => {
+    const hasher = new Argon2PasswordHasher(testParams);
+    const pinHash = await hasher.hashOpaque('1234');
+    assert.match(pinHash, /^\$argon2id\$/);
+    assert.equal(await hasher.verify('1234', pinHash), true);
+  });
 });
+
