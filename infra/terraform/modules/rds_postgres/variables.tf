@@ -46,7 +46,25 @@ variable "multi_az" {
 
 variable "backup_retention_days" {
   type        = number
-  description = "Automated backup retention in days."
+  description = "Automated backup retention in days (>0 enables daily backups + PITR)."
+}
+
+variable "backup_window" {
+  type        = string
+  description = "UTC daily automated backup window (INF-021)."
+  default     = "07:00-08:00"
+}
+
+variable "maintenance_window" {
+  type        = string
+  description = "UTC weekly maintenance window (must not overlap backup_window)."
+  default     = "sun:08:00-sun:09:00"
+}
+
+variable "delete_automated_backups" {
+  type        = bool
+  description = "Delete automated backups when the instance is deleted (dev/qa true; prod false)."
+  default     = true
 }
 
 variable "deletion_protection" {

@@ -27,7 +27,7 @@ Provision **Amazon RDS for PostgreSQL** in private data subnets with env-appropr
 | `qa` | `db.t4g.small` | 50 GiB | Yes | 3 days | Off |
 | `prod` | `db.t4g.medium` | 100 GiB | **Yes** | 7 days | On |
 
-Daily automated backups match Infra §2.2. Storage autoscaling ceiling is set in Terraform (`max_allocated_storage`) to absorb catalog growth without manual resize for MVP.
+Daily automated backups match Infra §2.2. Storage autoscaling ceiling is set in Terraform (`max_allocated_storage`) to absorb catalog growth without manual resize for MVP. PITR, restore runbooks, and drills are covered by **INF-021** (`docs/infra/021-backups-and-restore-drills.md`).
 
 ### Private networking
 

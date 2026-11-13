@@ -25,7 +25,7 @@ Provision the **DEV** environment as the target for **CI** and **internal develo
 | --- | --- | --- |
 | Naming / cost tags | `naming_tags` | INF-002 |
 | VPC / SGs | `network` | INF-003 |
-| PostgreSQL | `rds_postgres` | INF-020 |
+| PostgreSQL | `rds_postgres` | INF-020 (+ backups/PITR INF-021) |
 | Redis (cache + session) | `elasticache_redis` | INF-022 |
 | DNS + ACM TLS | `dns_acm` | INF-004 |
 | CI OIDC deploy/test role | `ci_oidc` | **INF-010** |
