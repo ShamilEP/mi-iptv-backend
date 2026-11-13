@@ -20,6 +20,17 @@ export class InMemoryProfileRepository implements ProfileRepository {
       );
   }
 
+  async findById(
+    accountId: string,
+    profileId: string,
+  ): Promise<Profile | null> {
+    const row = this.byId.get(profileId);
+    if (!row || row.accountId !== accountId) {
+      return null;
+    }
+    return row;
+  }
+
   async findDefaultByAccount(accountId: string): Promise<Profile | null> {
     const rows = await this.listByAccount(accountId);
     return rows.find((row) => row.isDefault) ?? rows[0] ?? null;
@@ -39,6 +50,15 @@ export class InMemoryProfileRepository implements ProfileRepository {
   async save(profile: Profile): Promise<Profile> {
     this.byId.set(profile.id, profile);
     return profile;
+  }
+
+  async deleteById(accountId: string, profileId: string): Promise<boolean> {
+    const row = this.byId.get(profileId);
+    if (!row || row.accountId !== accountId) {
+      return false;
+    }
+    this.byId.delete(profileId);
+    return true;
   }
 
   async deleteByAccount(accountId: string): Promise<number> {

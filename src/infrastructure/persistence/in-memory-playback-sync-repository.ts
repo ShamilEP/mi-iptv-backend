@@ -52,6 +52,17 @@ export class InMemoryPlaybackSyncRepository implements PlaybackSyncRepository {
       );
   }
 
+  async listPlaybackByProfile(
+    accountId: string,
+    profileId: string,
+  ): Promise<readonly PlaybackState[]> {
+    return [...this.playback.values()]
+      .filter(
+        (row) => row.accountId === accountId && row.profileId === profileId,
+      )
+      .sort((a, b) => b.updatedAt.getTime() - a.updatedAt.getTime());
+  }
+
   async applyPlaybackWrite(
     input: ApplyPlaybackWriteInput,
   ): Promise<ApplyPlaybackWriteResult> {
@@ -116,6 +127,21 @@ export class InMemoryPlaybackSyncRepository implements PlaybackSyncRepository {
     });
 
     return { playback, changeSeq, syncLog };
+  }
+
+  async deleteByProfile(
+    accountId: string,
+    profileId: string,
+  ): Promise<number> {
+    let count = 0;
+    for (const [key, row] of this.playback) {
+      if (row.accountId !== accountId || row.profileId !== profileId) {
+        continue;
+      }
+      this.playback.delete(key);
+      count += 1;
+    }
+    return count;
   }
 
   async deleteByAccount(accountId: string): Promise<number> {

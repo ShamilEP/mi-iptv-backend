@@ -17,9 +17,14 @@
               "application/json": {
                 "schema": {
                   "type": "object",
-                  "required": ["status"],
+                  "required": [
+                    "status"
+                  ],
                   "properties": {
-                    "status": { "type": "string", "example": "ok" }
+                    "status": {
+                      "type": "string",
+                      "example": "ok"
+                    }
                   }
                 }
               }
@@ -37,7 +42,9 @@
           "required": true,
           "content": {
             "application/json": {
-              "schema": { "$ref": "#/components/schemas/RegisterRequest" }
+              "schema": {
+                "$ref": "#/components/schemas/RegisterRequest"
+              }
             }
           }
         },
@@ -46,7 +53,9 @@
             "description": "Account created and session issued",
             "content": {
               "application/json": {
-                "schema": { "$ref": "#/components/schemas/LoginResponse" }
+                "schema": {
+                  "$ref": "#/components/schemas/LoginResponse"
+                }
               }
             }
           },
@@ -54,7 +63,9 @@
             "description": "Missing/invalid input or password policy violation",
             "content": {
               "application/json": {
-                "schema": { "$ref": "#/components/schemas/AuthError" }
+                "schema": {
+                  "$ref": "#/components/schemas/AuthError"
+                }
               }
             }
           },
@@ -62,7 +73,9 @@
             "description": "Email already registered — client should offer login",
             "content": {
               "application/json": {
-                "schema": { "$ref": "#/components/schemas/AuthError" }
+                "schema": {
+                  "$ref": "#/components/schemas/AuthError"
+                }
               }
             }
           },
@@ -71,12 +84,17 @@
             "headers": {
               "Retry-After": {
                 "description": "Seconds until the lockout window expires",
-                "schema": { "type": "integer", "minimum": 1 }
+                "schema": {
+                  "type": "integer",
+                  "minimum": 1
+                }
               }
             },
             "content": {
               "application/json": {
-                "schema": { "$ref": "#/components/schemas/AuthRateLimitError" }
+                "schema": {
+                  "$ref": "#/components/schemas/AuthRateLimitError"
+                }
               }
             }
           }
@@ -92,7 +110,9 @@
           "required": true,
           "content": {
             "application/json": {
-              "schema": { "$ref": "#/components/schemas/LoginRequest" }
+              "schema": {
+                "$ref": "#/components/schemas/LoginRequest"
+              }
             }
           }
         },
@@ -101,7 +121,9 @@
             "description": "Authenticated session",
             "content": {
               "application/json": {
-                "schema": { "$ref": "#/components/schemas/LoginResponse" }
+                "schema": {
+                  "$ref": "#/components/schemas/LoginResponse"
+                }
               }
             }
           },
@@ -109,7 +131,9 @@
             "description": "Missing or invalid input",
             "content": {
               "application/json": {
-                "schema": { "$ref": "#/components/schemas/AuthError" }
+                "schema": {
+                  "$ref": "#/components/schemas/AuthError"
+                }
               }
             }
           },
@@ -117,7 +141,9 @@
             "description": "Invalid email or password (uniform)",
             "content": {
               "application/json": {
-                "schema": { "$ref": "#/components/schemas/AuthError" }
+                "schema": {
+                  "$ref": "#/components/schemas/AuthError"
+                }
               }
             }
           },
@@ -125,7 +151,9 @@
             "description": "Account inactive",
             "content": {
               "application/json": {
-                "schema": { "$ref": "#/components/schemas/AuthError" }
+                "schema": {
+                  "$ref": "#/components/schemas/AuthError"
+                }
               }
             }
           },
@@ -134,12 +162,17 @@
             "headers": {
               "Retry-After": {
                 "description": "Seconds until the lockout window expires",
-                "schema": { "type": "integer", "minimum": 1 }
+                "schema": {
+                  "type": "integer",
+                  "minimum": 1
+                }
               }
             },
             "content": {
               "application/json": {
-                "schema": { "$ref": "#/components/schemas/AuthRateLimitError" }
+                "schema": {
+                  "$ref": "#/components/schemas/AuthRateLimitError"
+                }
               }
             }
           }
@@ -155,7 +188,9 @@
           "required": true,
           "content": {
             "application/json": {
-              "schema": { "$ref": "#/components/schemas/RefreshRequest" }
+              "schema": {
+                "$ref": "#/components/schemas/RefreshRequest"
+              }
             }
           }
         },
@@ -164,7 +199,9 @@
             "description": "Rotated session tokens",
             "content": {
               "application/json": {
-                "schema": { "$ref": "#/components/schemas/RefreshResponse" }
+                "schema": {
+                  "$ref": "#/components/schemas/RefreshResponse"
+                }
               }
             }
           },
@@ -172,7 +209,9 @@
             "description": "Missing or invalid input",
             "content": {
               "application/json": {
-                "schema": { "$ref": "#/components/schemas/AuthError" }
+                "schema": {
+                  "$ref": "#/components/schemas/AuthError"
+                }
               }
             }
           },
@@ -180,7 +219,9 @@
             "description": "Invalid, revoked, expired, or reused refresh token",
             "content": {
               "application/json": {
-                "schema": { "$ref": "#/components/schemas/AuthError" }
+                "schema": {
+                  "$ref": "#/components/schemas/AuthError"
+                }
               }
             }
           },
@@ -188,7 +229,9 @@
             "description": "Account inactive",
             "content": {
               "application/json": {
-                "schema": { "$ref": "#/components/schemas/AuthError" }
+                "schema": {
+                  "$ref": "#/components/schemas/AuthError"
+                }
               }
             }
           }
@@ -205,7 +248,9 @@
             "name": "Authorization",
             "in": "header",
             "required": false,
-            "schema": { "type": "string" },
+            "schema": {
+              "type": "string"
+            },
             "description": "Bearer access JWT (preferred)"
           }
         ],
@@ -213,7 +258,9 @@
           "required": false,
           "content": {
             "application/json": {
-              "schema": { "$ref": "#/components/schemas/LogoutRequest" }
+              "schema": {
+                "$ref": "#/components/schemas/LogoutRequest"
+              }
             }
           }
         },
@@ -222,7 +269,9 @@
             "description": "Session(s) revoked",
             "content": {
               "application/json": {
-                "schema": { "$ref": "#/components/schemas/LogoutResponse" }
+                "schema": {
+                  "$ref": "#/components/schemas/LogoutResponse"
+                }
               }
             }
           },
@@ -230,7 +279,9 @@
             "description": "Missing or invalid input",
             "content": {
               "application/json": {
-                "schema": { "$ref": "#/components/schemas/AuthError" }
+                "schema": {
+                  "$ref": "#/components/schemas/AuthError"
+                }
               }
             }
           },
@@ -238,7 +289,9 @@
             "description": "Missing or invalid access token",
             "content": {
               "application/json": {
-                "schema": { "$ref": "#/components/schemas/AuthError" }
+                "schema": {
+                  "$ref": "#/components/schemas/AuthError"
+                }
               }
             }
           }
@@ -255,7 +308,9 @@
             "name": "Authorization",
             "in": "header",
             "required": false,
-            "schema": { "type": "string" },
+            "schema": {
+              "type": "string"
+            },
             "description": "Bearer access JWT (preferred)"
           }
         ],
@@ -264,7 +319,9 @@
             "description": "Account data export",
             "content": {
               "application/json": {
-                "schema": { "$ref": "#/components/schemas/AccountDataExport" }
+                "schema": {
+                  "$ref": "#/components/schemas/AccountDataExport"
+                }
               }
             }
           },
@@ -272,7 +329,9 @@
             "description": "Missing or invalid access token",
             "content": {
               "application/json": {
-                "schema": { "$ref": "#/components/schemas/AuthError" }
+                "schema": {
+                  "$ref": "#/components/schemas/AuthError"
+                }
               }
             }
           },
@@ -280,7 +339,9 @@
             "description": "Account not found",
             "content": {
               "application/json": {
-                "schema": { "$ref": "#/components/schemas/AuthError" }
+                "schema": {
+                  "$ref": "#/components/schemas/AuthError"
+                }
               }
             }
           }
@@ -297,7 +358,9 @@
             "name": "Authorization",
             "in": "header",
             "required": false,
-            "schema": { "type": "string" },
+            "schema": {
+              "type": "string"
+            },
             "description": "Bearer access JWT (preferred)"
           }
         ],
@@ -306,7 +369,9 @@
             "description": "Account deleted",
             "content": {
               "application/json": {
-                "schema": { "$ref": "#/components/schemas/DeleteAccountResponse" }
+                "schema": {
+                  "$ref": "#/components/schemas/DeleteAccountResponse"
+                }
               }
             }
           },
@@ -314,7 +379,9 @@
             "description": "Missing or invalid access token",
             "content": {
               "application/json": {
-                "schema": { "$ref": "#/components/schemas/AuthError" }
+                "schema": {
+                  "$ref": "#/components/schemas/AuthError"
+                }
               }
             }
           },
@@ -322,7 +389,9 @@
             "description": "Account not found",
             "content": {
               "application/json": {
-                "schema": { "$ref": "#/components/schemas/AuthError" }
+                "schema": {
+                  "$ref": "#/components/schemas/AuthError"
+                }
               }
             }
           }
@@ -331,24 +400,39 @@
     },
     "/api/v1/profiles": {
       "get": {
-        "operationId": "getProfile",
-        "summary": "Get the MVP single (default) profile",
-        "description": "Returns name, avatar, language, region, autoplay, and subtitle preferences for onboarding (BE-035 / FR-002).",
+        "operationId": "listProfiles",
+        "summary": "List profiles for the account",
+        "description": "Returns all profiles for the authenticated account (BE-036 / FR-022).",
         "parameters": [
           {
             "name": "Authorization",
             "in": "header",
             "required": false,
-            "schema": { "type": "string" },
+            "schema": {
+              "type": "string"
+            },
             "description": "Bearer access JWT (preferred)"
           }
         ],
         "responses": {
           "200": {
-            "description": "Profile",
+            "description": "Profile list",
             "content": {
               "application/json": {
-                "schema": { "$ref": "#/components/schemas/ProfilePublic" }
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "items"
+                  ],
+                  "properties": {
+                    "items": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/ProfilePublic"
+                      }
+                    }
+                  }
+                }
               }
             }
           },
@@ -356,30 +440,26 @@
             "description": "Missing or invalid access token",
             "content": {
               "application/json": {
-                "schema": { "$ref": "#/components/schemas/AuthError" }
-              }
-            }
-          },
-          "404": {
-            "description": "Profile not found",
-            "content": {
-              "application/json": {
-                "schema": { "$ref": "#/components/schemas/AuthError" }
+                "schema": {
+                  "$ref": "#/components/schemas/AuthError"
+                }
               }
             }
           }
         }
       },
-      "patch": {
-        "operationId": "updateProfile",
-        "summary": "Update onboarding profile preferences",
-        "description": "Partial update of name, avatar, language, region, autoplay, and subtitlePrefs. Does not change isDefault (BE-035 / FR-002).",
+      "post": {
+        "operationId": "createProfile",
+        "summary": "Create a profile",
+        "description": "Creates a profile up to the household limit (BE-036 / FR-022).",
         "parameters": [
           {
             "name": "Authorization",
             "in": "header",
             "required": false,
-            "schema": { "type": "string" },
+            "schema": {
+              "type": "string"
+            },
             "description": "Bearer access JWT (preferred)"
           }
         ],
@@ -387,16 +467,20 @@
           "required": true,
           "content": {
             "application/json": {
-              "schema": { "$ref": "#/components/schemas/UpdateProfileRequest" }
+              "schema": {
+                "$ref": "#/components/schemas/CreateProfileRequest"
+              }
             }
           }
         },
         "responses": {
-          "200": {
-            "description": "Updated profile",
+          "201": {
+            "description": "Created profile",
             "content": {
               "application/json": {
-                "schema": { "$ref": "#/components/schemas/ProfilePublic" }
+                "schema": {
+                  "$ref": "#/components/schemas/ProfilePublic"
+                }
               }
             }
           },
@@ -404,7 +488,9 @@
             "description": "Invalid input",
             "content": {
               "application/json": {
-                "schema": { "$ref": "#/components/schemas/AuthError" }
+                "schema": {
+                  "$ref": "#/components/schemas/AuthError"
+                }
               }
             }
           },
@@ -412,15 +498,19 @@
             "description": "Missing or invalid access token",
             "content": {
               "application/json": {
-                "schema": { "$ref": "#/components/schemas/AuthError" }
+                "schema": {
+                  "$ref": "#/components/schemas/AuthError"
+                }
               }
             }
           },
-          "404": {
-            "description": "Profile not found",
+          "409": {
+            "description": "Profile limit reached",
             "content": {
               "application/json": {
-                "schema": { "$ref": "#/components/schemas/AuthError" }
+                "schema": {
+                  "$ref": "#/components/schemas/AuthError"
+                }
               }
             }
           }
@@ -436,7 +526,10 @@
             "name": "x-account-id",
             "in": "header",
             "required": true,
-            "schema": { "type": "string", "format": "uuid" },
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
             "description": "Sprint 0 stand-in for JWT account scope"
           }
         ],
@@ -447,11 +540,15 @@
               "application/json": {
                 "schema": {
                   "type": "object",
-                  "required": ["items"],
+                  "required": [
+                    "items"
+                  ],
                   "properties": {
                     "items": {
                       "type": "array",
-                      "items": { "$ref": "#/components/schemas/SourcePublic" }
+                      "items": {
+                        "$ref": "#/components/schemas/SourcePublic"
+                      }
                     }
                   }
                 }
@@ -468,14 +565,19 @@
             "name": "x-account-id",
             "in": "header",
             "required": true,
-            "schema": { "type": "string", "format": "uuid" }
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
           }
         ],
         "requestBody": {
           "required": true,
           "content": {
             "application/json": {
-              "schema": { "$ref": "#/components/schemas/CreateSourceRequest" }
+              "schema": {
+                "$ref": "#/components/schemas/CreateSourceRequest"
+              }
             }
           }
         },
@@ -484,7 +586,9 @@
             "description": "Created (credentials masked)",
             "content": {
               "application/json": {
-                "schema": { "$ref": "#/components/schemas/SourcePublic" }
+                "schema": {
+                  "$ref": "#/components/schemas/SourcePublic"
+                }
               }
             }
           }
@@ -500,20 +604,28 @@
             "name": "x-account-id",
             "in": "header",
             "required": true,
-            "schema": { "type": "string", "format": "uuid" }
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
           },
           {
             "name": "id",
             "in": "path",
             "required": true,
-            "schema": { "type": "string", "format": "uuid" }
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
           }
         ],
         "requestBody": {
           "required": true,
           "content": {
             "application/json": {
-              "schema": { "$ref": "#/components/schemas/UpdateSourceRequest" }
+              "schema": {
+                "$ref": "#/components/schemas/UpdateSourceRequest"
+              }
             }
           }
         },
@@ -522,7 +634,9 @@
             "description": "Updated (credentials masked)",
             "content": {
               "application/json": {
-                "schema": { "$ref": "#/components/schemas/SourcePublic" }
+                "schema": {
+                  "$ref": "#/components/schemas/SourcePublic"
+                }
               }
             }
           }
@@ -536,17 +650,25 @@
             "name": "x-account-id",
             "in": "header",
             "required": true,
-            "schema": { "type": "string", "format": "uuid" }
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
           },
           {
             "name": "id",
             "in": "path",
             "required": true,
-            "schema": { "type": "string", "format": "uuid" }
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
           }
         ],
         "responses": {
-          "204": { "description": "Deleted" }
+          "204": {
+            "description": "Deleted"
+          }
         }
       }
     },
@@ -560,13 +682,19 @@
             "name": "x-account-id",
             "in": "header",
             "required": true,
-            "schema": { "type": "string", "format": "uuid" }
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
           },
           {
             "name": "id",
             "in": "path",
             "required": true,
-            "schema": { "type": "string", "format": "uuid" }
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
           }
         ],
         "responses": {
@@ -574,7 +702,9 @@
             "description": "Connectivity check succeeded",
             "content": {
               "application/json": {
-                "schema": { "$ref": "#/components/schemas/SourceTestResult" }
+                "schema": {
+                  "$ref": "#/components/schemas/SourceTestResult"
+                }
               }
             }
           },
@@ -582,7 +712,9 @@
             "description": "Connectivity check failed with classified reason",
             "content": {
               "application/json": {
-                "schema": { "$ref": "#/components/schemas/SourceTestResult" }
+                "schema": {
+                  "$ref": "#/components/schemas/SourceTestResult"
+                }
               }
             }
           }
@@ -598,7 +730,10 @@
             "name": "x-account-id",
             "in": "header",
             "required": true,
-            "schema": { "type": "string", "format": "uuid" }
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
           }
         ],
         "responses": {
@@ -608,11 +743,15 @@
               "application/json": {
                 "schema": {
                   "type": "object",
-                  "required": ["items"],
+                  "required": [
+                    "items"
+                  ],
                   "properties": {
                     "items": {
                       "type": "array",
-                      "items": { "$ref": "#/components/schemas/DevicePublic" }
+                      "items": {
+                        "$ref": "#/components/schemas/DevicePublic"
+                      }
                     }
                   }
                 }
@@ -631,14 +770,19 @@
             "name": "x-account-id",
             "in": "header",
             "required": true,
-            "schema": { "type": "string", "format": "uuid" }
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
           }
         ],
         "requestBody": {
           "required": true,
           "content": {
             "application/json": {
-              "schema": { "$ref": "#/components/schemas/RegisterDeviceRequest" }
+              "schema": {
+                "$ref": "#/components/schemas/RegisterDeviceRequest"
+              }
             }
           }
         },
@@ -647,7 +791,9 @@
             "description": "Registered",
             "content": {
               "application/json": {
-                "schema": { "$ref": "#/components/schemas/DevicePublic" }
+                "schema": {
+                  "$ref": "#/components/schemas/DevicePublic"
+                }
               }
             }
           }
@@ -664,14 +810,19 @@
             "name": "x-account-id",
             "in": "header",
             "required": true,
-            "schema": { "type": "string", "format": "uuid" }
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
           }
         ],
         "requestBody": {
           "required": true,
           "content": {
             "application/json": {
-              "schema": { "$ref": "#/components/schemas/NotifyCompanionStatusRequest" }
+              "schema": {
+                "$ref": "#/components/schemas/NotifyCompanionStatusRequest"
+              }
             }
           }
         },
@@ -680,7 +831,9 @@
             "description": "Fallback evaluated; sent count may be zero when sockets are open or tokens missing",
             "content": {
               "application/json": {
-                "schema": { "$ref": "#/components/schemas/NotifyCompanionStatusResponse" }
+                "schema": {
+                  "$ref": "#/components/schemas/NotifyCompanionStatusResponse"
+                }
               }
             }
           },
@@ -688,7 +841,9 @@
             "description": "Invalid status payload",
             "content": {
               "application/json": {
-                "schema": { "$ref": "#/components/schemas/AuthError" }
+                "schema": {
+                  "$ref": "#/components/schemas/AuthError"
+                }
               }
             }
           },
@@ -707,17 +862,25 @@
             "name": "x-account-id",
             "in": "header",
             "required": true,
-            "schema": { "type": "string", "format": "uuid" }
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
           },
           {
             "name": "id",
             "in": "path",
             "required": true,
-            "schema": { "type": "string", "format": "uuid" }
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
           }
         ],
         "responses": {
-          "204": { "description": "Unlinked" }
+          "204": {
+            "description": "Unlinked"
+          }
         }
       }
     },
@@ -730,13 +893,19 @@
             "name": "x-account-id",
             "in": "header",
             "required": true,
-            "schema": { "type": "string", "format": "uuid" }
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
           },
           {
             "name": "id",
             "in": "path",
             "required": true,
-            "schema": { "type": "string", "format": "uuid" }
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
           }
         ],
         "requestBody": {
@@ -746,7 +915,9 @@
               "schema": {
                 "type": "object",
                 "properties": {
-                  "pushToken": { "type": "string" }
+                  "pushToken": {
+                    "type": "string"
+                  }
                 }
               }
             }
@@ -757,7 +928,9 @@
             "description": "Heartbeat accepted",
             "content": {
               "application/json": {
-                "schema": { "$ref": "#/components/schemas/DevicePublic" }
+                "schema": {
+                  "$ref": "#/components/schemas/DevicePublic"
+                }
               }
             }
           }
@@ -774,20 +947,29 @@
             "name": "x-account-id",
             "in": "header",
             "required": true,
-            "schema": { "type": "string", "format": "uuid" }
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
           },
           {
             "name": "x-profile-id",
             "in": "header",
             "required": true,
-            "schema": { "type": "string", "format": "uuid" },
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
             "description": "Sprint 0 stand-in for active profile context"
           },
           {
             "name": "x-device-id",
             "in": "header",
             "required": true,
-            "schema": { "type": "string", "format": "uuid" },
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
             "description": "Sprint 0 stand-in for JWT deviceId claim"
           }
         ],
@@ -795,7 +977,9 @@
           "required": true,
           "content": {
             "application/json": {
-              "schema": { "$ref": "#/components/schemas/UpsertPlaybackStateRequest" }
+              "schema": {
+                "$ref": "#/components/schemas/UpsertPlaybackStateRequest"
+              }
             }
           }
         },
@@ -804,7 +988,9 @@
             "description": "Decision applied or idempotent replay (accepted may be false)",
             "content": {
               "application/json": {
-                "schema": { "$ref": "#/components/schemas/UpsertPlaybackStateResponse" }
+                "schema": {
+                  "$ref": "#/components/schemas/UpsertPlaybackStateResponse"
+                }
               }
             }
           },
@@ -812,7 +998,9 @@
             "description": "Invalid payload or domain validation failure",
             "content": {
               "application/json": {
-                "schema": { "$ref": "#/components/schemas/AuthError" }
+                "schema": {
+                  "$ref": "#/components/schemas/AuthError"
+                }
               }
             }
           },
@@ -832,26 +1020,37 @@
             "name": "x-account-id",
             "in": "header",
             "required": true,
-            "schema": { "type": "string", "format": "uuid" }
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
           },
           {
             "name": "x-profile-id",
             "in": "header",
             "required": true,
-            "schema": { "type": "string", "format": "uuid" }
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
           },
           {
             "name": "x-device-id",
             "in": "header",
             "required": true,
-            "schema": { "type": "string", "format": "uuid" }
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
           }
         ],
         "requestBody": {
           "required": true,
           "content": {
             "application/json": {
-              "schema": { "$ref": "#/components/schemas/AcceptBatchedSyncEventsRequest" }
+              "schema": {
+                "$ref": "#/components/schemas/AcceptBatchedSyncEventsRequest"
+              }
             }
           }
         },
@@ -860,7 +1059,9 @@
             "description": "Per-event decisions applied or idempotently replayed",
             "content": {
               "application/json": {
-                "schema": { "$ref": "#/components/schemas/AcceptBatchedSyncEventsResponse" }
+                "schema": {
+                  "$ref": "#/components/schemas/AcceptBatchedSyncEventsResponse"
+                }
               }
             }
           },
@@ -868,7 +1069,9 @@
             "description": "Invalid batch envelope, size limit exceeded, or event payload",
             "content": {
               "application/json": {
-                "schema": { "$ref": "#/components/schemas/AuthError" }
+                "schema": {
+                  "$ref": "#/components/schemas/AuthError"
+                }
               }
             }
           },
@@ -888,13 +1091,19 @@
             "name": "x-account-id",
             "in": "header",
             "required": true,
-            "schema": { "type": "string", "format": "uuid" }
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
           },
           {
             "name": "x-profile-id",
             "in": "header",
             "required": true,
-            "schema": { "type": "string", "format": "uuid" },
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
             "description": "Sprint 0 stand-in for active profile context"
           }
         ],
@@ -905,11 +1114,15 @@
               "application/json": {
                 "schema": {
                   "type": "object",
-                  "required": ["items"],
+                  "required": [
+                    "items"
+                  ],
                   "properties": {
                     "items": {
                       "type": "array",
-                      "items": { "$ref": "#/components/schemas/FavoritePublic" }
+                      "items": {
+                        "$ref": "#/components/schemas/FavoritePublic"
+                      }
                     }
                   }
                 }
@@ -930,26 +1143,37 @@
             "name": "x-account-id",
             "in": "header",
             "required": true,
-            "schema": { "type": "string", "format": "uuid" }
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
           },
           {
             "name": "x-profile-id",
             "in": "header",
             "required": true,
-            "schema": { "type": "string", "format": "uuid" }
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
           },
           {
             "name": "x-device-id",
             "in": "header",
             "required": true,
-            "schema": { "type": "string", "format": "uuid" }
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
           }
         ],
         "requestBody": {
           "required": true,
           "content": {
             "application/json": {
-              "schema": { "$ref": "#/components/schemas/SetFavoriteRequest" }
+              "schema": {
+                "$ref": "#/components/schemas/SetFavoriteRequest"
+              }
             }
           }
         },
@@ -958,7 +1182,9 @@
             "description": "Write applied or idempotent replay",
             "content": {
               "application/json": {
-                "schema": { "$ref": "#/components/schemas/SetFavoriteResponse" }
+                "schema": {
+                  "$ref": "#/components/schemas/SetFavoriteResponse"
+                }
               }
             }
           },
@@ -966,12 +1192,288 @@
             "description": "Invalid payload or domain validation failure",
             "content": {
               "application/json": {
-                "schema": { "$ref": "#/components/schemas/AuthError" }
+                "schema": {
+                  "$ref": "#/components/schemas/AuthError"
+                }
               }
             }
           },
           "401": {
             "description": "Missing account/profile/device context headers"
+          }
+        }
+      }
+    },
+    "/api/v1/profiles/{id}": {
+      "get": {
+        "operationId": "getProfile",
+        "summary": "Get one profile",
+        "description": "Returns a single profile owned by the account (BE-036).",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "Authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Bearer access JWT (preferred)"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Profile",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProfilePublic"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing or invalid access token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AuthError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Profile not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AuthError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "patch": {
+        "operationId": "updateProfile",
+        "summary": "Update a profile",
+        "description": "Partial update including optional isDefault promotion (BE-036).",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "Authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Bearer access JWT (preferred)"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateProfileRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Updated profile",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProfilePublic"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid input",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AuthError"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing or invalid access token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AuthError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Profile not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AuthError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "operationId": "deleteProfile",
+        "summary": "Delete a profile",
+        "description": "Deletes a profile and cascades favorites/progress. Refuses last profile (BE-036).",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "Authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Bearer access JWT (preferred)"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Deleted",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "deleted",
+                    "profileId"
+                  ],
+                  "properties": {
+                    "deleted": {
+                      "type": "boolean"
+                    },
+                    "profileId": {
+                      "type": "string",
+                      "format": "uuid"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing or invalid access token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AuthError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Profile not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AuthError"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Last remaining profile",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AuthError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/sync/playback-history": {
+      "get": {
+        "operationId": "listPlaybackHistory",
+        "summary": "List playback progress/history for a profile",
+        "description": "Returns progress/history rows scoped to x-profile-id (BE-036).",
+        "parameters": [
+          {
+            "name": "x-account-id",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "description": "Sprint 0 stand-in for JWT account scope"
+          },
+          {
+            "name": "x-profile-id",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "description": "Profile scope"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "History list",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "items"
+                  ],
+                  "properties": {
+                    "items": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/PlaybackHistoryItem"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing context headers"
+          },
+          "404": {
+            "description": "Profile not found for account"
           }
         }
       }
@@ -997,32 +1499,72 @@
           "token"
         ],
         "properties": {
-          "id": { "type": "string", "format": "uuid" },
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
           "kind": {
             "type": "string",
-            "enum": ["m3u", "xtream", "proprietary"]
+            "enum": [
+              "m3u",
+              "xtream",
+              "proprietary"
+            ]
           },
-          "name": { "type": "string" },
-          "uriRef": { "type": ["string", "null"] },
-          "priority": { "type": "integer" },
-          "enabled": { "type": "boolean" },
-          "status": { "type": "string" },
+          "name": {
+            "type": "string"
+          },
+          "uriRef": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "priority": {
+            "type": "integer"
+          },
+          "enabled": {
+            "type": "boolean"
+          },
+          "status": {
+            "type": "string"
+          },
           "statusReason": {
-            "type": ["string", "null"],
+            "type": [
+              "string",
+              "null"
+            ],
             "description": "Last connectivity classification from POST /test"
           },
-          "syncVersion": { "type": "integer" },
-          "credentialsConfigured": { "type": "boolean" },
-          "username": { "type": "null" },
-          "password": { "type": "null" },
-          "token": { "type": "null" }
+          "syncVersion": {
+            "type": "integer"
+          },
+          "credentialsConfigured": {
+            "type": "boolean"
+          },
+          "username": {
+            "type": "null"
+          },
+          "password": {
+            "type": "null"
+          },
+          "token": {
+            "type": "null"
+          }
         }
       },
       "SourceTestResult": {
         "type": "object",
-        "required": ["ok", "reason", "message", "source"],
+        "required": [
+          "ok",
+          "reason",
+          "message",
+          "source"
+        ],
         "properties": {
-          "ok": { "type": "boolean" },
+          "ok": {
+            "type": "boolean"
+          },
           "reason": {
             "type": "string",
             "enum": [
@@ -1033,24 +1575,50 @@
               "timeout"
             ]
           },
-          "message": { "type": "string" },
-          "source": { "$ref": "#/components/schemas/SourcePublic" }
+          "message": {
+            "type": "string"
+          },
+          "source": {
+            "$ref": "#/components/schemas/SourcePublic"
+          }
         }
       },
       "CreateSourceRequest": {
         "type": "object",
-        "required": ["kind", "name", "uriRef"],
+        "required": [
+          "kind",
+          "name",
+          "uriRef"
+        ],
         "properties": {
-          "kind": { "type": "string", "enum": ["m3u", "xtream"] },
-          "name": { "type": "string" },
-          "uriRef": { "type": "string" },
-          "priority": { "type": "integer" },
+          "kind": {
+            "type": "string",
+            "enum": [
+              "m3u",
+              "xtream"
+            ]
+          },
+          "name": {
+            "type": "string"
+          },
+          "uriRef": {
+            "type": "string"
+          },
+          "priority": {
+            "type": "integer"
+          },
           "credentials": {
             "type": "object",
             "properties": {
-              "username": { "type": "string" },
-              "password": { "type": "string" },
-              "token": { "type": "string" }
+              "username": {
+                "type": "string"
+              },
+              "password": {
+                "type": "string"
+              },
+              "token": {
+                "type": "string"
+              }
             }
           }
         }
@@ -1058,9 +1626,15 @@
       "UpdateSourceRequest": {
         "type": "object",
         "properties": {
-          "name": { "type": "string" },
-          "uriRef": { "type": "string" },
-          "priority": { "type": "integer" },
+          "name": {
+            "type": "string"
+          },
+          "uriRef": {
+            "type": "string"
+          },
+          "priority": {
+            "type": "integer"
+          },
           "enabled": {
             "type": "boolean",
             "description": "false deactivates without deleting"
@@ -1068,9 +1642,15 @@
           "credentials": {
             "type": "object",
             "properties": {
-              "username": { "type": "string" },
-              "password": { "type": "string" },
-              "token": { "type": "string" }
+              "username": {
+                "type": "string"
+              },
+              "password": {
+                "type": "string"
+              },
+              "token": {
+                "type": "string"
+              }
             }
           }
         }
@@ -1090,44 +1670,117 @@
           "lastSeenAt"
         ],
         "properties": {
-          "id": { "type": "string", "format": "uuid" },
-          "deviceType": { "type": "string", "enum": ["tv", "companion"] },
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "deviceType": {
+            "type": "string",
+            "enum": [
+              "tv",
+              "companion"
+            ]
+          },
           "platform": {
             "type": "string",
-            "enum": ["android_tv", "android", "ios"]
+            "enum": [
+              "android_tv",
+              "android",
+              "ios"
+            ]
           },
-          "name": { "type": ["string", "null"] },
-          "model": { "type": ["string", "null"] },
-          "appVersion": { "type": ["string", "null"] },
-          "osVersion": { "type": ["string", "null"] },
-          "pushTokenConfigured": { "type": "boolean" },
-          "pairedAt": { "type": "string", "format": "date-time" },
-          "lastSeenAt": { "type": ["string", "null"], "format": "date-time" }
+          "name": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "model": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "appVersion": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "osVersion": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "pushTokenConfigured": {
+            "type": "boolean"
+          },
+          "pairedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "lastSeenAt": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time"
+          }
         }
       },
       "RegisterDeviceRequest": {
         "type": "object",
-        "required": ["deviceType", "platform"],
+        "required": [
+          "deviceType",
+          "platform"
+        ],
         "properties": {
-          "deviceType": { "type": "string", "enum": ["tv", "companion"] },
+          "deviceType": {
+            "type": "string",
+            "enum": [
+              "tv",
+              "companion"
+            ]
+          },
           "platform": {
             "type": "string",
-            "enum": ["android_tv", "android", "ios"]
+            "enum": [
+              "android_tv",
+              "android",
+              "ios"
+            ]
           },
-          "name": { "type": "string" },
-          "model": { "type": "string" },
-          "appVersion": { "type": "string" },
-          "osVersion": { "type": "string" },
-          "pushToken": { "type": "string" }
+          "name": {
+            "type": "string"
+          },
+          "model": {
+            "type": "string"
+          },
+          "appVersion": {
+            "type": "string"
+          },
+          "osVersion": {
+            "type": "string"
+          },
+          "pushToken": {
+            "type": "string"
+          }
         }
       },
       "NotifyCompanionStatusRequest": {
         "type": "object",
-        "required": ["status"],
+        "required": [
+          "status"
+        ],
         "properties": {
           "status": {
             "type": "string",
-            "enum": ["connected", "disconnected", "pairing_error"]
+            "enum": [
+              "connected",
+              "disconnected",
+              "pairing_error"
+            ]
           },
           "subjectDeviceId": {
             "type": "string",
@@ -1147,39 +1800,79 @@
           "accepted"
         ],
         "properties": {
-          "deviceId": { "type": "string", "format": "uuid" },
-          "platform": { "type": "string" },
-          "skippedBecauseSocketOpen": { "type": "boolean" },
-          "skippedBecauseNoToken": { "type": "boolean" },
+          "deviceId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "platform": {
+            "type": "string"
+          },
+          "skippedBecauseSocketOpen": {
+            "type": "boolean"
+          },
+          "skippedBecauseNoToken": {
+            "type": "boolean"
+          },
           "channel": {
             "oneOf": [
-              { "type": "string", "enum": ["fcm", "apns", "noop"] },
-              { "type": "null" }
+              {
+                "type": "string",
+                "enum": [
+                  "fcm",
+                  "apns",
+                  "noop"
+                ]
+              },
+              {
+                "type": "null"
+              }
             ]
           },
-          "accepted": { "type": "boolean" }
+          "accepted": {
+            "type": "boolean"
+          }
         }
       },
       "NotifyCompanionStatusResponse": {
         "type": "object",
-        "required": ["status", "sent", "attempted"],
+        "required": [
+          "status",
+          "sent",
+          "attempted"
+        ],
         "properties": {
           "status": {
             "type": "string",
-            "enum": ["connected", "disconnected", "pairing_error"]
+            "enum": [
+              "connected",
+              "disconnected",
+              "pairing_error"
+            ]
           },
-          "sent": { "type": "integer", "minimum": 0 },
+          "sent": {
+            "type": "integer",
+            "minimum": 0
+          },
           "attempted": {
             "type": "array",
-            "items": { "$ref": "#/components/schemas/NotifyCompanionStatusAttempt" }
+            "items": {
+              "$ref": "#/components/schemas/NotifyCompanionStatusAttempt"
+            }
           }
         }
       },
       "RegisterRequest": {
         "type": "object",
-        "required": ["email", "password", "deviceId"],
+        "required": [
+          "email",
+          "password",
+          "deviceId"
+        ],
         "properties": {
-          "email": { "type": "string", "format": "email" },
+          "email": {
+            "type": "string",
+            "format": "email"
+          },
           "password": {
             "type": "string",
             "format": "password",
@@ -1194,10 +1887,20 @@
       },
       "LoginRequest": {
         "type": "object",
-        "required": ["email", "password", "deviceId"],
+        "required": [
+          "email",
+          "password",
+          "deviceId"
+        ],
         "properties": {
-          "email": { "type": "string", "format": "email" },
-          "password": { "type": "string", "format": "password" },
+          "email": {
+            "type": "string",
+            "format": "email"
+          },
+          "password": {
+            "type": "string",
+            "format": "password"
+          },
           "deviceId": {
             "type": "string",
             "format": "uuid",
@@ -1207,11 +1910,23 @@
       },
       "LoginResponse": {
         "type": "object",
-        "required": ["accountId", "accessToken", "refreshToken", "expiresIn"],
+        "required": [
+          "accountId",
+          "accessToken",
+          "refreshToken",
+          "expiresIn"
+        ],
         "properties": {
-          "accountId": { "type": "string", "format": "uuid" },
-          "accessToken": { "type": "string" },
-          "refreshToken": { "type": "string" },
+          "accountId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "accessToken": {
+            "type": "string"
+          },
+          "refreshToken": {
+            "type": "string"
+          },
           "expiresIn": {
             "type": "integer",
             "description": "Access token TTL in seconds",
@@ -1221,7 +1936,9 @@
       },
       "RefreshRequest": {
         "type": "object",
-        "required": ["refreshToken"],
+        "required": [
+          "refreshToken"
+        ],
         "properties": {
           "refreshToken": {
             "type": "string",
@@ -1231,10 +1948,20 @@
       },
       "RefreshResponse": {
         "type": "object",
-        "required": ["accountId", "accessToken", "refreshToken", "expiresIn"],
+        "required": [
+          "accountId",
+          "accessToken",
+          "refreshToken",
+          "expiresIn"
+        ],
         "properties": {
-          "accountId": { "type": "string", "format": "uuid" },
-          "accessToken": { "type": "string" },
+          "accountId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "accessToken": {
+            "type": "string"
+          },
           "refreshToken": {
             "type": "string",
             "description": "Rotated refresh token; previous token is spent"
@@ -1248,18 +1975,36 @@
       },
       "AuthError": {
         "type": "object",
-        "required": ["error", "code"],
+        "required": [
+          "error",
+          "code"
+        ],
         "properties": {
-          "error": { "type": "string" },
-          "code": { "type": "string" }
+          "error": {
+            "type": "string"
+          },
+          "code": {
+            "type": "string"
+          }
         }
       },
       "AuthRateLimitError": {
         "type": "object",
-        "required": ["error", "code", "retryAfter"],
+        "required": [
+          "error",
+          "code",
+          "retryAfter"
+        ],
         "properties": {
-          "error": { "type": "string" },
-          "code": { "type": "string", "enum": ["AUTH_RATE_LIMITED"] },
+          "error": {
+            "type": "string"
+          },
+          "code": {
+            "type": "string",
+            "enum": [
+              "AUTH_RATE_LIMITED"
+            ]
+          },
           "retryAfter": {
             "type": "integer",
             "minimum": 1,
@@ -1288,17 +2033,38 @@
       },
       "LogoutResponse": {
         "type": "object",
-        "required": ["status", "scope"],
+        "required": [
+          "status",
+          "scope"
+        ],
         "properties": {
-          "status": { "type": "string", "enum": ["OK"] },
-          "scope": { "type": "string", "enum": ["device", "account"] }
+          "status": {
+            "type": "string",
+            "enum": [
+              "OK"
+            ]
+          },
+          "scope": {
+            "type": "string",
+            "enum": [
+              "device",
+              "account"
+            ]
+          }
         }
       },
       "DeleteAccountResponse": {
         "type": "object",
-        "required": ["status"],
+        "required": [
+          "status"
+        ],
         "properties": {
-          "status": { "type": "string", "enum": ["OK"] }
+          "status": {
+            "type": "string",
+            "enum": [
+              "OK"
+            ]
+          }
         }
       },
       "AccountExportAccount": {
@@ -1313,13 +2079,35 @@
           "updatedAt"
         ],
         "properties": {
-          "id": { "type": "string", "format": "uuid" },
-          "email": { "type": "string", "format": "email" },
-          "role": { "type": "string" },
-          "status": { "type": "string" },
-          "lastLoginAt": { "type": ["string", "null"], "format": "date-time" },
-          "createdAt": { "type": "string", "format": "date-time" },
-          "updatedAt": { "type": "string", "format": "date-time" }
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "email": {
+            "type": "string",
+            "format": "email"
+          },
+          "role": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string"
+          },
+          "lastLoginAt": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          }
         }
       },
       "AccountExportProfile": {
@@ -1338,17 +2126,50 @@
           "updatedAt"
         ],
         "properties": {
-          "id": { "type": "string", "format": "uuid" },
-          "name": { "type": "string" },
-          "avatar": { "type": ["string", "null"] },
-          "language": { "type": "string" },
-          "region": { "type": ["string", "null"] },
-          "isDefault": { "type": "boolean" },
-          "autoplay": { "type": "boolean" },
-          "subtitlePrefs": { "type": "object", "additionalProperties": true },
-          "restrictions": { "type": "object", "additionalProperties": true },
-          "createdAt": { "type": "string", "format": "date-time" },
-          "updatedAt": { "type": "string", "format": "date-time" }
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "name": {
+            "type": "string"
+          },
+          "avatar": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "language": {
+            "type": "string"
+          },
+          "region": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "isDefault": {
+            "type": "boolean"
+          },
+          "autoplay": {
+            "type": "boolean"
+          },
+          "subtitlePrefs": {
+            "type": "object",
+            "additionalProperties": true
+          },
+          "restrictions": {
+            "type": "object",
+            "additionalProperties": true
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          }
         }
       },
       "ProfilePublic": {
@@ -1357,17 +2178,34 @@
       "UpdateProfileRequest": {
         "type": "object",
         "properties": {
-          "name": { "type": "string" },
-          "avatar": { "type": ["string", "null"] },
+          "name": {
+            "type": "string"
+          },
+          "avatar": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
           "language": {
             "type": "string",
             "description": "BCP-47 language tag"
           },
-          "region": { "type": ["string", "null"] },
-          "autoplay": { "type": "boolean" },
+          "region": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "autoplay": {
+            "type": "boolean"
+          },
           "subtitlePrefs": {
             "type": "object",
             "additionalProperties": true
+          },
+          "isDefault": {
+            "type": "boolean"
           }
         }
       },
@@ -1387,27 +2225,78 @@
           "revokedAt"
         ],
         "properties": {
-          "id": { "type": "string", "format": "uuid" },
-          "deviceType": { "type": "string" },
-          "platform": { "type": "string" },
-          "name": { "type": ["string", "null"] },
-          "model": { "type": ["string", "null"] },
-          "appVersion": { "type": ["string", "null"] },
-          "osVersion": { "type": ["string", "null"] },
-          "pushTokenConfigured": { "type": "boolean" },
-          "pairedAt": { "type": "string", "format": "date-time" },
-          "lastSeenAt": { "type": ["string", "null"], "format": "date-time" },
-          "revokedAt": { "type": ["string", "null"], "format": "date-time" }
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "deviceType": {
+            "type": "string"
+          },
+          "platform": {
+            "type": "string"
+          },
+          "name": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "model": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "appVersion": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "osVersion": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "pushTokenConfigured": {
+            "type": "boolean"
+          },
+          "pairedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "lastSeenAt": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time"
+          },
+          "revokedAt": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time"
+          }
         }
       },
       "AccountExportFavorite": {
         "allOf": [
-          { "$ref": "#/components/schemas/FavoritePublic" },
+          {
+            "$ref": "#/components/schemas/FavoritePublic"
+          },
           {
             "type": "object",
-            "required": ["profileId"],
+            "required": [
+              "profileId"
+            ],
             "properties": {
-              "profileId": { "type": "string", "format": "uuid" }
+              "profileId": {
+                "type": "string",
+                "format": "uuid"
+              }
             }
           }
         ]
@@ -1427,16 +2316,49 @@
           "updatedAt"
         ],
         "properties": {
-          "profileId": { "type": "string", "format": "uuid" },
-          "contentId": { "type": "string", "format": "uuid" },
-          "sourceId": { "type": ["string", "null"], "format": "uuid" },
-          "positionSec": { "type": "integer", "minimum": 0 },
-          "durationSec": { "type": ["integer", "null"], "minimum": 0 },
-          "completed": { "type": "boolean" },
-          "syncVersion": { "type": "integer" },
-          "changeSeq": { "type": "integer" },
-          "createdAt": { "type": "string", "format": "date-time" },
-          "updatedAt": { "type": "string", "format": "date-time" }
+          "profileId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "contentId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "sourceId": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "uuid"
+          },
+          "positionSec": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "durationSec": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "minimum": 0
+          },
+          "completed": {
+            "type": "boolean"
+          },
+          "syncVersion": {
+            "type": "integer"
+          },
+          "changeSeq": {
+            "type": "integer"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          }
         }
       },
       "AccountDataExport": {
@@ -1451,27 +2373,42 @@
           "playbackStates"
         ],
         "properties": {
-          "exportedAt": { "type": "string", "format": "date-time" },
-          "account": { "$ref": "#/components/schemas/AccountExportAccount" },
+          "exportedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "account": {
+            "$ref": "#/components/schemas/AccountExportAccount"
+          },
           "profiles": {
             "type": "array",
-            "items": { "$ref": "#/components/schemas/AccountExportProfile" }
+            "items": {
+              "$ref": "#/components/schemas/AccountExportProfile"
+            }
           },
           "devices": {
             "type": "array",
-            "items": { "$ref": "#/components/schemas/AccountExportDevice" }
+            "items": {
+              "$ref": "#/components/schemas/AccountExportDevice"
+            }
           },
           "sources": {
             "type": "array",
-            "items": { "$ref": "#/components/schemas/SourcePublic" }
+            "items": {
+              "$ref": "#/components/schemas/SourcePublic"
+            }
           },
           "favorites": {
             "type": "array",
-            "items": { "$ref": "#/components/schemas/AccountExportFavorite" }
+            "items": {
+              "$ref": "#/components/schemas/AccountExportFavorite"
+            }
           },
           "playbackStates": {
             "type": "array",
-            "items": { "$ref": "#/components/schemas/AccountExportPlayback" }
+            "items": {
+              "$ref": "#/components/schemas/AccountExportPlayback"
+            }
           }
         }
       },
@@ -1490,7 +2427,10 @@
             "format": "uuid",
             "description": "Stable across retries (idempotency key)"
           },
-          "contentId": { "type": "string", "format": "uuid" },
+          "contentId": {
+            "type": "string",
+            "format": "uuid"
+          },
           "position": {
             "type": "integer",
             "minimum": 0,
@@ -1501,8 +2441,13 @@
             "minimum": 0,
             "description": "Content duration in seconds"
           },
-          "completed": { "type": "boolean" },
-          "sourceId": { "type": "string", "format": "uuid" },
+          "completed": {
+            "type": "boolean"
+          },
+          "sourceId": {
+            "type": "string",
+            "format": "uuid"
+          },
           "syncVersion": {
             "type": "integer",
             "minimum": 0,
@@ -1522,22 +2467,52 @@
       },
       "SyncConflictReport": {
         "type": "object",
-        "required": ["resolved", "notice", "entity", "operation", "resolvedBy"],
+        "required": [
+          "resolved",
+          "notice",
+          "entity",
+          "operation",
+          "resolvedBy"
+        ],
         "description": "Present when resolvedBy is not accepted so clients can show the non-intrusive Sync Conflict notice (BE-065 / FR-034).",
         "properties": {
-          "resolved": { "type": "boolean", "enum": [true] },
-          "notice": { "type": "string", "enum": ["Sync Conflict"] },
+          "resolved": {
+            "type": "boolean",
+            "enum": [
+              true
+            ]
+          },
+          "notice": {
+            "type": "string",
+            "enum": [
+              "Sync Conflict"
+            ]
+          },
           "entity": {
             "type": "string",
-            "enum": ["playback_state", "favorite", "source", "setting"]
+            "enum": [
+              "playback_state",
+              "favorite",
+              "source",
+              "setting"
+            ]
           },
           "operation": {
             "type": "string",
-            "enum": ["upsert", "delete", "reset"]
+            "enum": [
+              "upsert",
+              "delete",
+              "reset"
+            ]
           },
           "resolvedBy": {
             "type": "string",
-            "enum": ["accepted", "lww", "max_position", "force_reset"]
+            "enum": [
+              "accepted",
+              "lww",
+              "max_position",
+              "force_reset"
+            ]
           }
         }
       },
@@ -1552,22 +2527,46 @@
           "conflict"
         ],
         "properties": {
-          "status": { "type": "string", "enum": ["OK"] },
-          "accepted": { "type": "boolean" },
-          "currentVersion": { "type": "integer" },
-          "serverTimestamp": { "type": "string", "format": "date-time" },
+          "status": {
+            "type": "string",
+            "enum": [
+              "OK"
+            ]
+          },
+          "accepted": {
+            "type": "boolean"
+          },
+          "currentVersion": {
+            "type": "integer"
+          },
+          "serverTimestamp": {
+            "type": "string",
+            "format": "date-time"
+          },
           "resolvedBy": {
             "type": "string",
-            "enum": ["accepted", "lww", "max_position", "force_reset"]
+            "enum": [
+              "accepted",
+              "lww",
+              "max_position",
+              "force_reset"
+            ]
           },
           "changeSeq": {
-            "type": ["integer", "null"],
+            "type": [
+              "integer",
+              "null"
+            ],
             "description": "Account change_seq when accepted; null when rejected"
           },
           "conflict": {
             "oneOf": [
-              { "$ref": "#/components/schemas/SyncConflictReport" },
-              { "type": "null" }
+              {
+                "$ref": "#/components/schemas/SyncConflictReport"
+              },
+              {
+                "type": "null"
+              }
             ]
           }
         }
@@ -1584,26 +2583,61 @@
           "updatedAt"
         ],
         "properties": {
-          "itemId": { "type": "string", "format": "uuid" },
-          "type": { "type": "string", "enum": ["channel", "vod"] },
-          "sortOrder": { "type": "integer" },
-          "syncVersion": { "type": "integer" },
-          "changeSeq": { "type": "integer" },
-          "createdAt": { "type": "string", "format": "date-time" },
-          "updatedAt": { "type": "string", "format": "date-time" }
+          "itemId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "type": {
+            "type": "string",
+            "enum": [
+              "channel",
+              "vod"
+            ]
+          },
+          "sortOrder": {
+            "type": "integer"
+          },
+          "syncVersion": {
+            "type": "integer"
+          },
+          "changeSeq": {
+            "type": "integer"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          }
         }
       },
       "SetFavoriteRequest": {
         "type": "object",
-        "required": ["clientEventId", "itemId", "action", "syncVersion"],
+        "required": [
+          "clientEventId",
+          "itemId",
+          "action",
+          "syncVersion"
+        ],
         "properties": {
           "clientEventId": {
             "type": "string",
             "format": "uuid",
             "description": "Stable across retries (idempotency key)"
           },
-          "itemId": { "type": "string", "format": "uuid" },
-          "action": { "type": "string", "enum": ["add", "remove"] },
+          "itemId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "action": {
+            "type": "string",
+            "enum": [
+              "add",
+              "remove"
+            ]
+          },
           "syncVersion": {
             "type": "integer",
             "minimum": 0,
@@ -1611,7 +2645,10 @@
           },
           "type": {
             "type": "string",
-            "enum": ["channel", "vod"],
+            "enum": [
+              "channel",
+              "vod"
+            ],
             "description": "Optional client metadata; defaults to vod on create"
           },
           "sortOrder": {
@@ -1636,28 +2673,54 @@
           "conflict"
         ],
         "properties": {
-          "status": { "type": "string", "enum": ["OK"] },
-          "accepted": { "type": "boolean" },
-          "currentVersion": { "type": "integer" },
-          "serverTimestamp": { "type": "string", "format": "date-time" },
+          "status": {
+            "type": "string",
+            "enum": [
+              "OK"
+            ]
+          },
+          "accepted": {
+            "type": "boolean"
+          },
+          "currentVersion": {
+            "type": "integer"
+          },
+          "serverTimestamp": {
+            "type": "string",
+            "format": "date-time"
+          },
           "resolvedBy": {
             "type": "string",
-            "enum": ["accepted", "lww", "max_position", "force_reset"]
+            "enum": [
+              "accepted",
+              "lww",
+              "max_position",
+              "force_reset"
+            ]
           },
           "changeSeq": {
-            "type": ["integer", "null"]
+            "type": [
+              "integer",
+              "null"
+            ]
           },
           "conflict": {
             "oneOf": [
-              { "$ref": "#/components/schemas/SyncConflictReport" },
-              { "type": "null" }
+              {
+                "$ref": "#/components/schemas/SyncConflictReport"
+              },
+              {
+                "type": "null"
+              }
             ]
           }
         }
       },
       "AcceptBatchedSyncEventsRequest": {
         "type": "object",
-        "required": ["events"],
+        "required": [
+          "events"
+        ],
         "properties": {
           "events": {
             "type": "array",
@@ -1669,30 +2732,42 @@
                   "allOf": [
                     {
                       "type": "object",
-                      "required": ["entity"],
+                      "required": [
+                        "entity"
+                      ],
                       "properties": {
                         "entity": {
                           "type": "string",
-                          "enum": ["playback_state"]
+                          "enum": [
+                            "playback_state"
+                          ]
                         }
                       }
                     },
-                    { "$ref": "#/components/schemas/UpsertPlaybackStateRequest" }
+                    {
+                      "$ref": "#/components/schemas/UpsertPlaybackStateRequest"
+                    }
                   ]
                 },
                 {
                   "allOf": [
                     {
                       "type": "object",
-                      "required": ["entity"],
+                      "required": [
+                        "entity"
+                      ],
                       "properties": {
                         "entity": {
                           "type": "string",
-                          "enum": ["favorite"]
+                          "enum": [
+                            "favorite"
+                          ]
                         }
                       }
                     },
-                    { "$ref": "#/components/schemas/SetFavoriteRequest" }
+                    {
+                      "$ref": "#/components/schemas/SetFavoriteRequest"
+                    }
                   ]
                 }
               ]
@@ -1714,33 +2789,149 @@
         "properties": {
           "entity": {
             "type": "string",
-            "enum": ["playback_state", "favorite"]
+            "enum": [
+              "playback_state",
+              "favorite"
+            ]
           },
-          "clientEventId": { "type": "string", "format": "uuid" },
-          "accepted": { "type": "boolean" },
-          "currentVersion": { "type": "integer" },
-          "serverTimestamp": { "type": "string", "format": "date-time" },
+          "clientEventId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "accepted": {
+            "type": "boolean"
+          },
+          "currentVersion": {
+            "type": "integer"
+          },
+          "serverTimestamp": {
+            "type": "string",
+            "format": "date-time"
+          },
           "resolvedBy": {
             "type": "string",
-            "enum": ["accepted", "lww", "max_position", "force_reset"]
+            "enum": [
+              "accepted",
+              "lww",
+              "max_position",
+              "force_reset"
+            ]
           },
-          "changeSeq": { "type": ["integer", "null"] },
+          "changeSeq": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
           "conflict": {
             "oneOf": [
-              { "$ref": "#/components/schemas/SyncConflictReport" },
-              { "type": "null" }
+              {
+                "$ref": "#/components/schemas/SyncConflictReport"
+              },
+              {
+                "type": "null"
+              }
             ]
           }
         }
       },
       "AcceptBatchedSyncEventsResponse": {
         "type": "object",
-        "required": ["status", "results"],
+        "required": [
+          "status",
+          "results"
+        ],
         "properties": {
-          "status": { "type": "string", "enum": ["OK"] },
+          "status": {
+            "type": "string",
+            "enum": [
+              "OK"
+            ]
+          },
           "results": {
             "type": "array",
-            "items": { "$ref": "#/components/schemas/BatchedSyncEventResult" }
+            "items": {
+              "$ref": "#/components/schemas/BatchedSyncEventResult"
+            }
+          }
+        }
+      },
+      "CreateProfileRequest": {
+        "type": "object",
+        "required": [
+          "name"
+        ],
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "avatar": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "language": {
+            "type": "string",
+            "description": "BCP-47 language tag"
+          },
+          "region": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "autoplay": {
+            "type": "boolean"
+          },
+          "subtitlePrefs": {
+            "type": "object",
+            "additionalProperties": true
+          },
+          "isDefault": {
+            "type": "boolean"
+          }
+        }
+      },
+      "PlaybackHistoryItem": {
+        "type": "object",
+        "required": [
+          "contentId",
+          "sourceId",
+          "positionSec",
+          "durationSec",
+          "completed",
+          "syncVersion",
+          "updatedAt"
+        ],
+        "properties": {
+          "contentId": {
+            "type": "string"
+          },
+          "sourceId": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "positionSec": {
+            "type": "number"
+          },
+          "durationSec": {
+            "type": [
+              "number",
+              "null"
+            ]
+          },
+          "completed": {
+            "type": "boolean"
+          },
+          "syncVersion": {
+            "type": "integer"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
           }
         }
       }

@@ -9,8 +9,9 @@ export type CreateDefaultProfileInput = {
 };
 
 /**
- * Seeds the single MVP default profile after account registration (BE-029).
- * Invoked by POST /auth/register (BE-020); enforces one profile per account in MVP.
+ * Seeds the first default profile after account registration (BE-029).
+ * Invoked by POST /auth/register (BE-020); refuses if the account already has any
+ * profile. Additional profiles are created via CreateProfile (BE-036).
  */
 export class CreateDefaultProfile {
   constructor(private readonly profiles: ProfileRepository) {}

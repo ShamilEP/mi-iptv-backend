@@ -9,7 +9,10 @@ import { RefreshAuthSession } from './application/auth/refresh-auth-session.js';
 import { RegisterAbuseGuard } from './application/auth/register-abuse-guard.js';
 import { RegisterAccount } from './application/auth/register-account.js';
 import { CreateDefaultProfile } from './application/profiles/create-default-profile.js';
+import { CreateProfile } from './application/profiles/create-profile.js';
+import { DeleteProfile } from './application/profiles/delete-profile.js';
 import { GetProfile } from './application/profiles/get-profile.js';
+import { ListProfiles } from './application/profiles/list-profiles.js';
 import { UpdateProfile } from './application/profiles/update-profile.js';
 import { FetchXtreamCatalog } from './application/catalog/fetch-xtream-catalog.js';
 import { ParseM3uPlaylist } from './application/catalog/parse-m3u-playlist.js';
@@ -30,6 +33,7 @@ import { UpdateSource } from './application/sources/update-source.js';
 import { ValidateSourceUrl } from './application/sources/validate-source-url.js';
 import { AcceptBatchedSyncEvents } from './application/sync/accept-batched-sync-events.js';
 import { ListFavorites } from './application/sync/list-favorites.js';
+import { ListPlaybackHistory } from './application/sync/list-playback-history.js';
 import { SetFavorite } from './application/sync/set-favorite.js';
 import { UpsertPlaybackState } from './application/sync/upsert-playback-state.js';
 import { loadConfig, loadInjectedSecrets } from './config/env.js';
@@ -236,12 +240,25 @@ async function bootstrap(): Promise<void> {
   const playbackSyncRepository = new InMemoryPlaybackSyncRepository(
     syncLogRepository,
   );
-  const upsertPlaybackState = new UpsertPlaybackState(playbackSyncRepository);
+  const upsertPlaybackState = new UpsertPlaybackState(
+    playbackSyncRepository,
+    profileRepository,
+  );
   const favoriteSyncRepository = new InMemoryFavoriteSyncRepository(
     syncLogRepository,
   );
-  const listFavorites = new ListFavorites(favoriteSyncRepository);
-  const setFavorite = new SetFavorite(favoriteSyncRepository);
+  const listFavorites = new ListFavorites(
+    favoriteSyncRepository,
+    profileRepository,
+  );
+  const setFavorite = new SetFavorite(
+    favoriteSyncRepository,
+    profileRepository,
+  );
+  const listPlaybackHistory = new ListPlaybackHistory(
+    playbackSyncRepository,
+    profileRepository,
+  );
   const acceptBatchedSyncEvents = new AcceptBatchedSyncEvents(
     upsertPlaybackState,
     setFavorite,
@@ -271,11 +288,22 @@ async function bootstrap(): Promise<void> {
     jwtTtl.accessTokenTtlSeconds,
   );
 
-  // BE-035: GET/PATCH MVP single profile (onboarding prefs).
+  // BE-035 / BE-036: multi-profile CRUD with household limit.
+  const listProfiles = new ListProfiles(accessTokenService, profileRepository);
   const getProfile = new GetProfile(accessTokenService, profileRepository);
+  const createProfile = new CreateProfile(
+    accessTokenService,
+    profileRepository,
+  );
   const updateProfile = new UpdateProfile(
     accessTokenService,
     profileRepository,
+  );
+  const deleteProfile = new DeleteProfile(
+    accessTokenService,
+    profileRepository,
+    favoriteSyncRepository,
+    playbackSyncRepository,
   );
 
   const getHealthStatus = new GetHealthStatus();
@@ -297,8 +325,11 @@ async function bootstrap(): Promise<void> {
     httpServer.register(route);
   }
   for (const route of createProfilesRoutes({
+    listProfiles,
     getProfile,
+    createProfile,
     updateProfile,
+    deleteProfile,
   })) {
     httpServer.register(route);
   }
@@ -322,6 +353,7 @@ async function bootstrap(): Promise<void> {
   }
   for (const route of createSyncRoutes({
     upsertPlaybackState,
+    listPlaybackHistory,
     listFavorites,
     setFavorite,
     acceptBatchedSyncEvents,

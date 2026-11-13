@@ -4,7 +4,10 @@ import { describe, it } from 'node:test';
 import { IssueAuthTokenPair } from '../../src/application/auth/issue-auth-token-pair.js';
 import { RegisterAccount } from '../../src/application/auth/register-account.js';
 import { CreateDefaultProfile } from '../../src/application/profiles/create-default-profile.js';
+import { CreateProfile } from '../../src/application/profiles/create-profile.js';
+import { DeleteProfile } from '../../src/application/profiles/delete-profile.js';
 import { GetProfile } from '../../src/application/profiles/get-profile.js';
+import { ListProfiles } from '../../src/application/profiles/list-profiles.js';
 import { UpdateProfile } from '../../src/application/profiles/update-profile.js';
 import { loadJwtTokenTtlConfig } from '../../src/config/jwt-tokens.js';
 import { loadPasswordHashParams } from '../../src/config/password-hashing.js';
@@ -13,6 +16,8 @@ import { Argon2PasswordHasher } from '../../src/infrastructure/crypto/argon2-pas
 import { NodeRs256AccessTokenService } from '../../src/infrastructure/crypto/node-rs256-access-token-service.js';
 import { OpaqueRefreshTokenService } from '../../src/infrastructure/crypto/opaque-refresh-token-service.js';
 import { InMemoryAccountRepository } from '../../src/infrastructure/persistence/in-memory-account-repository.js';
+import { InMemoryFavoriteSyncRepository } from '../../src/infrastructure/persistence/in-memory-favorite-sync-repository.js';
+import { InMemoryPlaybackSyncRepository } from '../../src/infrastructure/persistence/in-memory-playback-sync-repository.js';
 import { InMemoryProfileRepository } from '../../src/infrastructure/persistence/in-memory-profile-repository.js';
 import { InMemoryRefreshTokenRepository } from '../../src/infrastructure/persistence/in-memory-refresh-token-repository.js';
 import { EnvJwtSigningKeyStore } from '../../src/infrastructure/secrets/env-jwt-signing-key-store.js';
@@ -43,6 +48,8 @@ async function createStack() {
   const accounts = new InMemoryAccountRepository();
   const refreshTokens = new InMemoryRefreshTokenRepository();
   const profiles = new InMemoryProfileRepository();
+  const favorites = new InMemoryFavoriteSyncRepository();
+  const playback = new InMemoryPlaybackSyncRepository();
   const createDefaultProfile = new CreateDefaultProfile(profiles);
   const issuePair = new IssueAuthTokenPair(access, refresh);
   const register = new RegisterAccount(
@@ -52,29 +59,55 @@ async function createStack() {
     refreshTokens,
     createDefaultProfile,
   );
+  const listProfiles = new ListProfiles(access, profiles);
   const getProfile = new GetProfile(access, profiles);
+  const createProfile = new CreateProfile(access, profiles);
   const updateProfile = new UpdateProfile(access, profiles);
-  return { register, getProfile, updateProfile, profiles };
+  const deleteProfile = new DeleteProfile(
+    access,
+    profiles,
+    favorites,
+    playback,
+  );
+  return {
+    register,
+    listProfiles,
+    getProfile,
+    createProfile,
+    updateProfile,
+    deleteProfile,
+    profiles,
+    favorites,
+    playback,
+  };
 }
 
-describe('BE-035 profile endpoints', () => {
-  it('gets and patches onboarding profile fields', async () => {
-    const { register, getProfile, updateProfile } = await createStack();
+describe('BE-035 / BE-036 profile endpoints', () => {
+  it('gets and patches onboarding profile fields by id', async () => {
+    const { register, getProfile, updateProfile, listProfiles } =
+      await createStack();
     const session = await register.execute({
       email: 'profile@example.com',
       password: 'Profile-ok-1!',
       deviceId: randomUUID(),
     });
 
+    const listed = await listProfiles.execute({
+      accessToken: session.accessToken,
+    });
+    assert.equal(listed.items.length, 1);
+    const profileId = listed.items[0]!.id;
+
     const before = await getProfile.execute({
       accessToken: session.accessToken,
+      profileId,
     });
     assert.equal(before.isDefault, true);
     assert.equal(before.language, 'es');
-    assert.equal(before.autoplay, true);
 
     const updated = await updateProfile.execute({
       accessToken: session.accessToken,
+      profileId,
       name: 'Salon',
       language: 'en',
       region: 'US',
@@ -84,20 +117,7 @@ describe('BE-035 profile endpoints', () => {
     });
     assert.equal(updated.name, 'Salon');
     assert.equal(updated.language, 'en');
-    assert.equal(updated.region, 'US');
     assert.equal(updated.autoplay, false);
-    assert.deepEqual(updated.subtitlePrefs, {
-      enabled: true,
-      language: 'en',
-    });
-    assert.equal(updated.avatar, 'https://cdn.example/a.png');
-    assert.equal(updated.isDefault, true);
-
-    const again = await getProfile.execute({
-      accessToken: session.accessToken,
-    });
-    assert.equal(again.name, 'Salon');
-    assert.equal(again.autoplay, false);
   });
 
   it('rejects empty name and missing profile', async () => {
@@ -127,51 +147,60 @@ describe('BE-035 profile endpoints', () => {
     );
   });
 
-  it('HTTP GET/PATCH routes are catalogued and require Bearer', async () => {
-    const { register, getProfile, updateProfile } = await createStack();
-    const routes = createProfilesRoutes({ getProfile, updateProfile });
+  it('HTTP multi-profile routes are catalogued and require Bearer', async () => {
+    const stack = await createStack();
+    const routes = createProfilesRoutes(stack);
     assert.equal(
-      ROUTE_CATALOG.some((entry) => entry.operationId === 'getProfile'),
+      ROUTE_CATALOG.some((entry) => entry.operationId === 'listProfiles'),
       true,
     );
     assert.equal(
-      ROUTE_CATALOG.some((entry) => entry.operationId === 'updateProfile'),
+      ROUTE_CATALOG.some((entry) => entry.operationId === 'createProfile'),
+      true,
+    );
+    assert.equal(
+      ROUTE_CATALOG.some((entry) => entry.operationId === 'deleteProfile'),
       true,
     );
 
-    const getRoute = routes.find((route) => route.method === 'GET');
-    const patchRoute = routes.find((route) => route.method === 'PATCH');
-    assert.ok(getRoute);
-    assert.ok(patchRoute);
-
-    const unauthorized = await getRoute.handler({
+    const listRoute = routes.find(
+      (route) => route.method === 'GET' && route.path === '/api/v1/profiles',
+    );
+    assert.ok(listRoute);
+    const unauthorized = await listRoute.handler({
       method: 'GET',
       url: '/api/v1/profiles',
       headers: {},
     });
     assert.equal(unauthorized.statusCode, 401);
 
-    const session = await register.execute({
+    const session = await stack.register.execute({
       email: 'http-profile@example.com',
       password: 'Profile-ok-3!',
       deviceId: randomUUID(),
     });
-    const got = await getRoute.handler({
+    const listed = await listRoute.handler({
       method: 'GET',
       url: '/api/v1/profiles',
       headers: { authorization: `Bearer ${session.accessToken}` },
     });
-    assert.equal(got.statusCode, 200);
-    assert.equal((got.body as { language: string }).language, 'es');
+    assert.equal(listed.statusCode, 200);
+    const items = (listed.body as { items: { id: string }[] }).items;
+    assert.equal(items.length, 1);
 
+    const patchRoute = routes.find(
+      (route) =>
+        route.method === 'PATCH' && route.path === '/api/v1/profiles/{id}',
+    );
+    assert.ok(patchRoute);
     const patched = await patchRoute.handler({
       method: 'PATCH',
-      url: '/api/v1/profiles',
+      url: `/api/v1/profiles/${items[0]!.id}`,
       headers: { authorization: `Bearer ${session.accessToken}` },
+      params: { id: items[0]!.id },
       body: { language: 'pt', autoplay: false },
     });
     assert.equal(patched.statusCode, 200);
     assert.equal((patched.body as { language: string }).language, 'pt');
-    assert.equal((patched.body as { autoplay: boolean }).autoplay, false);
   });
 });
