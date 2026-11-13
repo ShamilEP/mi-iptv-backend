@@ -97,6 +97,19 @@ export class InMemoryRefreshTokenRepository implements RefreshTokenRepository {
     );
   }
 
+  async deleteByAccount(accountId: string): Promise<number> {
+    let count = 0;
+    for (const [id, row] of this.byId) {
+      if (row.accountId !== accountId) {
+        continue;
+      }
+      this.byId.delete(id);
+      this.idByHash.delete(hashKeyOf(row.tokenHash));
+      count += 1;
+    }
+    return count;
+  }
+
   private async revokeWhere(
     predicate: (row: RefreshTokenRecord) => boolean,
     reason: RefreshTokenRevokeReason,

@@ -41,4 +41,14 @@ export class InMemoryAccountRepository implements AccountRepository {
     this.idByEmail.set(email, row.id);
     return row;
   }
+
+  async delete(accountId: string): Promise<boolean> {
+    const existing = this.byId.get(accountId);
+    if (existing === undefined) {
+      return false;
+    }
+    this.byId.delete(accountId);
+    this.idByEmail.delete(normalizeAccountEmail(existing.email));
+    return true;
+  }
 }

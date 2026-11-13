@@ -58,6 +58,19 @@ export class InMemoryFavoriteSyncRepository implements FavoriteSyncRepository {
       );
   }
 
+  async listFavoritesByAccount(
+    accountId: string,
+  ): Promise<readonly Favorite[]> {
+    return [...this.favorites.values()]
+      .filter((row) => row.accountId === accountId)
+      .sort(
+        (a, b) =>
+          a.profileId.localeCompare(b.profileId) ||
+          a.sortOrder - b.sortOrder ||
+          a.createdAt.getTime() - b.createdAt.getTime(),
+      );
+  }
+
   async applyFavoriteWrite(
     input: ApplyFavoriteWriteInput,
   ): Promise<ApplyFavoriteWriteResult> {
@@ -117,6 +130,19 @@ export class InMemoryFavoriteSyncRepository implements FavoriteSyncRepository {
     });
 
     return { favorite, changeSeq, syncLog };
+  }
+
+  async deleteByAccount(accountId: string): Promise<number> {
+    let count = 0;
+    for (const [key, row] of this.favorites) {
+      if (row.accountId !== accountId) {
+        continue;
+      }
+      this.favorites.delete(key);
+      count += 1;
+    }
+    this.changeSeqByAccount.delete(accountId);
+    return count;
   }
 }
 

@@ -16,6 +16,12 @@ export class InMemorySourceRepository implements SourceRepository {
       .sort((a, b) => a.priority - b.priority || a.name.localeCompare(b.name));
   }
 
+  async listAllByAccount(accountId: string): Promise<readonly UserSource[]> {
+    return [...this.byId.values()]
+      .filter((row) => row.accountId === accountId)
+      .sort((a, b) => a.priority - b.priority || a.name.localeCompare(b.name));
+  }
+
   async findById(
     accountId: string,
     sourceId: string,
@@ -43,5 +49,17 @@ export class InMemorySourceRepository implements SourceRepository {
   async save(source: UserSource): Promise<UserSource> {
     this.byId.set(source.id, source);
     return source;
+  }
+
+  async deleteByAccount(accountId: string): Promise<number> {
+    let count = 0;
+    for (const [id, row] of this.byId) {
+      if (row.accountId !== accountId) {
+        continue;
+      }
+      this.byId.delete(id);
+      count += 1;
+    }
+    return count;
   }
 }
