@@ -30,7 +30,7 @@ No third-party JWT package: Node built-ins only. Optional future wrapper: propos
 | `JWT_KEY_ID` | Active `kid` |
 | `JWT_PREVIOUS_PUBLIC_KEYS` | Optional JSON `{ "old-kid": "<pem>" }` for verify during rotation |
 | `JWT_ACCESS_TTL_SECONDS` | Default `3600` (bounds 900–3600) |
-| `JWT_REFRESH_TTL_SECONDS` | Default `2592000` (30 days) |
+| `JWT_REFRESH_TTL_SECONDS` | Default `2592000` (30 days); bounded **1–30 days** (SEC-012) |
 | `JWT_ISSUER` | Default `mi-iptv` |
 | `JWT_AUDIENCE` | Default `mi-iptv-api` |
 

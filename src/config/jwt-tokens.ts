@@ -3,6 +3,8 @@ import {
   ACCESS_TOKEN_TTL_MAX_SECONDS,
   ACCESS_TOKEN_TTL_MIN_SECONDS,
   REFRESH_TOKEN_TTL_DEFAULT_SECONDS,
+  REFRESH_TOKEN_TTL_MAX_SECONDS,
+  REFRESH_TOKEN_TTL_MIN_SECONDS,
 } from '../domain/auth/access-token-rules.js';
 
 export type JwtTokenTtlConfig = {
@@ -29,9 +31,11 @@ export function loadJwtTokenTtlConfig(
     ACCESS_TOKEN_TTL_MAX_SECONDS,
     'JWT_ACCESS_TTL_SECONDS',
   );
-  const refreshTokenTtlSeconds = readPositiveInt(
+  const refreshTokenTtlSeconds = readBoundedInt(
     env['JWT_REFRESH_TTL_SECONDS'],
     REFRESH_TOKEN_TTL_DEFAULT_SECONDS,
+    REFRESH_TOKEN_TTL_MIN_SECONDS,
+    REFRESH_TOKEN_TTL_MAX_SECONDS,
     'JWT_REFRESH_TTL_SECONDS',
   );
   const issuer = (env['JWT_ISSUER'] ?? 'mi-iptv').trim() || 'mi-iptv';
@@ -63,17 +67,3 @@ function readBoundedInt(
   return value;
 }
 
-function readPositiveInt(
-  raw: string | undefined,
-  fallback: number,
-  name: string,
-): number {
-  if (raw === undefined || raw.trim() === '') {
-    return fallback;
-  }
-  const value = Number.parseInt(raw, 10);
-  if (!Number.isFinite(value) || value <= 0) {
-    throw new Error(`${name} must be a positive integer`);
-  }
-  return value;
-}

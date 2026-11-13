@@ -9,8 +9,10 @@ export const ACCESS_TOKEN_TTL_MIN_SECONDS = 15 * 60;
 export const ACCESS_TOKEN_TTL_MAX_SECONDS = 60 * 60;
 export const ACCESS_TOKEN_TTL_DEFAULT_SECONDS = 60 * 60;
 
-/** Opaque refresh default lifetime (30 days). */
-export const REFRESH_TOKEN_TTL_DEFAULT_SECONDS = 30 * 24 * 60 * 60;
+/** Opaque refresh lifetime bounds (Security §2.2 / SEC-012) — max 30 days. */
+export const REFRESH_TOKEN_TTL_MIN_SECONDS = 24 * 60 * 60;
+export const REFRESH_TOKEN_TTL_MAX_SECONDS = 30 * 24 * 60 * 60;
+export const REFRESH_TOKEN_TTL_DEFAULT_SECONDS = REFRESH_TOKEN_TTL_MAX_SECONDS;
 
 /** Only RS256 is accepted for MVP access JWTs (reject none / alg confusion). */
 export const REQUIRED_ACCESS_TOKEN_ALG = 'RS256';
