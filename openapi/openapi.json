@@ -1477,6 +1477,265 @@
           }
         }
       }
+    },
+    "/api/v1/profiles/{id}/pin": {
+      "put": {
+        "operationId": "setParentalPin",
+        "summary": "Set or clear parental PIN",
+        "description": "Stores Argon2id hash of a 4–8 digit PIN; never returns the PIN or hash (BE-037 / FR-023).",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "Authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Bearer access JWT (preferred)"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SetParentalPinRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Updated profile (pinConfigured only)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProfilePublic"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid PIN shape",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AuthError"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Auth or currentPin failure",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AuthError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Profile not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AuthError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/profiles/{id}/verify-pin": {
+      "post": {
+        "operationId": "verifyParentalPin",
+        "summary": "Verify parental PIN",
+        "description": "Verifies PIN with Redis throttling (5 failures / 15 minutes) (BE-037).",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "Authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Bearer access JWT (preferred)"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "pin"
+                ],
+                "properties": {
+                  "pin": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Verified",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "verified",
+                    "profileId"
+                  ],
+                  "properties": {
+                    "verified": {
+                      "type": "boolean"
+                    },
+                    "profileId": {
+                      "type": "string",
+                      "format": "uuid"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Invalid PIN",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AuthError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Profile or PIN not set",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AuthError"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Throttled",
+            "headers": {
+              "Retry-After": {
+                "schema": {
+                  "type": "integer"
+                },
+                "description": "Seconds until retry"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/profiles/{id}/restrictions": {
+      "patch": {
+        "operationId": "updateProfileRestrictions",
+        "summary": "Update kid/parental content restrictions",
+        "description": "Sets kidMode, maxRating, and source allow/deny lists (BE-037).",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "Authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Bearer access JWT (preferred)"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateProfileRestrictionsRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Updated profile",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProfilePublic"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid input",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AuthError"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AuthError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Profile not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AuthError"
+                }
+              }
+            }
+          }
+        }
+      }
     }
   },
   "components": {
@@ -2123,7 +2382,8 @@
           "subtitlePrefs",
           "restrictions",
           "createdAt",
-          "updatedAt"
+          "updatedAt",
+          "pinConfigured"
         ],
         "properties": {
           "id": {
@@ -2159,8 +2419,7 @@
             "additionalProperties": true
           },
           "restrictions": {
-            "type": "object",
-            "additionalProperties": true
+            "$ref": "#/components/schemas/ParentalRestrictions"
           },
           "createdAt": {
             "type": "string",
@@ -2169,6 +2428,9 @@
           "updatedAt": {
             "type": "string",
             "format": "date-time"
+          },
+          "pinConfigured": {
+            "type": "boolean"
           }
         }
       },
@@ -2932,6 +3194,83 @@
           "updatedAt": {
             "type": "string",
             "format": "date-time"
+          }
+        }
+      },
+      "ParentalRestrictions": {
+        "type": "object",
+        "required": [
+          "kidMode",
+          "maxRating",
+          "allowedSourceIds",
+          "blockedSourceIds"
+        ],
+        "properties": {
+          "kidMode": {
+            "type": "boolean"
+          },
+          "maxRating": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "allowedSourceIds": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "blockedSourceIds": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "SetParentalPinRequest": {
+        "type": "object",
+        "required": [
+          "pin"
+        ],
+        "properties": {
+          "pin": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "4–8 digit PIN, or null to clear"
+          },
+          "currentPin": {
+            "type": "string",
+            "description": "Required when a PIN is already configured"
+          }
+        }
+      },
+      "UpdateProfileRestrictionsRequest": {
+        "type": "object",
+        "properties": {
+          "kidMode": {
+            "type": "boolean"
+          },
+          "maxRating": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "allowedSourceIds": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "blockedSourceIds": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
           }
         }
       }

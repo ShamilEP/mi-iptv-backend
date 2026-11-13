@@ -72,6 +72,21 @@ export const ROUTE_CATALOG: readonly RouteCatalogEntry[] = [
     operationId: 'deleteProfile',
   },
   {
+    method: 'PUT',
+    path: '/api/v1/profiles/{id}/pin',
+    operationId: 'setParentalPin',
+  },
+  {
+    method: 'POST',
+    path: '/api/v1/profiles/{id}/verify-pin',
+    operationId: 'verifyParentalPin',
+  },
+  {
+    method: 'PATCH',
+    path: '/api/v1/profiles/{id}/restrictions',
+    operationId: 'updateProfileRestrictions',
+  },
+  {
     method: 'GET',
     path: '/api/v1/sources',
     operationId: 'listSources',

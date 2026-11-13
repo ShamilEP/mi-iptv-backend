@@ -12,7 +12,13 @@ export type Profile = {
   readonly isDefault: boolean;
   readonly autoplay: boolean;
   readonly subtitlePrefs: Readonly<Record<string, unknown>>;
+  /** Parental / kid rules (BE-037). Never store the clear PIN here. */
   readonly restrictions: Readonly<Record<string, unknown>>;
+  /**
+   * Argon2id PHC of parental PIN (BE-037). Null when unset.
+   * Never expose in API responses — use `pinConfigured` on public views.
+   */
+  readonly pinHash: string | null;
   readonly createdAt: Date;
   readonly updatedAt: Date;
 };
