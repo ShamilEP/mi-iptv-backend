@@ -329,6 +329,104 @@
         }
       }
     },
+    "/api/v1/profiles": {
+      "get": {
+        "operationId": "getProfile",
+        "summary": "Get the MVP single (default) profile",
+        "description": "Returns name, avatar, language, region, autoplay, and subtitle preferences for onboarding (BE-035 / FR-002).",
+        "parameters": [
+          {
+            "name": "Authorization",
+            "in": "header",
+            "required": false,
+            "schema": { "type": "string" },
+            "description": "Bearer access JWT (preferred)"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Profile",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ProfilePublic" }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing or invalid access token",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/AuthError" }
+              }
+            }
+          },
+          "404": {
+            "description": "Profile not found",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/AuthError" }
+              }
+            }
+          }
+        }
+      },
+      "patch": {
+        "operationId": "updateProfile",
+        "summary": "Update onboarding profile preferences",
+        "description": "Partial update of name, avatar, language, region, autoplay, and subtitlePrefs. Does not change isDefault (BE-035 / FR-002).",
+        "parameters": [
+          {
+            "name": "Authorization",
+            "in": "header",
+            "required": false,
+            "schema": { "type": "string" },
+            "description": "Bearer access JWT (preferred)"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/UpdateProfileRequest" }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Updated profile",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ProfilePublic" }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid input",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/AuthError" }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing or invalid access token",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/AuthError" }
+              }
+            }
+          },
+          "404": {
+            "description": "Profile not found",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/AuthError" }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/sources": {
       "get": {
         "operationId": "listSources",
@@ -1097,6 +1195,26 @@
           "restrictions": { "type": "object", "additionalProperties": true },
           "createdAt": { "type": "string", "format": "date-time" },
           "updatedAt": { "type": "string", "format": "date-time" }
+        }
+      },
+      "ProfilePublic": {
+        "$ref": "#/components/schemas/AccountExportProfile"
+      },
+      "UpdateProfileRequest": {
+        "type": "object",
+        "properties": {
+          "name": { "type": "string" },
+          "avatar": { "type": ["string", "null"] },
+          "language": {
+            "type": "string",
+            "description": "BCP-47 language tag"
+          },
+          "region": { "type": ["string", "null"] },
+          "autoplay": { "type": "boolean" },
+          "subtitlePrefs": {
+            "type": "object",
+            "additionalProperties": true
+          }
         }
       },
       "AccountExportDevice": {

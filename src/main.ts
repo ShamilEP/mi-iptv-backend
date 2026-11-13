@@ -9,6 +9,8 @@ import { RefreshAuthSession } from './application/auth/refresh-auth-session.js';
 import { RegisterAbuseGuard } from './application/auth/register-abuse-guard.js';
 import { RegisterAccount } from './application/auth/register-account.js';
 import { CreateDefaultProfile } from './application/profiles/create-default-profile.js';
+import { GetProfile } from './application/profiles/get-profile.js';
+import { UpdateProfile } from './application/profiles/update-profile.js';
 import { FetchXtreamCatalog } from './application/catalog/fetch-xtream-catalog.js';
 import { ParseM3uPlaylist } from './application/catalog/parse-m3u-playlist.js';
 import { ParseXmltvGuide } from './application/catalog/parse-xmltv-guide.js';
@@ -67,6 +69,7 @@ import { createAccountRoutes } from './presentation/http/routes/account-routes.j
 import { createAuthRoutes } from './presentation/http/routes/auth-routes.js';
 import { createDevicesRoutes } from './presentation/http/routes/devices-routes.js';
 import { createHealthRoute } from './presentation/http/routes/health-route.js';
+import { createProfilesRoutes } from './presentation/http/routes/profiles-routes.js';
 import { createSourcesRoutes } from './presentation/http/routes/sources-routes.js';
 import { createSyncRoutes } from './presentation/http/routes/sync-routes.js';
 
@@ -253,6 +256,13 @@ async function bootstrap(): Promise<void> {
     jwtTtl.accessTokenTtlSeconds,
   );
 
+  // BE-035: GET/PATCH MVP single profile (onboarding prefs).
+  const getProfile = new GetProfile(accessTokenService, profileRepository);
+  const updateProfile = new UpdateProfile(
+    accessTokenService,
+    profileRepository,
+  );
+
   const getHealthStatus = new GetHealthStatus();
   const httpServer = new NodeHttpServer(logger);
 
@@ -268,6 +278,12 @@ async function bootstrap(): Promise<void> {
   for (const route of createAccountRoutes({
     exportAccountData,
     deleteAccount,
+  })) {
+    httpServer.register(route);
+  }
+  for (const route of createProfilesRoutes({
+    getProfile,
+    updateProfile,
   })) {
     httpServer.register(route);
   }
@@ -323,6 +339,7 @@ async function bootstrap(): Promise<void> {
     accountExportReady: Boolean(exportAccountData),
     accountDeleteReady: Boolean(deleteAccount),
     createDefaultProfileReady: Boolean(createDefaultProfile),
+    profileEndpointsReady: Boolean(getProfile) && Boolean(updateProfile),
     loginBruteForceReady: Boolean(loginBruteForceGuard),
     registerAbuseGuardReady: Boolean(registerAbuseGuard),
     accessTokenDenyListReady: Boolean(accessTokenDenyList),

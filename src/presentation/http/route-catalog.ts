@@ -48,6 +48,16 @@ export const ROUTE_CATALOG: readonly RouteCatalogEntry[] = [
   },
   {
     method: 'GET',
+    path: '/api/v1/profiles',
+    operationId: 'getProfile',
+  },
+  {
+    method: 'PATCH',
+    path: '/api/v1/profiles',
+    operationId: 'updateProfile',
+  },
+  {
+    method: 'GET',
     path: '/api/v1/sources',
     operationId: 'listSources',
   },

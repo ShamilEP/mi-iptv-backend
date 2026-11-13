@@ -20,6 +20,11 @@ export class InMemoryProfileRepository implements ProfileRepository {
       );
   }
 
+  async findDefaultByAccount(accountId: string): Promise<Profile | null> {
+    const rows = await this.listByAccount(accountId);
+    return rows.find((row) => row.isDefault) ?? rows[0] ?? null;
+  }
+
   async insert(profile: NewProfile): Promise<Profile> {
     const now = new Date();
     const row: Profile = {
@@ -29,6 +34,11 @@ export class InMemoryProfileRepository implements ProfileRepository {
     };
     this.byId.set(row.id, row);
     return row;
+  }
+
+  async save(profile: Profile): Promise<Profile> {
+    this.byId.set(profile.id, profile);
+    return profile;
   }
 
   async deleteByAccount(accountId: string): Promise<number> {
