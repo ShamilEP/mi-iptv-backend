@@ -6,6 +6,7 @@ import { LoginAccount } from './application/auth/login-account.js';
 import { LoginBruteForceGuard } from './application/auth/login-brute-force-guard.js';
 import { LogoutAccount } from './application/auth/logout-account.js';
 import { RefreshAuthSession } from './application/auth/refresh-auth-session.js';
+import { RegisterAbuseGuard } from './application/auth/register-abuse-guard.js';
 import { RegisterAccount } from './application/auth/register-account.js';
 import { CreateDefaultProfile } from './application/profiles/create-default-profile.js';
 import { FetchXtreamCatalog } from './application/catalog/fetch-xtream-catalog.js';
@@ -119,12 +120,14 @@ async function bootstrap(): Promise<void> {
   const profileRepository = new InMemoryProfileRepository();
   const createDefaultProfile = new CreateDefaultProfile(profileRepository);
   const loginBruteForceGuard = new LoginBruteForceGuard(sessionRedis, logger);
+  const registerAbuseGuard = new RegisterAbuseGuard(sessionRedis, logger);
   const registerAccount = new RegisterAccount(
     accountRepository,
     passwordHasher,
     issueAuthTokenPair,
     refreshTokenRepository,
     createDefaultProfile,
+    registerAbuseGuard,
   );
   const loginAccount = new LoginAccount(
     accountRepository,
@@ -321,6 +324,7 @@ async function bootstrap(): Promise<void> {
     accountDeleteReady: Boolean(deleteAccount),
     createDefaultProfileReady: Boolean(createDefaultProfile),
     loginBruteForceReady: Boolean(loginBruteForceGuard),
+    registerAbuseGuardReady: Boolean(registerAbuseGuard),
     accessTokenDenyListReady: Boolean(accessTokenDenyList),
     sessionRedisMode: secrets.redisUrl ? 'ioredis' : 'in-memory',
     accountPersistence: 'in-memory',

@@ -20,3 +20,7 @@
 4. Insert account (Argon2id hash via BE-021 hasher).
 5. Seed MVP default profile (`CreateDefaultProfile` / BE-029).
 6. Issue RS256 access + opaque refresh bound to `deviceId` (BE-023).
+
+## Abuse controls (SEC-013)
+
+`RegisterAbuseGuard` enforces **5 attempts / 15 minutes** per IP and per email (`rl:register:*`). Every attempt after required fields is counted (including `AUTH_EMAIL_CONFLICT`) so US-01 enumeration is throttled. Exceeded → `AUTH_RATE_LIMITED` → HTTP 429.

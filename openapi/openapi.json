@@ -32,7 +32,7 @@
       "post": {
         "operationId": "register",
         "summary": "Create an account and issue a device-bound session",
-        "description": "Validates email and password policy (≥8 chars, 1 number, 1 special), creates the account, seeds the MVP default profile (BE-029), and returns tokens. Duplicate email returns 409 AUTH_EMAIL_CONFLICT so the client can offer login (US-01 / BE-020). deviceId is required for Security §2.2 session binding (same as login).",
+        "description": "Validates email and password policy (≥8 chars, 1 number, 1 special), creates the account, seeds the MVP default profile (BE-029), and returns tokens. Duplicate email returns 409 AUTH_EMAIL_CONFLICT so the client can offer login (US-01 / BE-020). deviceId is required for Security §2.2 session binding (same as login). Registration is rate-limited to 5 attempts / 15 minutes per IP and per email (SEC-013) to mitigate US-01 enumeration.",
         "requestBody": {
           "required": true,
           "content": {
@@ -63,6 +63,20 @@
             "content": {
               "application/json": {
                 "schema": { "$ref": "#/components/schemas/AuthError" }
+              }
+            }
+          },
+          "429": {
+            "description": "Registration abuse lockout (per IP or email)",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds until the lockout window expires",
+                "schema": { "type": "integer", "minimum": 1 }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/AuthRateLimitError" }
               }
             }
           }

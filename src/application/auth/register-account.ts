@@ -14,12 +14,15 @@ import type { AccountRepository } from '../ports/account-repository.js';
 import type { PasswordHasher } from '../ports/password-hasher.js';
 import type { RefreshTokenRepository } from '../ports/refresh-token-repository.js';
 import { IssueAuthTokenPair } from './issue-auth-token-pair.js';
+import type { RegisterAbuseGuard } from './register-abuse-guard.js';
 
 export type RegisterAccountInput = {
   readonly email: string;
   readonly password: string;
   /** Device that owns the issued refresh session (BE-023 / Security §2.2). */
   readonly deviceId: string;
+  /** Client IP for registration abuse counters (SEC-013). */
+  readonly clientIp?: string | null;
 };
 
 export type RegisterAccountResult = {
@@ -32,6 +35,7 @@ export type RegisterAccountResult = {
 /**
  * POST /auth/register — create account, seed default profile, issue tokens (BE-020).
  * Duplicate email returns AUTH_EMAIL_CONFLICT so the client can offer login (US-01).
+ * Optional {@link RegisterAbuseGuard} throttles enumeration/abuse (SEC-013).
  */
 export class RegisterAccount {
   constructor(
@@ -40,12 +44,14 @@ export class RegisterAccount {
     private readonly issueAuthTokenPair: IssueAuthTokenPair,
     private readonly refreshTokens: RefreshTokenRepository,
     private readonly createDefaultProfile: CreateDefaultProfile,
+    private readonly abuseGuard?: RegisterAbuseGuard,
   ) {}
 
   async execute(input: RegisterAccountInput): Promise<RegisterAccountResult> {
     const email = normalizeAccountEmail(input.email);
     const password = input.password;
     const deviceId = input.deviceId.trim();
+    const clientIp = (input.clientIp ?? 'unknown').trim() || 'unknown';
 
     if (email === '' || password === '' || deviceId === '') {
       throw new DomainError(
@@ -54,6 +60,24 @@ export class RegisterAccount {
       );
     }
 
+    if (this.abuseGuard) {
+      await this.abuseGuard.assertAllowed(clientIp, email);
+    }
+
+    try {
+      return await this.register(email, password, deviceId);
+    } finally {
+      if (this.abuseGuard) {
+        await this.abuseGuard.recordAttempt(clientIp, email);
+      }
+    }
+  }
+
+  private async register(
+    email: string,
+    password: string,
+    deviceId: string,
+  ): Promise<RegisterAccountResult> {
     if (!isValidAccountEmail(email)) {
       throw new DomainError('email is invalid', 'AUTH_EMAIL_INVALID');
     }
