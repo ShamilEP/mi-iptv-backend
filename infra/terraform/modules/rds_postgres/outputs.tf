@@ -41,3 +41,18 @@ output "required_extensions" {
   value       = local.required_extensions
   description = "Extensions created by schema migration after cutover."
 }
+
+output "backup_retention_days" {
+  value       = aws_db_instance.this.backup_retention_period
+  description = "Automated backup retention; also the PITR window length (INF-021)."
+}
+
+output "backup_window" {
+  value       = aws_db_instance.this.backup_window
+  description = "Daily automated backup window (UTC)."
+}
+
+output "point_in_time_recovery_enabled" {
+  value       = aws_db_instance.this.backup_retention_period > 0
+  description = "True when RDS continuous PITR is available (retention > 0)."
+}

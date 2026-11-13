@@ -62,6 +62,18 @@ output "db_required_extensions" {
   value = module.rds_postgres.required_extensions
 }
 
+output "db_backup_retention_days" {
+  value = module.rds_postgres.backup_retention_days
+}
+
+output "db_backup_window" {
+  value = module.rds_postgres.backup_window
+}
+
+output "db_point_in_time_recovery_enabled" {
+  value = module.rds_postgres.point_in_time_recovery_enabled
+}
+
 output "redis_cache_endpoint" {
   value = module.elasticache_redis.cache_primary_endpoint
 }

@@ -59,6 +59,12 @@ variable "db_skip_final_snapshot" {
   default = true
 }
 
+variable "db_delete_automated_backups" {
+  type        = bool
+  description = "INF-021: delete automated backups with the instance (dev)."
+  default     = true
+}
+
 # INF-022 — ElastiCache Redis (dev: single-AZ micro)
 variable "redis_node_type" {
   type    = string

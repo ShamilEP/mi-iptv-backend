@@ -72,17 +72,22 @@ resource "aws_db_instance" "this" {
   publicly_accessible    = false
   parameter_group_name   = aws_db_parameter_group.this.name
 
-  backup_retention_period = var.backup_retention_days
-  backup_window           = "07:00-08:00"
-  maintenance_window      = "sun:08:00-sun:09:00"
-  copy_tags_to_snapshot   = true
-  deletion_protection     = var.deletion_protection
-  skip_final_snapshot     = var.skip_final_snapshot
+  # INF-021: retention > 0 enables automated daily backups + continuous PITR
+  # (transaction logs retained for the same window as backup_retention_period).
+  backup_retention_period   = var.backup_retention_days
+  backup_window             = var.backup_window
+  maintenance_window        = var.maintenance_window
+  copy_tags_to_snapshot     = true
+  delete_automated_backups  = var.delete_automated_backups
+  deletion_protection       = var.deletion_protection
+  skip_final_snapshot       = var.skip_final_snapshot
   final_snapshot_identifier = var.skip_final_snapshot ? null : "${var.name_prefix}-postgres-final"
 
   enabled_cloudwatch_logs_exports = ["postgresql", "upgrade"]
 
   tags = merge(var.tags, {
-    Name = "${var.name_prefix}-postgres"
+    Name              = "${var.name_prefix}-postgres"
+    BackupRetention   = tostring(var.backup_retention_days)
+    PointInTimeRecovery = var.backup_retention_days > 0 ? "enabled" : "disabled"
   })
 }

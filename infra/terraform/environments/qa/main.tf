@@ -27,9 +27,10 @@ module "rds_postgres" {
   allocated_storage_gb     = var.db_allocated_storage_gb
   max_allocated_storage_gb = var.db_max_allocated_storage_gb
   multi_az                 = var.db_multi_az
-  backup_retention_days    = var.db_backup_retention_days
-  deletion_protection      = var.db_deletion_protection
-  skip_final_snapshot      = var.db_skip_final_snapshot
+  backup_retention_days     = var.db_backup_retention_days
+  deletion_protection       = var.db_deletion_protection
+  skip_final_snapshot       = var.db_skip_final_snapshot
+  delete_automated_backups  = var.db_delete_automated_backups
 }
 
 module "elasticache_redis" {
