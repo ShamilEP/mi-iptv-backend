@@ -2,12 +2,14 @@ import { AuthRateLimitError } from '../../../application/auth/auth-rate-limit-er
 import type { LoginAccount } from '../../../application/auth/login-account.js';
 import type { LogoutAccount } from '../../../application/auth/logout-account.js';
 import type { RefreshAuthSession } from '../../../application/auth/refresh-auth-session.js';
+import type { RegisterAccount } from '../../../application/auth/register-account.js';
 import type {
   HttpRequest,
   HttpResponse,
   HttpRoute,
 } from '../../../application/ports/http-server.js';
 import { DomainError } from '../../../domain/shared/domain-error.js';
+import { PasswordPolicyError } from '../../../domain/auth/password-policy.js';
 
 const JSON_HEADERS = {
   'content-type': 'application/json; charset=utf-8',
@@ -24,11 +26,17 @@ const UNAUTHORIZED_CODES = new Set([
 ]);
 
 export function createAuthRoutes(deps: {
+  readonly registerAccount: RegisterAccount;
   readonly loginAccount: LoginAccount;
   readonly refreshAuthSession: RefreshAuthSession;
   readonly logoutAccount: LogoutAccount;
 }): readonly HttpRoute[] {
   return [
+    {
+      method: 'POST',
+      path: '/api/v1/auth/register',
+      handler: (request) => handleRegister(request, deps.registerAccount),
+    },
     {
       method: 'POST',
       path: '/api/v1/auth/login',
@@ -45,6 +53,40 @@ export function createAuthRoutes(deps: {
       handler: (request) => handleLogout(request, deps.logoutAccount),
     },
   ];
+}
+
+async function handleRegister(
+  request: HttpRequest,
+  registerAccount: RegisterAccount,
+): Promise<HttpResponse> {
+  const body = asObject(request.body);
+  if (!body) {
+    return {
+      statusCode: 400,
+      headers: JSON_HEADERS,
+      body: { error: 'JSON object body required', code: 'AUTH_INPUT_INVALID' },
+    };
+  }
+
+  try {
+    const result = await registerAccount.execute({
+      email: String(body.email ?? ''),
+      password: String(body.password ?? ''),
+      deviceId: String(body.deviceId ?? ''),
+    });
+    return {
+      statusCode: 201,
+      headers: JSON_HEADERS,
+      body: {
+        accountId: result.accountId,
+        accessToken: result.accessToken,
+        refreshToken: result.refreshToken,
+        expiresIn: result.expiresIn,
+      },
+    };
+  } catch (error: unknown) {
+    return mapDomainError(error);
+  }
 }
 
 async function handleLogin(
@@ -200,13 +242,15 @@ function mapDomainError(error: unknown): HttpResponse {
       },
     };
   }
-  if (error instanceof DomainError) {
+  if (error instanceof PasswordPolicyError || error instanceof DomainError) {
     const statusCode =
-      error.code === 'AUTH_ACCOUNT_INACTIVE'
-        ? 403
-        : UNAUTHORIZED_CODES.has(error.code)
-          ? 401
-          : 400;
+      error.code === 'AUTH_EMAIL_CONFLICT'
+        ? 409
+        : error.code === 'AUTH_ACCOUNT_INACTIVE'
+          ? 403
+          : UNAUTHORIZED_CODES.has(error.code)
+            ? 401
+            : 400;
     return {
       statusCode,
       headers: JSON_HEADERS,

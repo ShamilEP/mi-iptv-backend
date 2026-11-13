@@ -203,6 +203,11 @@ describe('BE-025 LogoutAccount', () => {
     const password = 'http-logout-1!';
     const { email } = await seedAccount(accounts, hasher, password);
     const routes = createAuthRoutes({
+      registerAccount: {
+        execute: async () => {
+          throw new Error('unused');
+        },
+      } as never,
       loginAccount: login,
       refreshAuthSession: refreshSession,
       logoutAccount: logout,

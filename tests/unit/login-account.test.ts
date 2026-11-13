@@ -199,11 +199,17 @@ describe('BE-022 LoginAccount', () => {
 
   it('HTTP login route maps AUTH_INVALID to 401 uniformly', async () => {
     const { login, refreshSession, logout } = await createLoginStack();
-    const [route] = createAuthRoutes({
+    const routes = createAuthRoutes({
+      registerAccount: {
+        execute: async () => {
+          throw new Error('unused');
+        },
+      } as never,
       loginAccount: login,
       refreshAuthSession: refreshSession,
       logoutAccount: logout,
     });
+    const route = routes.find((entry) => entry.path === '/api/v1/auth/login');
     assert.ok(route);
 
     const catalog = ROUTE_CATALOG.find(

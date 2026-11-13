@@ -2,11 +2,12 @@ import { generateKeyPairSync, randomBytes } from 'node:crypto';
 import { DeleteAccount } from './application/account/delete-account.js';
 import { ExportAccountData } from './application/account/export-account-data.js';
 import { IssueAuthTokenPair } from './application/auth/issue-auth-token-pair.js';
-import { CreateDefaultProfile } from './application/profiles/create-default-profile.js';
 import { LoginAccount } from './application/auth/login-account.js';
 import { LoginBruteForceGuard } from './application/auth/login-brute-force-guard.js';
 import { LogoutAccount } from './application/auth/logout-account.js';
 import { RefreshAuthSession } from './application/auth/refresh-auth-session.js';
+import { RegisterAccount } from './application/auth/register-account.js';
+import { CreateDefaultProfile } from './application/profiles/create-default-profile.js';
 import { FetchXtreamCatalog } from './application/catalog/fetch-xtream-catalog.js';
 import { ParseM3uPlaylist } from './application/catalog/parse-m3u-playlist.js';
 import { ParseXmltvGuide } from './application/catalog/parse-xmltv-guide.js';
@@ -112,10 +113,19 @@ async function bootstrap(): Promise<void> {
     createIoredisRedisClientFromUrl(secrets.redisUrl) ??
     new InMemoryRedisClient();
 
-  // BE-022/BE-028: login with device-bound session + brute-force guard.
+  // BE-020/BE-022/BE-028: register + login with device-bound session.
   const accountRepository = new InMemoryAccountRepository();
   const refreshTokenRepository = new InMemoryRefreshTokenRepository();
+  const profileRepository = new InMemoryProfileRepository();
+  const createDefaultProfile = new CreateDefaultProfile(profileRepository);
   const loginBruteForceGuard = new LoginBruteForceGuard(sessionRedis, logger);
+  const registerAccount = new RegisterAccount(
+    accountRepository,
+    passwordHasher,
+    issueAuthTokenPair,
+    refreshTokenRepository,
+    createDefaultProfile,
+  );
   const loginAccount = new LoginAccount(
     accountRepository,
     passwordHasher,
@@ -216,10 +226,7 @@ async function bootstrap(): Promise<void> {
   const listFavorites = new ListFavorites(favoriteSyncRepository);
   const setFavorite = new SetFavorite(favoriteSyncRepository);
 
-  // BE-013 / BE-029: profiles (default seed on registration) + account export/delete.
-  const profileRepository = new InMemoryProfileRepository();
-  // Wired for BE-020 POST /auth/register after account insert.
-  const createDefaultProfile = new CreateDefaultProfile(profileRepository);
+  // BE-013: account export + cascade delete (reuses profiles from register wiring).
   const exportAccountData = new ExportAccountData(
     accessTokenService,
     accountRepository,
@@ -248,6 +255,7 @@ async function bootstrap(): Promise<void> {
 
   httpServer.register(createHealthRoute(getHealthStatus));
   for (const route of createAuthRoutes({
+    registerAccount,
     loginAccount,
     refreshAuthSession,
     logoutAccount,
@@ -305,6 +313,7 @@ async function bootstrap(): Promise<void> {
     jwtIssuer: jwtTtl.issuer,
     jwtActiveKid: jwtSigningKeys.getActiveSigningKey().kid,
     jwtSigningReady: Boolean(issueAuthTokenPair),
+    authRegisterReady: Boolean(registerAccount),
     authLoginReady: Boolean(loginAccount),
     authRefreshReady: Boolean(refreshAuthSession),
     authLogoutReady: Boolean(logoutAccount),

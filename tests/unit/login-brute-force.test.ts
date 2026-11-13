@@ -197,11 +197,16 @@ describe('BE-028 login brute-force protection', () => {
       await createLoginWithGuard();
     const email = 'http-limit@example.com';
     await seedAccount(accounts, hasher, email, 'correct-password!1');
-    const [loginRoute] = createAuthRoutes({
+    const loginRoute = createAuthRoutes({
+      registerAccount: {
+        execute: async () => {
+          throw new Error('unused');
+        },
+      } as never,
       loginAccount: login,
       refreshAuthSession: refreshSession,
       logoutAccount: logout,
-    });
+    }).find((route) => route.path === '/api/v1/auth/login');
     assert.ok(loginRoute);
 
     for (let i = 0; i < LOGIN_BRUTE_FORCE_MAX_FAILURES; i += 1) {
