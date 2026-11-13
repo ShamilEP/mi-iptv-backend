@@ -42,7 +42,7 @@ Current surface: `GET /health` (Infra §2.2 health check). Expand both files tog
 
 ### Apps note
 
-Infra §3.1 mentions frontend unit tests. This repository is the **backend** modular monolith. The `apps` job records that TV/companion suites are out of tree until an `apps/` workspace (or separate repo workflows) exists. Packaging of APK/IPA remains **INF-041**.
+Infra §3.1 mentions frontend unit tests. This repository is the **backend** modular monolith. The `apps` job records that TV/companion suites are out of tree until an `apps/` workspace (or separate repo workflows) exists. Packaging of APK/IPA is **INF-041** (`docs/infra/041-build-package-workflows.md`).
 
 ## Verification checklist (DoD)
 

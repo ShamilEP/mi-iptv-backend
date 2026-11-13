@@ -1,0 +1,42 @@
+name: Build and package
+
+# INF-041 — orchestrates Docker image packaging plus Android TV / companion package workflows.
+on:
+  push:
+    branches:
+      - main
+      - develop
+      - 'release/**'
+    tags:
+      - 'v*'
+  workflow_dispatch:
+
+concurrency:
+  group: build-package-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  docker-image:
+    name: Docker image
+    uses: ./.github/workflows/container-image.yml
+
+  android-tv:
+    name: Android TV APK / AAB
+    uses: ./.github/workflows/package-android-tv.yml
+    secrets: inherit
+    with:
+      project_path: apps/android-tv
+      run_when_missing: false
+
+  companion:
+    name: Companion AAB / IPA
+    uses: ./.github/workflows/package-companion.yml
+    secrets: inherit
+    with:
+      android_project_path: apps/companion/android
+      ios_project_path: apps/companion/ios
+      run_when_missing: false

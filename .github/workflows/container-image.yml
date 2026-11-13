@@ -1,6 +1,6 @@
 name: Container image
 
-# INF-005 — build multi-stage non-root image, Trivy-scan, then push to ECR when configured.
+# INF-005 / INF-041 — build multi-stage non-root image, Trivy-scan, then push to ECR when configured.
 on:
   push:
     branches:
@@ -15,6 +15,7 @@ on:
       - 'tsconfig*.json'
       - '.github/workflows/container-image.yml'
   workflow_dispatch:
+  workflow_call:
 
 concurrency:
   group: container-image-${{ github.ref }}
