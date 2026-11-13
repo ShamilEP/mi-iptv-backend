@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
+import { AcceptBatchedSyncEvents } from '../../src/application/sync/accept-batched-sync-events.js';
 import { ListFavorites } from '../../src/application/sync/list-favorites.js';
 import { SetFavorite } from '../../src/application/sync/set-favorite.js';
 import { UpsertPlaybackState } from '../../src/application/sync/upsert-playback-state.js';
@@ -231,10 +232,13 @@ describe('UpsertPlaybackState (BE-061)', () => {
 
 function syncRouteDeps(upsert: UpsertPlaybackState) {
   const favorites = new InMemoryFavoriteSyncRepository();
+  const listFavorites = new ListFavorites(favorites);
+  const setFavorite = new SetFavorite(favorites);
   return {
     upsertPlaybackState: upsert,
-    listFavorites: new ListFavorites(favorites),
-    setFavorite: new SetFavorite(favorites),
+    listFavorites,
+    setFavorite,
+    acceptBatchedSyncEvents: new AcceptBatchedSyncEvents(upsert, setFavorite),
   };
 }
 

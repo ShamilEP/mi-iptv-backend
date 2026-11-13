@@ -27,6 +27,7 @@ import { ListSources } from './application/sources/list-sources.js';
 import { TestSource } from './application/sources/test-source.js';
 import { UpdateSource } from './application/sources/update-source.js';
 import { ValidateSourceUrl } from './application/sources/validate-source-url.js';
+import { AcceptBatchedSyncEvents } from './application/sync/accept-batched-sync-events.js';
 import { ListFavorites } from './application/sync/list-favorites.js';
 import { SetFavorite } from './application/sync/set-favorite.js';
 import { UpsertPlaybackState } from './application/sync/upsert-playback-state.js';
@@ -231,6 +232,10 @@ async function bootstrap(): Promise<void> {
   );
   const listFavorites = new ListFavorites(favoriteSyncRepository);
   const setFavorite = new SetFavorite(favoriteSyncRepository);
+  const acceptBatchedSyncEvents = new AcceptBatchedSyncEvents(
+    upsertPlaybackState,
+    setFavorite,
+  );
 
   // BE-013: account export + cascade delete (reuses profiles from register wiring).
   const exportAccountData = new ExportAccountData(
@@ -308,6 +313,7 @@ async function bootstrap(): Promise<void> {
     upsertPlaybackState,
     listFavorites,
     setFavorite,
+    acceptBatchedSyncEvents,
   })) {
     httpServer.register(route);
   }
@@ -355,6 +361,7 @@ async function bootstrap(): Promise<void> {
     playbackSyncReady: Boolean(upsertPlaybackState),
     favoriteSyncPersistence: 'in-memory',
     favoriteSyncReady: Boolean(setFavorite),
+    syncBatchReady: Boolean(acceptBatchedSyncEvents),
     sourceCredentialsAutomaticCmkRotation:
       credentialKmsKey.automaticCmkRotation,
     sourceHttpMaxRedirects: sourceHttpGuard.maxRedirects,
