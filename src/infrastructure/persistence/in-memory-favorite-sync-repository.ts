@@ -1,25 +1,31 @@
 import type {
   ApplyFavoriteWriteInput,
   ApplyFavoriteWriteResult,
-  FavoriteSyncEvent,
   FavoriteSyncRepository,
 } from '../../application/ports/favorite-sync-repository.js';
+import type { SyncLogRepository } from '../../application/ports/sync-log-repository.js';
 import type { Favorite, FavoriteType } from '../../domain/sync/favorite.js';
+import type { SyncLog } from '../../domain/sync/sync-log.js';
+import { InMemorySyncLogRepository } from './in-memory-sync-log-repository.js';
 
 /**
- * Sprint 0 in-memory favorites + sync_events store for BE-063.
+ * Sprint 0 in-memory favorites + SyncLog store for BE-063 / BE-065.
  * Replace with a Postgres adapter wrapping `app.set_favorite`.
  */
 export class InMemoryFavoriteSyncRepository implements FavoriteSyncRepository {
-  private readonly events = new Map<string, FavoriteSyncEvent>();
   private readonly favorites = new Map<string, Favorite>();
   private readonly changeSeqByAccount = new Map<string, number>();
+  private readonly syncLog: SyncLogRepository;
+
+  constructor(syncLog: SyncLogRepository = new InMemorySyncLogRepository()) {
+    this.syncLog = syncLog;
+  }
 
   async findSyncEvent(
     accountId: string,
     clientEventId: string,
-  ): Promise<FavoriteSyncEvent | null> {
-    return this.events.get(eventKey(accountId, clientEventId)) ?? null;
+  ): Promise<SyncLog | null> {
+    return this.syncLog.findByClientEventId(accountId, clientEventId);
   }
 
   async findFavorite(
@@ -55,11 +61,6 @@ export class InMemoryFavoriteSyncRepository implements FavoriteSyncRepository {
   async applyFavoriteWrite(
     input: ApplyFavoriteWriteInput,
   ): Promise<ApplyFavoriteWriteResult> {
-    const key = eventKey(input.accountId, input.clientEventId);
-    if (this.events.has(key)) {
-      throw new Error('Duplicate clientEventId write without replay path');
-    }
-
     const changeSeq = nextChangeSeq(this.changeSeqByAccount, input.accountId);
     const existing = await this.findFavorite(
       input.accountId,
@@ -71,8 +72,7 @@ export class InMemoryFavoriteSyncRepository implements FavoriteSyncRepository {
       input.sortOrder !== null
         ? input.sortOrder
         : (existing?.sortOrder ?? 0);
-    const type: FavoriteType =
-      input.type ?? existing?.type ?? 'vod';
+    const type: FavoriteType = input.type ?? existing?.type ?? 'vod';
 
     let favorite: Favorite;
     if (existing === null) {
@@ -101,10 +101,11 @@ export class InMemoryFavoriteSyncRepository implements FavoriteSyncRepository {
     }
     this.favorites.set(favoriteKey(input.profileId, input.itemId), favorite);
 
-    const syncEvent: FavoriteSyncEvent = {
+    const syncLog = await this.syncLog.append({
       accountId: input.accountId,
       clientEventId: input.clientEventId,
       deviceId: input.deviceId,
+      entity: 'favorite',
       entityId: `${input.profileId}:${input.itemId}`,
       operation: input.operation,
       accepted: true,
@@ -113,15 +114,10 @@ export class InMemoryFavoriteSyncRepository implements FavoriteSyncRepository {
       changeSeq,
       clientReportedAt: input.clientReportedAt,
       createdAt: input.serverNow,
-    };
-    this.events.set(key, syncEvent);
+    });
 
-    return { favorite, changeSeq, syncEvent };
+    return { favorite, changeSeq, syncLog };
   }
-}
-
-function eventKey(accountId: string, clientEventId: string): string {
-  return `${accountId}:${clientEventId.trim().toLowerCase()}`;
 }
 
 function favoriteKey(profileId: string, itemId: string): string {

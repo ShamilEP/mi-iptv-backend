@@ -8,7 +8,7 @@
 - **Path:** `POST /api/v1/sync/playback-state`
 - **Headers (Sprint 0):** `x-account-id`, `x-profile-id`, `x-device-id`
 - **Body:** ADR-005 playback write (`clientEventId`, `contentId`, `position`, `completed`, `syncVersion`, optional `duration` / `sourceId` / `forceReset` / `clientReportedAt`)
-- **Response 200:** `status`, `accepted`, `currentVersion`, `serverTimestamp`, `resolvedBy`, `changeSeq`
+- **Response 200:** `status`, `accepted`, `currentVersion`, `serverTimestamp`, `resolvedBy`, `changeSeq`, `conflict` (BE-065)
 
 ## Behavior
 

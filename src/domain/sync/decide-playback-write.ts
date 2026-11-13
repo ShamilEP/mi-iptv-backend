@@ -6,7 +6,7 @@ import {
   type IncomingPlaybackWrite,
   type PlaybackWriteDecision,
 } from './playback-conflict.js';
-import type { RecordedSyncEvent, SyncOperation } from './sync-types.js';
+import type { RecordedSyncEvent } from './sync-types.js';
 
 export type DecidePlaybackWriteInput = {
   readonly clientEventId: string;
@@ -28,22 +28,12 @@ export function decidePlaybackWrite(
     input.priorEvent,
     input.existing?.syncVersion ?? null,
   );
-  if (replay !== null) {
+  if (replay !== null && input.priorEvent !== null) {
     return {
       ...replay,
-      operation: inferReplayOperation(input.priorEvent, input.write.forceReset),
+      operation: input.priorEvent.operation,
     };
   }
 
   return resolvePlaybackConflict(input.existing, input.write);
-}
-
-function inferReplayOperation(
-  prior: RecordedSyncEvent | null,
-  forceReset: boolean,
-): SyncOperation {
-  // Replay returns the prior outcome; operation is not stored on RecordedSyncEvent
-  // in the SQL result type — derive a stable label for callers/tests.
-  void prior;
-  return forceReset ? 'reset' : 'upsert';
 }

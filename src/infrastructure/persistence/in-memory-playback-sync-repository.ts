@@ -1,25 +1,31 @@
 import type {
   ApplyPlaybackWriteInput,
   ApplyPlaybackWriteResult,
-  PlaybackSyncEvent,
   PlaybackSyncRepository,
 } from '../../application/ports/playback-sync-repository.js';
+import type { SyncLogRepository } from '../../application/ports/sync-log-repository.js';
 import type { PlaybackState } from '../../domain/sync/playback-state.js';
+import type { SyncLog } from '../../domain/sync/sync-log.js';
+import { InMemorySyncLogRepository } from './in-memory-sync-log-repository.js';
 
 /**
- * Sprint 0 in-memory playback + sync_events store for BE-061.
+ * Sprint 0 in-memory playback + SyncLog store for BE-061 / BE-065.
  * Replace with a Postgres adapter wrapping `app.upsert_playback_state`.
  */
 export class InMemoryPlaybackSyncRepository implements PlaybackSyncRepository {
-  private readonly events = new Map<string, PlaybackSyncEvent>();
   private readonly playback = new Map<string, PlaybackState>();
   private readonly changeSeqByAccount = new Map<string, number>();
+  private readonly syncLog: SyncLogRepository;
+
+  constructor(syncLog: SyncLogRepository = new InMemorySyncLogRepository()) {
+    this.syncLog = syncLog;
+  }
 
   async findSyncEvent(
     accountId: string,
     clientEventId: string,
-  ): Promise<PlaybackSyncEvent | null> {
-    return this.events.get(eventKey(accountId, clientEventId)) ?? null;
+  ): Promise<SyncLog | null> {
+    return this.syncLog.findByClientEventId(accountId, clientEventId);
   }
 
   async findPlaybackState(
@@ -37,11 +43,6 @@ export class InMemoryPlaybackSyncRepository implements PlaybackSyncRepository {
   async applyPlaybackWrite(
     input: ApplyPlaybackWriteInput,
   ): Promise<ApplyPlaybackWriteResult> {
-    const key = eventKey(input.accountId, input.clientEventId);
-    if (this.events.has(key)) {
-      throw new Error('Duplicate clientEventId write without replay path');
-    }
-
     let playback: PlaybackState | null = await this.findPlaybackState(
       input.accountId,
       input.profileId,
@@ -87,10 +88,11 @@ export class InMemoryPlaybackSyncRepository implements PlaybackSyncRepository {
       );
     }
 
-    const syncEvent: PlaybackSyncEvent = {
+    const syncLog = await this.syncLog.append({
       accountId: input.accountId,
       clientEventId: input.clientEventId,
       deviceId: input.deviceId,
+      entity: 'playback_state',
       entityId: `${input.profileId}:${input.contentId}`,
       operation: input.operation,
       accepted: input.accepted,
@@ -99,15 +101,10 @@ export class InMemoryPlaybackSyncRepository implements PlaybackSyncRepository {
       changeSeq,
       clientReportedAt: input.clientReportedAt,
       createdAt: input.serverNow,
-    };
-    this.events.set(key, syncEvent);
+    });
 
-    return { playback, changeSeq, syncEvent };
+    return { playback, changeSeq, syncLog };
   }
-}
-
-function eventKey(accountId: string, clientEventId: string): string {
-  return `${accountId}:${clientEventId.trim().toLowerCase()}`;
 }
 
 function playbackKey(profileId: string, contentId: string): string {

@@ -1,19 +1,6 @@
 import type { PlaybackState } from '../../domain/sync/playback-state.js';
-import type {
-  RecordedSyncEvent,
-  SyncOperation,
-  SyncResolvedBy,
-} from '../../domain/sync/sync-types.js';
-
-export type PlaybackSyncEvent = RecordedSyncEvent & {
-  readonly accountId: string;
-  readonly clientEventId: string;
-  readonly deviceId: string | null;
-  readonly entityId: string;
-  readonly operation: SyncOperation;
-  readonly clientReportedAt: Date | null;
-  readonly createdAt: Date;
-};
+import type { SyncLog } from '../../domain/sync/sync-log.js';
+import type { SyncOperation, SyncResolvedBy } from '../../domain/sync/sync-types.js';
 
 export type ApplyPlaybackWriteInput = {
   readonly accountId: string;
@@ -36,18 +23,18 @@ export type ApplyPlaybackWriteInput = {
 export type ApplyPlaybackWriteResult = {
   readonly playback: PlaybackState | null;
   readonly changeSeq: number | null;
-  readonly syncEvent: PlaybackSyncEvent;
+  readonly syncLog: SyncLog;
 };
 
 /**
- * Persistence for playback upserts + sync_events ledger (BE-061).
+ * Persistence for playback upserts + SyncLog ledger (BE-061 / BE-065).
  * Postgres can later wrap `app.upsert_playback_state`.
  */
 export interface PlaybackSyncRepository {
   findSyncEvent(
     accountId: string,
     clientEventId: string,
-  ): Promise<PlaybackSyncEvent | null>;
+  ): Promise<SyncLog | null>;
 
   findPlaybackState(
     accountId: string,

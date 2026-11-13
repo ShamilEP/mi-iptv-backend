@@ -14,3 +14,4 @@
 2. Always accepts writes; `resolvedBy=lww` when client `syncVersion` ≠ server row.
 3. `remove` soft-deletes (`deletedAt`); `add` clears the tombstone.
 4. `sortOrder` updates when provided; otherwise preserves existing / defaults to `0`.
+5. Response includes `conflict` for the Sync Conflict notice when `resolvedBy` ≠ `accepted` (BE-065).

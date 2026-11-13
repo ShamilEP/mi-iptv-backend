@@ -26,7 +26,12 @@ export type SyncDecision = {
   readonly isReplay: boolean;
 };
 
+/**
+ * Minimal ledger fields needed for idempotent replay (subset of SyncLog).
+ */
 export type RecordedSyncEvent = {
+  readonly entity: SyncEntity;
+  readonly operation: SyncOperation;
   readonly accepted: boolean;
   readonly resolvedBy: SyncResolvedBy;
   readonly resultVersion: number | null;

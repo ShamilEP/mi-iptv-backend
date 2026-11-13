@@ -160,8 +160,20 @@ describe('SetFavorite / ListFavorites (BE-063)', () => {
     });
     assert.equal(concurrent.resolvedBy, 'lww');
     assert.equal(concurrent.accepted, true);
+    assert.deepEqual(concurrent.conflict, {
+      resolved: true,
+      notice: 'Sync Conflict',
+      entity: 'favorite',
+      operation: 'upsert',
+      resolvedBy: 'lww',
+    });
     const listed = await api.list.execute(accountId, profileA);
     assert.equal(listed[0]?.sortOrder, 99);
+
+    const log = await api.repository.findSyncEvent(accountId, event2);
+    assert.equal(log?.entity, 'favorite');
+    assert.equal(log?.operation, 'upsert');
+    assert.equal(log?.resolvedBy, 'lww');
   });
 
   it('orders GET results by sortOrder then createdAt', async () => {

@@ -46,6 +46,7 @@ import { InMemoryAccountRepository } from './infrastructure/persistence/in-memor
 import { InMemoryDeviceRepository } from './infrastructure/persistence/in-memory-device-repository.js';
 import { InMemoryFavoriteSyncRepository } from './infrastructure/persistence/in-memory-favorite-sync-repository.js';
 import { InMemoryPlaybackSyncRepository } from './infrastructure/persistence/in-memory-playback-sync-repository.js';
+import { InMemorySyncLogRepository } from './infrastructure/persistence/in-memory-sync-log-repository.js';
 import { InMemoryRefreshTokenRepository } from './infrastructure/persistence/in-memory-refresh-token-repository.js';
 import { InMemorySourceRepository } from './infrastructure/persistence/in-memory-source-repository.js';
 import { EnvJwtSigningKeyStore } from './infrastructure/secrets/env-jwt-signing-key-store.js';
@@ -188,10 +189,15 @@ async function bootstrap(): Promise<void> {
   const unlinkDevice = new UnlinkDevice(deviceRepository);
   const deviceHeartbeat = new DeviceHeartbeat(deviceRepository);
 
-  // BE-061/BE-063: sync writes (domain rules from BE-060; in-memory until Postgres).
-  const playbackSyncRepository = new InMemoryPlaybackSyncRepository();
+  // BE-061/BE-063/BE-065: sync writes + shared SyncLog (in-memory until Postgres).
+  const syncLogRepository = new InMemorySyncLogRepository();
+  const playbackSyncRepository = new InMemoryPlaybackSyncRepository(
+    syncLogRepository,
+  );
   const upsertPlaybackState = new UpsertPlaybackState(playbackSyncRepository);
-  const favoriteSyncRepository = new InMemoryFavoriteSyncRepository();
+  const favoriteSyncRepository = new InMemoryFavoriteSyncRepository(
+    syncLogRepository,
+  );
   const listFavorites = new ListFavorites(favoriteSyncRepository);
   const setFavorite = new SetFavorite(favoriteSyncRepository);
 

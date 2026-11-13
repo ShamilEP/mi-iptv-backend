@@ -69,6 +69,8 @@ describe('idempotency (BE-060)', () => {
 
   it('replays the prior outcome with the live entity version', () => {
     const prior: RecordedSyncEvent = {
+      entity: 'playback_state',
+      operation: 'upsert',
       accepted: false,
       resolvedBy: 'max_position',
       resultVersion: 7,
@@ -85,6 +87,8 @@ describe('idempotency (BE-060)', () => {
 
   it('uses 0 when the entity row is missing on replay', () => {
     const prior: RecordedSyncEvent = {
+      entity: 'favorite',
+      operation: 'upsert',
       accepted: true,
       resolvedBy: 'accepted',
       resultVersion: 1,
@@ -391,6 +395,8 @@ describe('resolveFavoriteConflict (BE-060)', () => {
 describe('decidePlaybackWrite / decideFavoriteWrite (BE-060)', () => {
   it('short-circuits playback on duplicate clientEventId', () => {
     const prior: RecordedSyncEvent = {
+      entity: 'playback_state',
+      operation: 'upsert',
       accepted: false,
       resolvedBy: 'max_position',
       resultVersion: 5,
@@ -419,6 +425,7 @@ describe('decidePlaybackWrite / decideFavoriteWrite (BE-060)', () => {
     assert.equal(d.accepted, false);
     assert.equal(d.resolvedBy, 'max_position');
     assert.equal(d.resultVersion, 5);
+    assert.equal(d.operation, 'upsert');
   });
 
   it('runs conflict rules when clientEventId is new', () => {
@@ -448,6 +455,8 @@ describe('decidePlaybackWrite / decideFavoriteWrite (BE-060)', () => {
 
   it('replays favorites without re-applying LWW', () => {
     const prior: RecordedSyncEvent = {
+      entity: 'favorite',
+      operation: 'upsert',
       accepted: true,
       resolvedBy: 'lww',
       resultVersion: 4,
@@ -462,7 +471,7 @@ describe('decidePlaybackWrite / decideFavoriteWrite (BE-060)', () => {
     assert.equal(d.isReplay, true);
     assert.equal(d.resolvedBy, 'lww');
     assert.equal(d.resultVersion, 9);
-    assert.equal(d.operation, 'delete');
+    assert.equal(d.operation, 'upsert');
   });
 
   it('rejects invalid clientEventId before resolving', () => {

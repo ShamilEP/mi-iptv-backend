@@ -931,6 +931,27 @@
           }
         }
       },
+      "SyncConflictReport": {
+        "type": "object",
+        "required": ["resolved", "notice", "entity", "operation", "resolvedBy"],
+        "description": "Present when resolvedBy is not accepted so clients can show the non-intrusive Sync Conflict notice (BE-065 / FR-034).",
+        "properties": {
+          "resolved": { "type": "boolean", "enum": [true] },
+          "notice": { "type": "string", "enum": ["Sync Conflict"] },
+          "entity": {
+            "type": "string",
+            "enum": ["playback_state", "favorite", "source", "setting"]
+          },
+          "operation": {
+            "type": "string",
+            "enum": ["upsert", "delete", "reset"]
+          },
+          "resolvedBy": {
+            "type": "string",
+            "enum": ["accepted", "lww", "max_position", "force_reset"]
+          }
+        }
+      },
       "UpsertPlaybackStateResponse": {
         "type": "object",
         "required": [
@@ -938,7 +959,8 @@
           "accepted",
           "currentVersion",
           "serverTimestamp",
-          "resolvedBy"
+          "resolvedBy",
+          "conflict"
         ],
         "properties": {
           "status": { "type": "string", "enum": ["OK"] },
@@ -952,6 +974,12 @@
           "changeSeq": {
             "type": ["integer", "null"],
             "description": "Account change_seq when accepted; null when rejected"
+          },
+          "conflict": {
+            "oneOf": [
+              { "$ref": "#/components/schemas/SyncConflictReport" },
+              { "type": "null" }
+            ]
           }
         }
       },
@@ -1015,7 +1043,8 @@
           "accepted",
           "currentVersion",
           "serverTimestamp",
-          "resolvedBy"
+          "resolvedBy",
+          "conflict"
         ],
         "properties": {
           "status": { "type": "string", "enum": ["OK"] },
@@ -1028,6 +1057,12 @@
           },
           "changeSeq": {
             "type": ["integer", "null"]
+          },
+          "conflict": {
+            "oneOf": [
+              { "$ref": "#/components/schemas/SyncConflictReport" },
+              { "type": "null" }
+            ]
           }
         }
       }

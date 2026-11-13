@@ -6,6 +6,10 @@ import {
 } from '../../domain/sync/favorite.js';
 import { parseClientEventId } from '../../domain/sync/client-event-id.js';
 import { decideFavoriteWrite } from '../../domain/sync/decide-favorite-write.js';
+import {
+  buildSyncConflictReport,
+  type SyncConflictReport,
+} from '../../domain/sync/sync-log.js';
 import type { SyncResolvedBy } from '../../domain/sync/sync-types.js';
 import type { FavoriteSyncRepository } from '../ports/favorite-sync-repository.js';
 
@@ -29,10 +33,11 @@ export type SetFavoriteResult = {
   readonly serverTimestamp: Date;
   readonly resolvedBy: SyncResolvedBy;
   readonly changeSeq: number | null;
+  readonly conflict: SyncConflictReport | null;
 };
 
 /**
- * POST /api/v1/sync/favorites (BE-063 / ADR-005 / Backend §2.3).
+ * POST /api/v1/sync/favorites (BE-063 / BE-065 / ADR-005 / Backend §2.3).
  */
 export class SetFavorite {
   constructor(private readonly repository: FavoriteSyncRepository) {}
@@ -76,14 +81,19 @@ export class SetFavorite {
       },
     });
 
-    if (decision.isReplay) {
+    if (decision.isReplay && priorEvent !== null) {
       return {
         status: 'OK',
         accepted: decision.accepted,
         currentVersion: decision.resultVersion,
         serverTimestamp: serverNow,
         resolvedBy: decision.resolvedBy,
-        changeSeq: priorEvent?.changeSeq ?? null,
+        changeSeq: priorEvent.changeSeq,
+        conflict: buildSyncConflictReport(
+          priorEvent.entity,
+          priorEvent.operation,
+          priorEvent.resolvedBy,
+        ),
       };
     }
 
@@ -110,6 +120,11 @@ export class SetFavorite {
       serverTimestamp: serverNow,
       resolvedBy: decision.resolvedBy,
       changeSeq: applied.changeSeq,
+      conflict: buildSyncConflictReport(
+        applied.syncLog.entity,
+        applied.syncLog.operation,
+        applied.syncLog.resolvedBy,
+      ),
     };
   }
 }
