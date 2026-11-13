@@ -1,0 +1,38 @@
+{
+  "purpose": "Sprint 0 mock catalog of companion push projects (non-secret IDs only). Never store FCM service-account JSON or APNs .p8 material here.",
+  "refs": ["INF-034", "SRS §9", "FR companion notifications"],
+  "companion": {
+    "androidPackageName": "com.miiptv.companion",
+    "iosBundleId": "com.miiptv.companion"
+  },
+  "environments": {
+    "dev": {
+      "fcmProjectId": "mi-iptv-companion-dev",
+      "fcmProjectNumber": "000000000001",
+      "apnsKeyId": "MOCKKEY01",
+      "apnsTeamId": "MOCKTEAM1",
+      "apnsTopic": "com.miiptv.companion"
+    },
+    "qa": {
+      "fcmProjectId": "mi-iptv-companion-qa",
+      "fcmProjectNumber": "000000000002",
+      "apnsKeyId": "MOCKKEY02",
+      "apnsTeamId": "MOCKTEAM1",
+      "apnsTopic": "com.miiptv.companion"
+    },
+    "prod": {
+      "fcmProjectId": "mi-iptv-companion-prod",
+      "fcmProjectNumber": "000000000003",
+      "apnsKeyId": "MOCKKEY03",
+      "apnsTeamId": "MOCKTEAM1",
+      "apnsTopic": "com.miiptv.companion"
+    }
+  },
+  "secretNames": {
+    "fcmServiceAccountJson": "FCM_SERVICE_ACCOUNT_JSON",
+    "apnsAuthKeyP8Base64": "APNS_AUTH_KEY_P8_BASE64",
+    "apnsKeyId": "APNS_KEY_ID",
+    "apnsTeamId": "APNS_TEAM_ID",
+    "apnsTopic": "APNS_TOPIC"
+  }
+}
