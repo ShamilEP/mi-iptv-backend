@@ -52,6 +52,9 @@ export interface FavoriteSyncRepository {
     input: ApplyFavoriteWriteInput,
   ): Promise<ApplyFavoriteWriteResult>;
 
+  /** Hard-delete favorites for one profile (BE-036 cascade). */
+  deleteByProfile(accountId: string, profileId: string): Promise<number>;
+
   /** Hard-delete every favorite row for the account. */
   deleteByAccount(accountId: string): Promise<number>;
 }

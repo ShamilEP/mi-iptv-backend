@@ -7,6 +7,8 @@ import {
 } from '../../domain/sync/sync-log.js';
 import type { SyncResolvedBy } from '../../domain/sync/sync-types.js';
 import type { PlaybackSyncRepository } from '../ports/playback-sync-repository.js';
+import type { ProfileRepository } from '../ports/profile-repository.js';
+import { requireOwnedProfile } from '../profiles/require-owned-profile.js';
 
 export type UpsertPlaybackStateInput = {
   readonly accountId: string;
@@ -34,10 +36,13 @@ export type UpsertPlaybackStateResult = {
 };
 
 /**
- * POST /api/v1/sync/playback-state (BE-061 / BE-065 / Backend §3.1 / ADR-005).
+ * POST /api/v1/sync/playback-state (BE-061 / BE-065 / Backend §3.1 / ADR-005 / BE-036).
  */
 export class UpsertPlaybackState {
-  constructor(private readonly repository: PlaybackSyncRepository) {}
+  constructor(
+    private readonly repository: PlaybackSyncRepository,
+    private readonly profiles: ProfileRepository,
+  ) {}
 
   async execute(
     input: UpsertPlaybackStateInput,
@@ -46,6 +51,11 @@ export class UpsertPlaybackState {
     assertNonEmpty(input.profileId, 'profileId');
     assertNonEmpty(input.deviceId, 'deviceId');
     assertNonEmpty(input.contentId, 'contentId');
+    await requireOwnedProfile(
+      this.profiles,
+      input.accountId,
+      input.profileId,
+    );
 
     const clientEventId = parseClientEventId(input.clientEventId);
     const serverNow = new Date();

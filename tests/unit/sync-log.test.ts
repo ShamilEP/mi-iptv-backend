@@ -8,7 +8,9 @@ import {
 } from '../../src/domain/sync/sync-log.js';
 import { InMemoryFavoriteSyncRepository } from '../../src/infrastructure/persistence/in-memory-favorite-sync-repository.js';
 import { InMemoryPlaybackSyncRepository } from '../../src/infrastructure/persistence/in-memory-playback-sync-repository.js';
+import { InMemoryProfileRepository } from '../../src/infrastructure/persistence/in-memory-profile-repository.js';
 import { InMemorySyncLogRepository } from '../../src/infrastructure/persistence/in-memory-sync-log-repository.js';
+import { seedTestProfile } from './helpers/seed-test-profile.js';
 
 const accountId = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa';
 const profileId = 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb';
@@ -17,6 +19,23 @@ const contentId = 'dddddddd-dddd-4ddd-8ddd-dddddddddddd';
 const itemId = 'eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee';
 const eventPlayback = '11111111-1111-4111-8111-111111111111';
 const eventFavorite = '22222222-2222-4222-8222-222222222222';
+
+async function buildOwnedSyncStack() {
+  const profiles = new InMemoryProfileRepository();
+  await seedTestProfile(profiles, accountId, profileId);
+  const syncLog = new InMemorySyncLogRepository();
+  const favoriteRepo = new InMemoryFavoriteSyncRepository(syncLog);
+  return {
+    profiles,
+    syncLog,
+    favoriteRepo,
+    playback: new UpsertPlaybackState(
+      new InMemoryPlaybackSyncRepository(syncLog),
+      profiles,
+    ),
+    favorites: new SetFavorite(favoriteRepo, profiles),
+  };
+}
 
 describe('SyncLog conflict notice helpers (BE-065)', () => {
   it('reports Sync Conflict for non-accepted resolvedBy values', () => {
@@ -44,13 +63,7 @@ describe('SyncLog conflict notice helpers (BE-065)', () => {
 
 describe('shared SyncLog ledger (BE-065)', () => {
   it('persists entity, operation, resolvedBy for playback and favorites', async () => {
-    const syncLog = new InMemorySyncLogRepository();
-    const playback = new UpsertPlaybackState(
-      new InMemoryPlaybackSyncRepository(syncLog),
-    );
-    const favorites = new SetFavorite(
-      new InMemoryFavoriteSyncRepository(syncLog),
-    );
+    const { syncLog, playback, favorites } = await buildOwnedSyncStack();
 
     await playback.execute({
       accountId,
@@ -90,12 +103,8 @@ describe('shared SyncLog ledger (BE-065)', () => {
   });
 
   it('replays a shared clientEventId instead of writing a second SyncLog row', async () => {
-    const syncLog = new InMemorySyncLogRepository();
-    const favoriteRepo = new InMemoryFavoriteSyncRepository(syncLog);
-    const playback = new UpsertPlaybackState(
-      new InMemoryPlaybackSyncRepository(syncLog),
-    );
-    const favorites = new SetFavorite(favoriteRepo);
+    const { syncLog, playback, favorites, favoriteRepo } =
+      await buildOwnedSyncStack();
 
     const first = await playback.execute({
       accountId,
@@ -121,7 +130,10 @@ describe('shared SyncLog ledger (BE-065)', () => {
     assert.equal(replayed.accepted, first.accepted);
     assert.equal(replayed.resolvedBy, first.resolvedBy);
     assert.equal(replayed.conflict, first.conflict);
-    assert.equal(await favoriteRepo.findFavorite(accountId, profileId, itemId), null);
+    assert.equal(
+      await favoriteRepo.findFavorite(accountId, profileId, itemId),
+      null,
+    );
 
     const only = await syncLog.findByClientEventId(accountId, eventPlayback);
     assert.equal(only?.entity, 'playback_state');

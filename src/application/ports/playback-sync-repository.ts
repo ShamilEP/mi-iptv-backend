@@ -45,9 +45,18 @@ export interface PlaybackSyncRepository {
   /** All playback rows for the account (export / cascade). */
   listPlaybackByAccount(accountId: string): Promise<readonly PlaybackState[]>;
 
+  /** Playback / history for one profile (BE-036). */
+  listPlaybackByProfile(
+    accountId: string,
+    profileId: string,
+  ): Promise<readonly PlaybackState[]>;
+
   applyPlaybackWrite(
     input: ApplyPlaybackWriteInput,
   ): Promise<ApplyPlaybackWriteResult>;
+
+  /** Hard-delete playback for one profile (BE-036 cascade). */
+  deleteByProfile(accountId: string, profileId: string): Promise<number>;
 
   /** Hard-delete every playback row for the account. */
   deleteByAccount(accountId: string): Promise<number>;

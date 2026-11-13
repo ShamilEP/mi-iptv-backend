@@ -4,10 +4,13 @@ import { AcceptBatchedSyncEvents } from '../../src/application/sync/accept-batch
 import { ListFavorites } from '../../src/application/sync/list-favorites.js';
 import { SetFavorite } from '../../src/application/sync/set-favorite.js';
 import { UpsertPlaybackState } from '../../src/application/sync/upsert-playback-state.js';
+import { ListPlaybackHistory } from '../../src/application/sync/list-playback-history.js';
 import { InMemoryFavoriteSyncRepository } from '../../src/infrastructure/persistence/in-memory-favorite-sync-repository.js';
 import { InMemoryPlaybackSyncRepository } from '../../src/infrastructure/persistence/in-memory-playback-sync-repository.js';
+import { InMemoryProfileRepository } from '../../src/infrastructure/persistence/in-memory-profile-repository.js';
 import { createSyncRoutes } from '../../src/presentation/http/routes/sync-routes.js';
 import { SyncError } from '../../src/domain/sync/sync-error.js';
+import { seedTestProfile } from './helpers/seed-test-profile.js';
 
 const accountId = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa';
 const profileId = 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb';
@@ -18,17 +21,20 @@ const event1 = '11111111-1111-4111-8111-111111111111';
 const event2 = '22222222-2222-4222-8222-222222222222';
 const event3 = '33333333-3333-4333-8333-333333333333';
 
-function buildUseCase() {
+async function buildUseCase() {
+  const profiles = new InMemoryProfileRepository();
+  await seedTestProfile(profiles, accountId, profileId);
   const repository = new InMemoryPlaybackSyncRepository();
   return {
     repository,
-    upsert: new UpsertPlaybackState(repository),
+    profiles,
+    upsert: new UpsertPlaybackState(repository, profiles),
   };
 }
 
 describe('UpsertPlaybackState (BE-061)', () => {
   it('accepts a first write and returns accepted, currentVersion, serverTimestamp', async () => {
-    const { upsert, repository } = buildUseCase();
+    const { upsert, repository } = await buildUseCase();
     const result = await upsert.execute({
       accountId,
       profileId,
@@ -56,7 +62,7 @@ describe('UpsertPlaybackState (BE-061)', () => {
   });
 
   it('is idempotent for the same clientEventId', async () => {
-    const { upsert, repository } = buildUseCase();
+    const { upsert, repository } = await buildUseCase();
     const first = await upsert.execute({
       accountId,
       profileId,
@@ -92,7 +98,7 @@ describe('UpsertPlaybackState (BE-061)', () => {
   });
 
   it('keeps the greater position within a 60s multi-device window', async () => {
-    const { upsert, repository } = buildUseCase();
+    const { upsert, repository } = await buildUseCase();
     const base = await upsert.execute({
       accountId,
       profileId,
@@ -136,7 +142,7 @@ describe('UpsertPlaybackState (BE-061)', () => {
   });
 
   it('accepts forceReset over a lower position in the conflict window', async () => {
-    const { upsert, repository } = buildUseCase();
+    const { upsert, repository } = await buildUseCase();
     await upsert.execute({
       accountId,
       profileId,
@@ -179,7 +185,7 @@ describe('UpsertPlaybackState (BE-061)', () => {
   });
 
   it('accepts optimistic same-version rewrites including rewinds', async () => {
-    const { upsert, repository } = buildUseCase();
+    const { upsert, repository } = await buildUseCase();
     await upsert.execute({
       accountId,
       profileId,
@@ -212,7 +218,7 @@ describe('UpsertPlaybackState (BE-061)', () => {
   });
 
   it('rejects invalid clientEventId', async () => {
-    const { upsert } = buildUseCase();
+    const { upsert } = await buildUseCase();
     await assert.rejects(
       () =>
         upsert.execute({
@@ -230,12 +236,17 @@ describe('UpsertPlaybackState (BE-061)', () => {
   });
 });
 
-function syncRouteDeps(upsert: UpsertPlaybackState) {
+function syncRouteDeps(
+  upsert: UpsertPlaybackState,
+  profiles: InMemoryProfileRepository,
+  playback: InMemoryPlaybackSyncRepository,
+) {
   const favorites = new InMemoryFavoriteSyncRepository();
-  const listFavorites = new ListFavorites(favorites);
-  const setFavorite = new SetFavorite(favorites);
+  const listFavorites = new ListFavorites(favorites, profiles);
+  const setFavorite = new SetFavorite(favorites, profiles);
   return {
     upsertPlaybackState: upsert,
+    listPlaybackHistory: new ListPlaybackHistory(playback, profiles),
     listFavorites,
     setFavorite,
     acceptBatchedSyncEvents: new AcceptBatchedSyncEvents(upsert, setFavorite),
@@ -244,8 +255,10 @@ function syncRouteDeps(upsert: UpsertPlaybackState) {
 
 describe('POST /api/v1/sync/playback-state route (BE-061)', () => {
   it('maps headers and body to the use case response contract', async () => {
-    const { upsert } = buildUseCase();
-    const [route] = createSyncRoutes(syncRouteDeps(upsert));
+    const { upsert, profiles, repository } = await buildUseCase();
+    const [route] = createSyncRoutes(
+      syncRouteDeps(upsert, profiles, repository),
+    );
     assert.ok(route);
 
     const response = await route.handler({
@@ -277,8 +290,10 @@ describe('POST /api/v1/sync/playback-state route (BE-061)', () => {
   });
 
   it('requires profile and device context headers', async () => {
-    const { upsert } = buildUseCase();
-    const [route] = createSyncRoutes(syncRouteDeps(upsert));
+    const { upsert, profiles, repository } = await buildUseCase();
+    const [route] = createSyncRoutes(
+      syncRouteDeps(upsert, profiles, repository),
+    );
     assert.ok(route);
     const response = await route.handler({
       method: 'POST',

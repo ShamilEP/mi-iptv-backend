@@ -5,9 +5,12 @@ import { AcceptBatchedSyncEvents } from '../../src/application/sync/accept-batch
 import { ListFavorites } from '../../src/application/sync/list-favorites.js';
 import { SetFavorite } from '../../src/application/sync/set-favorite.js';
 import { UpsertPlaybackState } from '../../src/application/sync/upsert-playback-state.js';
+import { ListPlaybackHistory } from '../../src/application/sync/list-playback-history.js';
 import { InMemoryFavoriteSyncRepository } from '../../src/infrastructure/persistence/in-memory-favorite-sync-repository.js';
 import { InMemoryPlaybackSyncRepository } from '../../src/infrastructure/persistence/in-memory-playback-sync-repository.js';
+import { InMemoryProfileRepository } from '../../src/infrastructure/persistence/in-memory-profile-repository.js';
 import { createSyncRoutes } from '../../src/presentation/http/routes/sync-routes.js';
+import { seedTestProfile } from './helpers/seed-test-profile.js';
 
 const accountId = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa';
 const profileA = 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb';
@@ -19,18 +22,25 @@ const event1 = '33333333-3333-4333-8333-333333333333';
 const event2 = '44444444-4444-4444-8444-444444444444';
 const event3 = '55555555-5555-4555-8555-555555555555';
 
-function buildApi() {
+async function buildApi() {
+  const profiles = new InMemoryProfileRepository();
+  await seedTestProfile(profiles, accountId, profileA, { name: 'A' });
+  await seedTestProfile(profiles, accountId, profileB, {
+    name: 'B',
+    isDefault: false,
+  });
   const repository = new InMemoryFavoriteSyncRepository();
   return {
     repository,
-    list: new ListFavorites(repository),
-    set: new SetFavorite(repository),
+    profiles,
+    list: new ListFavorites(repository, profiles),
+    set: new SetFavorite(repository, profiles),
   };
 }
 
 describe('SetFavorite / ListFavorites (BE-063)', () => {
   it('adds with sortOrder and lists per profile only', async () => {
-    const api = buildApi();
+    const api = await buildApi();
     const added = await api.set.execute({
       accountId,
       profileId: profileA,
@@ -70,7 +80,7 @@ describe('SetFavorite / ListFavorites (BE-063)', () => {
   });
 
   it('is idempotent for the same clientEventId', async () => {
-    const api = buildApi();
+    const api = await buildApi();
     const first = await api.set.execute({
       accountId,
       profileId: profileA,
@@ -100,7 +110,7 @@ describe('SetFavorite / ListFavorites (BE-063)', () => {
   });
 
   it('removes via tombstone and excludes from GET', async () => {
-    const api = buildApi();
+    const api = await buildApi();
     await api.set.execute({
       accountId,
       profileId: profileA,
@@ -138,7 +148,7 @@ describe('SetFavorite / ListFavorites (BE-063)', () => {
   });
 
   it('marks concurrent base mismatch as lww and preserves/overrides sortOrder', async () => {
-    const api = buildApi();
+    const api = await buildApi();
     await api.set.execute({
       accountId,
       profileId: profileA,
@@ -178,7 +188,7 @@ describe('SetFavorite / ListFavorites (BE-063)', () => {
   });
 
   it('orders GET results by sortOrder then createdAt', async () => {
-    const api = buildApi();
+    const api = await buildApi();
     await api.set.execute({
       accountId,
       profileId: profileA,
@@ -207,7 +217,7 @@ describe('SetFavorite / ListFavorites (BE-063)', () => {
   });
 
   it('rejects invalid action and type', async () => {
-    const api = buildApi();
+    const api = await buildApi();
     await assert.rejects(
       () =>
         api.set.execute({
@@ -242,12 +252,15 @@ describe('SetFavorite / ListFavorites (BE-063)', () => {
 
 describe('GET/POST /api/v1/sync/favorites routes (BE-063)', () => {
   it('wires list and set through HTTP adapters', async () => {
-    const api = buildApi();
+    const api = await buildApi();
+    const playbackRepo = new InMemoryPlaybackSyncRepository();
     const upsertPlaybackState = new UpsertPlaybackState(
-      new InMemoryPlaybackSyncRepository(),
+      playbackRepo,
+      api.profiles,
     );
     const routes = createSyncRoutes({
       upsertPlaybackState,
+      listPlaybackHistory: new ListPlaybackHistory(playbackRepo, api.profiles),
       listFavorites: api.list,
       setFavorite: api.set,
       acceptBatchedSyncEvents: new AcceptBatchedSyncEvents(

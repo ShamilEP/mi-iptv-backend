@@ -132,6 +132,21 @@ export class InMemoryFavoriteSyncRepository implements FavoriteSyncRepository {
     return { favorite, changeSeq, syncLog };
   }
 
+  async deleteByProfile(
+    accountId: string,
+    profileId: string,
+  ): Promise<number> {
+    let count = 0;
+    for (const [key, row] of this.favorites) {
+      if (row.accountId !== accountId || row.profileId !== profileId) {
+        continue;
+      }
+      this.favorites.delete(key);
+      count += 1;
+    }
+    return count;
+  }
+
   async deleteByAccount(accountId: string): Promise<number> {
     let count = 0;
     for (const [key, row] of this.favorites) {

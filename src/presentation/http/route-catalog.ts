@@ -49,12 +49,27 @@ export const ROUTE_CATALOG: readonly RouteCatalogEntry[] = [
   {
     method: 'GET',
     path: '/api/v1/profiles',
+    operationId: 'listProfiles',
+  },
+  {
+    method: 'POST',
+    path: '/api/v1/profiles',
+    operationId: 'createProfile',
+  },
+  {
+    method: 'GET',
+    path: '/api/v1/profiles/{id}',
     operationId: 'getProfile',
   },
   {
     method: 'PATCH',
-    path: '/api/v1/profiles',
+    path: '/api/v1/profiles/{id}',
     operationId: 'updateProfile',
+  },
+  {
+    method: 'DELETE',
+    path: '/api/v1/profiles/{id}',
+    operationId: 'deleteProfile',
   },
   {
     method: 'GET',
@@ -110,6 +125,11 @@ export const ROUTE_CATALOG: readonly RouteCatalogEntry[] = [
     method: 'POST',
     path: '/api/v1/sync/playback-state',
     operationId: 'upsertPlaybackState',
+  },
+  {
+    method: 'GET',
+    path: '/api/v1/sync/playback-history',
+    operationId: 'listPlaybackHistory',
   },
   {
     method: 'GET',

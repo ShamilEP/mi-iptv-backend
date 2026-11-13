@@ -6,10 +6,13 @@ import { SetFavorite } from '../../src/application/sync/set-favorite.js';
 import { UpsertPlaybackState } from '../../src/application/sync/upsert-playback-state.js';
 import { DomainError } from '../../src/domain/shared/domain-error.js';
 import { SYNC_BATCH_MAX_EVENTS } from '../../src/domain/sync/sync-batch.js';
+import { ListPlaybackHistory } from '../../src/application/sync/list-playback-history.js';
 import { InMemoryFavoriteSyncRepository } from '../../src/infrastructure/persistence/in-memory-favorite-sync-repository.js';
 import { InMemoryPlaybackSyncRepository } from '../../src/infrastructure/persistence/in-memory-playback-sync-repository.js';
+import { InMemoryProfileRepository } from '../../src/infrastructure/persistence/in-memory-profile-repository.js';
 import { InMemorySyncLogRepository } from '../../src/infrastructure/persistence/in-memory-sync-log-repository.js';
 import { createSyncRoutes } from '../../src/presentation/http/routes/sync-routes.js';
+import { seedTestProfile } from './helpers/seed-test-profile.js';
 
 const accountId = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa';
 const profileId = 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb';
@@ -20,13 +23,16 @@ const eventPlayback = '11111111-1111-4111-8111-111111111111';
 const eventFavorite = '22222222-2222-4222-8222-222222222222';
 const eventReplay = '33333333-3333-4333-8333-333333333333';
 
-function buildStack() {
+async function buildStack() {
+  const profiles = new InMemoryProfileRepository();
+  await seedTestProfile(profiles, accountId, profileId);
   const syncLog = new InMemorySyncLogRepository();
   const playbackRepo = new InMemoryPlaybackSyncRepository(syncLog);
   const favoriteRepo = new InMemoryFavoriteSyncRepository(syncLog);
-  const upsertPlaybackState = new UpsertPlaybackState(playbackRepo);
-  const setFavorite = new SetFavorite(favoriteRepo);
-  const listFavorites = new ListFavorites(favoriteRepo);
+  const upsertPlaybackState = new UpsertPlaybackState(playbackRepo, profiles);
+  const setFavorite = new SetFavorite(favoriteRepo, profiles);
+  const listFavorites = new ListFavorites(favoriteRepo, profiles);
+  const listPlaybackHistory = new ListPlaybackHistory(playbackRepo, profiles);
   const acceptBatchedSyncEvents = new AcceptBatchedSyncEvents(
     upsertPlaybackState,
     setFavorite,
@@ -35,14 +41,16 @@ function buildStack() {
     upsertPlaybackState,
     setFavorite,
     listFavorites,
+    listPlaybackHistory,
     acceptBatchedSyncEvents,
     favoriteRepo,
+    profiles,
   };
 }
 
 describe('AcceptBatchedSyncEvents (BE-067)', () => {
   it('applies mixed playback and favorite events in order', async () => {
-    const api = buildStack();
+    const api = await buildStack();
     const result = await api.acceptBatchedSyncEvents.execute({
       accountId,
       profileId,
@@ -82,7 +90,7 @@ describe('AcceptBatchedSyncEvents (BE-067)', () => {
   });
 
   it('is idempotent per clientEventId inside a batch replay', async () => {
-    const api = buildStack();
+    const api = await buildStack();
     const first = await api.acceptBatchedSyncEvents.execute({
       accountId,
       profileId,
@@ -123,7 +131,7 @@ describe('AcceptBatchedSyncEvents (BE-067)', () => {
   });
 
   it('rejects an empty events array', async () => {
-    const api = buildStack();
+    const api = await buildStack();
     await assert.rejects(
       () =>
         api.acceptBatchedSyncEvents.execute({
@@ -138,7 +146,7 @@ describe('AcceptBatchedSyncEvents (BE-067)', () => {
   });
 
   it('rejects batches over the size limit', async () => {
-    const api = buildStack();
+    const api = await buildStack();
     const events = Array.from({ length: SYNC_BATCH_MAX_EVENTS + 1 }, (_, i) => {
       const id = `00000000-0000-4000-8000-${String(i + 1).padStart(12, '0')}`;
       return {
@@ -166,7 +174,7 @@ describe('AcceptBatchedSyncEvents (BE-067)', () => {
 
 describe('POST /api/v1/sync/events route (BE-067)', () => {
   it('maps a batch body to per-event results', async () => {
-    const api = buildStack();
+    const api = await buildStack();
     const routes = createSyncRoutes(api);
     const route = routes.find(
       (entry) =>
@@ -216,7 +224,7 @@ describe('POST /api/v1/sync/events route (BE-067)', () => {
   });
 
   it('rejects oversized batches at the HTTP boundary', async () => {
-    const api = buildStack();
+    const api = await buildStack();
     const routes = createSyncRoutes(api);
     const route = routes.find(
       (entry) =>

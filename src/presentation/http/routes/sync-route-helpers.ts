@@ -44,8 +44,14 @@ export function requireSyncHeader(
 
 export function mapSyncDomainError(error: unknown): HttpResponse {
   if (error instanceof DomainError) {
+    const statusCode =
+      error.code === 'PROFILE_NOT_FOUND'
+        ? 404
+        : error.code === 'AUTH_ACCESS_INVALID'
+          ? 401
+          : 400;
     return {
-      statusCode: 400,
+      statusCode,
       headers: SYNC_JSON_HEADERS,
       body: { error: error.message, code: error.code },
     };

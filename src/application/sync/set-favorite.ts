@@ -12,6 +12,8 @@ import {
 } from '../../domain/sync/sync-log.js';
 import type { SyncResolvedBy } from '../../domain/sync/sync-types.js';
 import type { FavoriteSyncRepository } from '../ports/favorite-sync-repository.js';
+import type { ProfileRepository } from '../ports/profile-repository.js';
+import { requireOwnedProfile } from '../profiles/require-owned-profile.js';
 
 export type SetFavoriteInput = {
   readonly accountId: string;
@@ -37,16 +39,24 @@ export type SetFavoriteResult = {
 };
 
 /**
- * POST /api/v1/sync/favorites (BE-063 / BE-065 / ADR-005 / Backend §2.3).
+ * POST /api/v1/sync/favorites (BE-063 / BE-065 / ADR-005 / Backend §2.3 / BE-036).
  */
 export class SetFavorite {
-  constructor(private readonly repository: FavoriteSyncRepository) {}
+  constructor(
+    private readonly repository: FavoriteSyncRepository,
+    private readonly profiles: ProfileRepository,
+  ) {}
 
   async execute(input: SetFavoriteInput): Promise<SetFavoriteResult> {
     assertNonEmpty(input.accountId, 'accountId');
     assertNonEmpty(input.profileId, 'profileId');
     assertNonEmpty(input.deviceId, 'deviceId');
     assertNonEmpty(input.itemId, 'itemId');
+    await requireOwnedProfile(
+      this.profiles,
+      input.accountId,
+      input.profileId,
+    );
 
     if (!isFavoriteAction(input.action)) {
       throw new DomainError(

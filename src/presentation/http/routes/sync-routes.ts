@@ -1,5 +1,6 @@
 import type { AcceptBatchedSyncEvents } from '../../../application/sync/accept-batched-sync-events.js';
 import type { ListFavorites } from '../../../application/sync/list-favorites.js';
+import type { ListPlaybackHistory } from '../../../application/sync/list-playback-history.js';
 import type { SetFavorite } from '../../../application/sync/set-favorite.js';
 import type { UpsertPlaybackState } from '../../../application/sync/upsert-playback-state.js';
 import type {
@@ -24,6 +25,7 @@ import {
 
 export function createSyncRoutes(deps: {
   readonly upsertPlaybackState: UpsertPlaybackState;
+  readonly listPlaybackHistory: ListPlaybackHistory;
   readonly listFavorites: ListFavorites;
   readonly setFavorite: SetFavorite;
   readonly acceptBatchedSyncEvents: AcceptBatchedSyncEvents;
@@ -34,6 +36,12 @@ export function createSyncRoutes(deps: {
       path: '/api/v1/sync/playback-state',
       handler: (request) =>
         handleUpsertPlaybackState(request, deps.upsertPlaybackState),
+    },
+    {
+      method: 'GET',
+      path: '/api/v1/sync/playback-history',
+      handler: (request) =>
+        handleListPlaybackHistory(request, deps.listPlaybackHistory),
     },
     {
       method: 'GET',
@@ -136,6 +144,31 @@ async function handleUpsertPlaybackState(
         changeSeq: result.changeSeq,
         conflict: result.conflict,
       },
+    };
+  } catch (error: unknown) {
+    return mapSyncDomainError(error);
+  }
+}
+
+async function handleListPlaybackHistory(
+  request: HttpRequest,
+  listPlaybackHistory: ListPlaybackHistory,
+): Promise<HttpResponse> {
+  const accountId = requireSyncHeader(request, 'x-account-id', 'account');
+  if (typeof accountId !== 'string') {
+    return accountId;
+  }
+  const profileId = requireSyncHeader(request, 'x-profile-id', 'profile');
+  if (typeof profileId !== 'string') {
+    return profileId;
+  }
+
+  try {
+    const body = await listPlaybackHistory.execute(accountId, profileId);
+    return {
+      statusCode: 200,
+      headers: SYNC_JSON_HEADERS,
+      body,
     };
   } catch (error: unknown) {
     return mapSyncDomainError(error);
