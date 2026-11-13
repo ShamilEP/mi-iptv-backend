@@ -6,6 +6,8 @@ import type {
 import {
   assertAccessTokenIssueInput,
   assertJwtAccessAlg,
+  assertJwtAudience,
+  assertJwtIssuer,
   assertJwtKid,
   parseAccessTokenClaims,
   REQUIRED_ACCESS_TOKEN_ALG,
@@ -43,6 +45,7 @@ export class NodeRs256AccessTokenService implements AccessTokenService {
     };
     const payload = {
       iss: this.ttl.issuer,
+      aud: this.ttl.audience,
       sub: input.accountId,
       accountId: input.accountId,
       deviceId: input.deviceId,
@@ -110,6 +113,7 @@ export class NodeRs256AccessTokenService implements AccessTokenService {
       );
     }
 
+    // Pin alg before any crypto — rejects none / HS256 / alg confusion (SEC-011).
     assertJwtAccessAlg(header.alg);
     const kid = assertJwtKid(header.kid);
     const publicKeyPem = this.keys.getPublicKeyPem(kid);
@@ -135,6 +139,9 @@ export class NodeRs256AccessTokenService implements AccessTokenService {
         'ACCESS_TOKEN_INVALID',
       );
     }
+
+    assertJwtIssuer(payload['iss'], this.ttl.issuer);
+    assertJwtAudience(payload['aud'], this.ttl.audience);
 
     return parseAccessTokenClaims({
       accountId: payload['accountId'] ?? payload['sub'],
