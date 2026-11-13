@@ -59,3 +59,4 @@ Reuses INF-005: multi-stage non-root `Dockerfile`, Trivy HIGH/CRITICAL gate, opt
 2. Configure signing secrets in GitHub Environments (names above).
 3. Provide `build-ipa.sh` (or wire `xcodebuild` scheme) in the iOS project.
 4. Enable ECR push vars for Docker publish (INF-005).
+5. Store distribution / beta uploads: **INF-043** (`docs/infra/043-app-signing-distribution.md`).

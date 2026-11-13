@@ -1,0 +1,82 @@
+name: Distribute beta channels
+
+# INF-043 — orchestrate Play internal + TestFlight beta distribution.
+on:
+  workflow_dispatch:
+    inputs:
+      distribute_play_tv:
+        description: Upload Android TV AAB to Play internal
+        type: boolean
+        default: true
+      distribute_play_companion:
+        description: Upload companion AAB to Play internal
+        type: boolean
+        default: true
+      distribute_testflight:
+        description: Upload companion IPA to TestFlight
+        type: boolean
+        default: true
+      play_package_name_tv:
+        description: Android TV applicationId
+        type: string
+        default: com.miiptv.tv
+      play_package_name_companion:
+        description: Companion applicationId
+        type: string
+        default: com.miiptv.companion
+  workflow_call:
+    inputs:
+      distribute_play_tv:
+        type: boolean
+        required: false
+        default: true
+      distribute_play_companion:
+        type: boolean
+        required: false
+        default: true
+      distribute_testflight:
+        type: boolean
+        required: false
+        default: true
+      play_package_name_tv:
+        type: string
+        required: false
+        default: com.miiptv.tv
+      play_package_name_companion:
+        type: string
+        required: false
+        default: com.miiptv.companion
+
+concurrency:
+  group: distribute-beta-${{ github.ref }}
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  play-tv:
+    name: Play internal (Android TV)
+    if: ${{ inputs.distribute_play_tv }}
+    uses: ./.github/workflows/distribute-play-internal.yml
+    secrets: inherit
+    with:
+      package_name: ${{ inputs.play_package_name_tv }}
+      artifact_name: android-tv-release
+
+  play-companion:
+    name: Play internal (companion)
+    if: ${{ inputs.distribute_play_companion }}
+    uses: ./.github/workflows/distribute-play-internal.yml
+    secrets: inherit
+    with:
+      package_name: ${{ inputs.play_package_name_companion }}
+      artifact_name: companion-android-aab
+
+  testflight:
+    name: TestFlight (companion)
+    if: ${{ inputs.distribute_testflight }}
+    uses: ./.github/workflows/distribute-testflight.yml
+    secrets: inherit
+    with:
+      artifact_name: companion-ios-ipa
