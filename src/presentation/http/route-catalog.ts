@@ -33,6 +33,16 @@ export const ROUTE_CATALOG: readonly RouteCatalogEntry[] = [
   },
   {
     method: 'GET',
+    path: '/api/v1/account/export',
+    operationId: 'exportAccountData',
+  },
+  {
+    method: 'DELETE',
+    path: '/api/v1/account',
+    operationId: 'deleteAccount',
+  },
+  {
+    method: 'GET',
     path: '/api/v1/sources',
     operationId: 'listSources',
   },

@@ -10,4 +10,7 @@ export interface SyncLogRepository {
   ): Promise<SyncLog | null>;
 
   append(entry: SyncLog): Promise<SyncLog>;
+
+  /** Hard-delete every SyncLog row for the account (cascade). */
+  deleteByAccount(accountId: string): Promise<number>;
 }

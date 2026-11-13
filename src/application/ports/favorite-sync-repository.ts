@@ -45,7 +45,13 @@ export interface FavoriteSyncRepository {
     profileId: string,
   ): Promise<readonly Favorite[]>;
 
+  /** All favorites for the account (export / cascade). */
+  listFavoritesByAccount(accountId: string): Promise<readonly Favorite[]>;
+
   applyFavoriteWrite(
     input: ApplyFavoriteWriteInput,
   ): Promise<ApplyFavoriteWriteResult>;
+
+  /** Hard-delete every favorite row for the account. */
+  deleteByAccount(accountId: string): Promise<number>;
 }

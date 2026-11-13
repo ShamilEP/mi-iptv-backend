@@ -40,6 +40,18 @@ export class InMemoryPlaybackSyncRepository implements PlaybackSyncRepository {
     return row;
   }
 
+  async listPlaybackByAccount(
+    accountId: string,
+  ): Promise<readonly PlaybackState[]> {
+    return [...this.playback.values()]
+      .filter((row) => row.accountId === accountId)
+      .sort(
+        (a, b) =>
+          a.profileId.localeCompare(b.profileId) ||
+          b.updatedAt.getTime() - a.updatedAt.getTime(),
+      );
+  }
+
   async applyPlaybackWrite(
     input: ApplyPlaybackWriteInput,
   ): Promise<ApplyPlaybackWriteResult> {
@@ -104,6 +116,19 @@ export class InMemoryPlaybackSyncRepository implements PlaybackSyncRepository {
     });
 
     return { playback, changeSeq, syncLog };
+  }
+
+  async deleteByAccount(accountId: string): Promise<number> {
+    let count = 0;
+    for (const [key, row] of this.playback) {
+      if (row.accountId !== accountId) {
+        continue;
+      }
+      this.playback.delete(key);
+      count += 1;
+    }
+    this.changeSeqByAccount.delete(accountId);
+    return count;
   }
 }
 

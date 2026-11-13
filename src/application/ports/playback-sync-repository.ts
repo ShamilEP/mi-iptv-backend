@@ -42,7 +42,13 @@ export interface PlaybackSyncRepository {
     contentId: string,
   ): Promise<PlaybackState | null>;
 
+  /** All playback rows for the account (export / cascade). */
+  listPlaybackByAccount(accountId: string): Promise<readonly PlaybackState[]>;
+
   applyPlaybackWrite(
     input: ApplyPlaybackWriteInput,
   ): Promise<ApplyPlaybackWriteResult>;
+
+  /** Hard-delete every playback row for the account. */
+  deleteByAccount(accountId: string): Promise<number>;
 }

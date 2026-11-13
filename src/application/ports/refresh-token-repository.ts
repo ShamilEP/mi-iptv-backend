@@ -27,7 +27,8 @@ export type RefreshTokenRevokeReason =
   | 'logout_all'
   | 'reuse_detected'
   | 'password_reset'
-  | 'device_unlinked';
+  | 'device_unlinked'
+  | 'account_deleted';
 
 /**
  * Persists hashed refresh tokens (ADR-004 / schema app.refresh_tokens).
@@ -65,4 +66,7 @@ export interface RefreshTokenRepository {
     reason: RefreshTokenRevokeReason,
     revokedAt: Date,
   ): Promise<number>;
+
+  /** Hard-delete refresh token rows for the account (BE-013 cascade). */
+  deleteByAccount(accountId: string): Promise<number>;
 }

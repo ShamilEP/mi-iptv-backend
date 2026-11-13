@@ -190,6 +190,90 @@
         }
       }
     },
+    "/api/v1/account/export": {
+      "get": {
+        "operationId": "exportAccountData",
+        "summary": "Export account-owned data (privacy-safe)",
+        "description": "Returns account, profiles, devices, sources, favorites, and playback without secrets (NFR-006 / Security §6 / BE-013). Omits password hashes, tokens, push tokens, and source credential ciphertext.",
+        "parameters": [
+          {
+            "name": "Authorization",
+            "in": "header",
+            "required": false,
+            "schema": { "type": "string" },
+            "description": "Bearer access JWT (preferred)"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Account data export",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/AccountDataExport" }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing or invalid access token",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/AuthError" }
+              }
+            }
+          },
+          "404": {
+            "description": "Account not found",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/AuthError" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/account": {
+      "delete": {
+        "operationId": "deleteAccount",
+        "summary": "Delete the account and cascade tenant data",
+        "description": "Revokes all access/refresh tokens, then hard-deletes the account and cascaded profiles, sources, devices, and sync data (BE-013 / NFR-006).",
+        "parameters": [
+          {
+            "name": "Authorization",
+            "in": "header",
+            "required": false,
+            "schema": { "type": "string" },
+            "description": "Bearer access JWT (preferred)"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Account deleted",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/DeleteAccountResponse" }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing or invalid access token",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/AuthError" }
+              }
+            }
+          },
+          "404": {
+            "description": "Account not found",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/AuthError" }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/sources": {
       "get": {
         "operationId": "listSources",
@@ -884,6 +968,167 @@
         "properties": {
           "status": { "type": "string", "enum": ["OK"] },
           "scope": { "type": "string", "enum": ["device", "account"] }
+        }
+      },
+      "DeleteAccountResponse": {
+        "type": "object",
+        "required": ["status"],
+        "properties": {
+          "status": { "type": "string", "enum": ["OK"] }
+        }
+      },
+      "AccountExportAccount": {
+        "type": "object",
+        "required": [
+          "id",
+          "email",
+          "role",
+          "status",
+          "lastLoginAt",
+          "createdAt",
+          "updatedAt"
+        ],
+        "properties": {
+          "id": { "type": "string", "format": "uuid" },
+          "email": { "type": "string", "format": "email" },
+          "role": { "type": "string" },
+          "status": { "type": "string" },
+          "lastLoginAt": { "type": ["string", "null"], "format": "date-time" },
+          "createdAt": { "type": "string", "format": "date-time" },
+          "updatedAt": { "type": "string", "format": "date-time" }
+        }
+      },
+      "AccountExportProfile": {
+        "type": "object",
+        "required": [
+          "id",
+          "name",
+          "avatar",
+          "language",
+          "region",
+          "isDefault",
+          "autoplay",
+          "subtitlePrefs",
+          "restrictions",
+          "createdAt",
+          "updatedAt"
+        ],
+        "properties": {
+          "id": { "type": "string", "format": "uuid" },
+          "name": { "type": "string" },
+          "avatar": { "type": ["string", "null"] },
+          "language": { "type": "string" },
+          "region": { "type": ["string", "null"] },
+          "isDefault": { "type": "boolean" },
+          "autoplay": { "type": "boolean" },
+          "subtitlePrefs": { "type": "object", "additionalProperties": true },
+          "restrictions": { "type": "object", "additionalProperties": true },
+          "createdAt": { "type": "string", "format": "date-time" },
+          "updatedAt": { "type": "string", "format": "date-time" }
+        }
+      },
+      "AccountExportDevice": {
+        "type": "object",
+        "required": [
+          "id",
+          "deviceType",
+          "platform",
+          "name",
+          "model",
+          "appVersion",
+          "osVersion",
+          "pushTokenConfigured",
+          "pairedAt",
+          "lastSeenAt",
+          "revokedAt"
+        ],
+        "properties": {
+          "id": { "type": "string", "format": "uuid" },
+          "deviceType": { "type": "string" },
+          "platform": { "type": "string" },
+          "name": { "type": ["string", "null"] },
+          "model": { "type": ["string", "null"] },
+          "appVersion": { "type": ["string", "null"] },
+          "osVersion": { "type": ["string", "null"] },
+          "pushTokenConfigured": { "type": "boolean" },
+          "pairedAt": { "type": "string", "format": "date-time" },
+          "lastSeenAt": { "type": ["string", "null"], "format": "date-time" },
+          "revokedAt": { "type": ["string", "null"], "format": "date-time" }
+        }
+      },
+      "AccountExportFavorite": {
+        "allOf": [
+          { "$ref": "#/components/schemas/FavoritePublic" },
+          {
+            "type": "object",
+            "required": ["profileId"],
+            "properties": {
+              "profileId": { "type": "string", "format": "uuid" }
+            }
+          }
+        ]
+      },
+      "AccountExportPlayback": {
+        "type": "object",
+        "required": [
+          "profileId",
+          "contentId",
+          "sourceId",
+          "positionSec",
+          "durationSec",
+          "completed",
+          "syncVersion",
+          "changeSeq",
+          "createdAt",
+          "updatedAt"
+        ],
+        "properties": {
+          "profileId": { "type": "string", "format": "uuid" },
+          "contentId": { "type": "string", "format": "uuid" },
+          "sourceId": { "type": ["string", "null"], "format": "uuid" },
+          "positionSec": { "type": "integer", "minimum": 0 },
+          "durationSec": { "type": ["integer", "null"], "minimum": 0 },
+          "completed": { "type": "boolean" },
+          "syncVersion": { "type": "integer" },
+          "changeSeq": { "type": "integer" },
+          "createdAt": { "type": "string", "format": "date-time" },
+          "updatedAt": { "type": "string", "format": "date-time" }
+        }
+      },
+      "AccountDataExport": {
+        "type": "object",
+        "required": [
+          "exportedAt",
+          "account",
+          "profiles",
+          "devices",
+          "sources",
+          "favorites",
+          "playbackStates"
+        ],
+        "properties": {
+          "exportedAt": { "type": "string", "format": "date-time" },
+          "account": { "$ref": "#/components/schemas/AccountExportAccount" },
+          "profiles": {
+            "type": "array",
+            "items": { "$ref": "#/components/schemas/AccountExportProfile" }
+          },
+          "devices": {
+            "type": "array",
+            "items": { "$ref": "#/components/schemas/AccountExportDevice" }
+          },
+          "sources": {
+            "type": "array",
+            "items": { "$ref": "#/components/schemas/SourcePublic" }
+          },
+          "favorites": {
+            "type": "array",
+            "items": { "$ref": "#/components/schemas/AccountExportFavorite" }
+          },
+          "playbackStates": {
+            "type": "array",
+            "items": { "$ref": "#/components/schemas/AccountExportPlayback" }
+          }
         }
       },
       "UpsertPlaybackStateRequest": {

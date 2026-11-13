@@ -5,4 +5,6 @@ export interface AccountRepository {
   findById(accountId: string): Promise<Account | null>;
   insert(account: Account): Promise<Account>;
   save(account: Account): Promise<Account>;
+  /** Hard-delete the account row (Postgres CASCADE removes tenant children). */
+  delete(accountId: string): Promise<boolean>;
 }

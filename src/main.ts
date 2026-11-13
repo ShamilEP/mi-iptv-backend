@@ -1,4 +1,6 @@
 import { generateKeyPairSync, randomBytes } from 'node:crypto';
+import { DeleteAccount } from './application/account/delete-account.js';
+import { ExportAccountData } from './application/account/export-account-data.js';
 import { IssueAuthTokenPair } from './application/auth/issue-auth-token-pair.js';
 import { LoginAccount } from './application/auth/login-account.js';
 import { LoginBruteForceGuard } from './application/auth/login-brute-force-guard.js';
@@ -49,6 +51,7 @@ import { InMemoryAccountRepository } from './infrastructure/persistence/in-memor
 import { InMemoryDeviceRepository } from './infrastructure/persistence/in-memory-device-repository.js';
 import { InMemoryFavoriteSyncRepository } from './infrastructure/persistence/in-memory-favorite-sync-repository.js';
 import { InMemoryPlaybackSyncRepository } from './infrastructure/persistence/in-memory-playback-sync-repository.js';
+import { InMemoryProfileRepository } from './infrastructure/persistence/in-memory-profile-repository.js';
 import { InMemorySyncLogRepository } from './infrastructure/persistence/in-memory-sync-log-repository.js';
 import { InMemoryRefreshTokenRepository } from './infrastructure/persistence/in-memory-refresh-token-repository.js';
 import { InMemorySourceRepository } from './infrastructure/persistence/in-memory-source-repository.js';
@@ -57,6 +60,7 @@ import { EnvSecretStore } from './infrastructure/secrets/env-secret-store.js';
 import { StaticCredentialEncryptionKeyCatalog } from './infrastructure/secrets/static-credential-encryption-key-catalog.js';
 import { StaticKmsKeyResolver } from './infrastructure/secrets/static-kms-key-resolver.js';
 import { NodeHttpServer } from './presentation/http/node-http-server.js';
+import { createAccountRoutes } from './presentation/http/routes/account-routes.js';
 import { createAuthRoutes } from './presentation/http/routes/auth-routes.js';
 import { createDevicesRoutes } from './presentation/http/routes/devices-routes.js';
 import { createHealthRoute } from './presentation/http/routes/health-route.js';
@@ -211,6 +215,31 @@ async function bootstrap(): Promise<void> {
   const listFavorites = new ListFavorites(favoriteSyncRepository);
   const setFavorite = new SetFavorite(favoriteSyncRepository);
 
+  // BE-013: account export + cascade delete (profiles + revoke-all tokens).
+  const profileRepository = new InMemoryProfileRepository();
+  const exportAccountData = new ExportAccountData(
+    accessTokenService,
+    accountRepository,
+    profileRepository,
+    deviceRepository,
+    sourceRepository,
+    favoriteSyncRepository,
+    playbackSyncRepository,
+  );
+  const deleteAccount = new DeleteAccount(
+    accessTokenService,
+    accessTokenDenyList,
+    refreshTokenRepository,
+    accountRepository,
+    profileRepository,
+    sourceRepository,
+    deviceRepository,
+    favoriteSyncRepository,
+    playbackSyncRepository,
+    syncLogRepository,
+    jwtTtl.accessTokenTtlSeconds,
+  );
+
   const getHealthStatus = new GetHealthStatus();
   const httpServer = new NodeHttpServer(logger);
 
@@ -219,6 +248,12 @@ async function bootstrap(): Promise<void> {
     loginAccount,
     refreshAuthSession,
     logoutAccount,
+  })) {
+    httpServer.register(route);
+  }
+  for (const route of createAccountRoutes({
+    exportAccountData,
+    deleteAccount,
   })) {
     httpServer.register(route);
   }
@@ -270,10 +305,13 @@ async function bootstrap(): Promise<void> {
     authLoginReady: Boolean(loginAccount),
     authRefreshReady: Boolean(refreshAuthSession),
     authLogoutReady: Boolean(logoutAccount),
+    accountExportReady: Boolean(exportAccountData),
+    accountDeleteReady: Boolean(deleteAccount),
     loginBruteForceReady: Boolean(loginBruteForceGuard),
     accessTokenDenyListReady: Boolean(accessTokenDenyList),
     sessionRedisMode: secrets.redisUrl ? 'ioredis' : 'in-memory',
     accountPersistence: 'in-memory',
+    profilePersistence: 'in-memory',
     refreshTokenPersistence: 'in-memory',
     sourceCredentialCipherReady: true,
     sourceCredentialsDataKeyInjected: secretsLoaded.sourceCredentialsDataKey,

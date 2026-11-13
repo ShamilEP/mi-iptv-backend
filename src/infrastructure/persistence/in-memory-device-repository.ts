@@ -20,6 +20,16 @@ export class InMemoryDeviceRepository implements DeviceRepository {
       );
   }
 
+  async listAllByAccount(accountId: string): Promise<readonly Device[]> {
+    return [...this.byId.values()]
+      .filter((row) => row.accountId === accountId)
+      .sort(
+        (a, b) =>
+          (b.lastSeenAt?.getTime() ?? 0) - (a.lastSeenAt?.getTime() ?? 0) ||
+          a.pairedAt.getTime() - b.pairedAt.getTime(),
+      );
+  }
+
   async findById(accountId: string, deviceId: string): Promise<Device | null> {
     const row = this.byId.get(deviceId);
     if (!row || row.accountId !== accountId) {
@@ -43,5 +53,17 @@ export class InMemoryDeviceRepository implements DeviceRepository {
   async save(device: Device): Promise<Device> {
     this.byId.set(device.id, device);
     return device;
+  }
+
+  async deleteByAccount(accountId: string): Promise<number> {
+    let count = 0;
+    for (const [id, row] of this.byId) {
+      if (row.accountId !== accountId) {
+        continue;
+      }
+      this.byId.delete(id);
+      count += 1;
+    }
+    return count;
   }
 }
