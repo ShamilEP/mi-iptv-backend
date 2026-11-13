@@ -65,9 +65,46 @@ export class InMemoryRefreshTokenRepository implements RefreshTokenRepository {
     reason: RefreshTokenRevokeReason,
     revokedAt: Date,
   ): Promise<number> {
+    return this.revokeWhere(
+      (row) => row.familyId === familyId,
+      reason,
+      revokedAt,
+    );
+  }
+
+  async revokeByDevice(
+    accountId: string,
+    deviceId: string,
+    reason: RefreshTokenRevokeReason,
+    revokedAt: Date,
+  ): Promise<number> {
+    return this.revokeWhere(
+      (row) => row.accountId === accountId && row.deviceId === deviceId,
+      reason,
+      revokedAt,
+    );
+  }
+
+  async revokeByAccount(
+    accountId: string,
+    reason: RefreshTokenRevokeReason,
+    revokedAt: Date,
+  ): Promise<number> {
+    return this.revokeWhere(
+      (row) => row.accountId === accountId,
+      reason,
+      revokedAt,
+    );
+  }
+
+  private async revokeWhere(
+    predicate: (row: RefreshTokenRecord) => boolean,
+    reason: RefreshTokenRevokeReason,
+    revokedAt: Date,
+  ): Promise<number> {
     let count = 0;
     for (const [id, row] of this.byId) {
-      if (row.familyId !== familyId || row.revokedAt !== null) {
+      if (row.revokedAt !== null || !predicate(row)) {
         continue;
       }
       this.byId.set(id, {

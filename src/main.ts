@@ -1,6 +1,7 @@
 import { generateKeyPairSync, randomBytes } from 'node:crypto';
 import { IssueAuthTokenPair } from './application/auth/issue-auth-token-pair.js';
 import { LoginAccount } from './application/auth/login-account.js';
+import { LogoutAccount } from './application/auth/logout-account.js';
 import { RefreshAuthSession } from './application/auth/refresh-auth-session.js';
 import { FetchXtreamCatalog } from './application/catalog/fetch-xtream-catalog.js';
 import { ParseM3uPlaylist } from './application/catalog/parse-m3u-playlist.js';
@@ -25,6 +26,9 @@ import { loadJwtTokenTtlConfig } from './config/jwt-tokens.js';
 import { loadM3uParserLimits } from './config/m3u-parser.js';
 import { loadPasswordHashParams } from './config/password-hashing.js';
 import { loadSourceHttpGuardConfig } from './config/source-http-guard.js';
+import { createIoredisRedisClientFromUrl } from './infrastructure/cache/ioredis-redis-client.js';
+import { InMemoryRedisClient } from './infrastructure/cache/in-memory-redis-client.js';
+import { RedisAccessTokenDenyList } from './infrastructure/cache/redis-access-token-deny-list.js';
 import { HttpXtreamCodesClient } from './infrastructure/catalog/http-xtream-codes-client.js';
 import { IsolatedM3uPlaylistParser } from './infrastructure/catalog/isolated-m3u-playlist-parser.js';
 import { Argon2PasswordHasher } from './infrastructure/crypto/argon2-password-hasher.js';
@@ -109,6 +113,18 @@ async function bootstrap(): Promise<void> {
     issueAuthTokenPair,
   );
 
+  // BE-025: logout + Redis access-token deny-list (in-memory when REDIS_URL unset).
+  const sessionRedis =
+    createIoredisRedisClientFromUrl(secrets.redisUrl) ??
+    new InMemoryRedisClient();
+  const accessTokenDenyList = new RedisAccessTokenDenyList(sessionRedis);
+  const logoutAccount = new LogoutAccount(
+    accessTokenService,
+    accessTokenDenyList,
+    refreshTokenRepository,
+    jwtTtl.accessTokenTtlSeconds,
+  );
+
   // BE-042/SEC-030: AES-256-GCM with KMS-managed DEK. Fail closed outside dev.
   const sourceCredentialCipher = new Aes256GcmSourceCredentialCipher(
     resolveSourceCredentialsDataKey(
@@ -178,7 +194,11 @@ async function bootstrap(): Promise<void> {
   const httpServer = new NodeHttpServer(logger);
 
   httpServer.register(createHealthRoute(getHealthStatus));
-  for (const route of createAuthRoutes({ loginAccount, refreshAuthSession })) {
+  for (const route of createAuthRoutes({
+    loginAccount,
+    refreshAuthSession,
+    logoutAccount,
+  })) {
     httpServer.register(route);
   }
   for (const route of createSourcesRoutes({
@@ -228,6 +248,9 @@ async function bootstrap(): Promise<void> {
     jwtSigningReady: Boolean(issueAuthTokenPair),
     authLoginReady: Boolean(loginAccount),
     authRefreshReady: Boolean(refreshAuthSession),
+    authLogoutReady: Boolean(logoutAccount),
+    accessTokenDenyListReady: Boolean(accessTokenDenyList),
+    sessionRedisMode: secrets.redisUrl ? 'ioredis' : 'in-memory',
     accountPersistence: 'in-memory',
     refreshTokenPersistence: 'in-memory',
     sourceCredentialCipherReady: true,

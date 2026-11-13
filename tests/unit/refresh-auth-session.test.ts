@@ -3,10 +3,13 @@ import { generateKeyPairSync, randomUUID } from 'node:crypto';
 import { describe, it } from 'node:test';
 import { IssueAuthTokenPair } from '../../src/application/auth/issue-auth-token-pair.js';
 import { LoginAccount } from '../../src/application/auth/login-account.js';
+import { LogoutAccount } from '../../src/application/auth/logout-account.js';
 import { RefreshAuthSession } from '../../src/application/auth/refresh-auth-session.js';
 import { loadJwtTokenTtlConfig } from '../../src/config/jwt-tokens.js';
 import { loadPasswordHashParams } from '../../src/config/password-hashing.js';
 import { DomainError } from '../../src/domain/shared/domain-error.js';
+import { InMemoryRedisClient } from '../../src/infrastructure/cache/in-memory-redis-client.js';
+import { RedisAccessTokenDenyList } from '../../src/infrastructure/cache/redis-access-token-deny-list.js';
 import { Argon2PasswordHasher } from '../../src/infrastructure/crypto/argon2-password-hasher.js';
 import { NodeRs256AccessTokenService } from '../../src/infrastructure/crypto/node-rs256-access-token-service.js';
 import { OpaqueRefreshTokenService } from '../../src/infrastructure/crypto/opaque-refresh-token-service.js';
@@ -25,6 +28,7 @@ const testHashParams = loadPasswordHashParams({
 async function createAuthStack(): Promise<{
   readonly login: LoginAccount;
   readonly refreshSession: RefreshAuthSession;
+  readonly logout: LogoutAccount;
   readonly accounts: InMemoryAccountRepository;
   readonly refreshTokens: InMemoryRefreshTokenRepository;
   readonly hasher: Argon2PasswordHasher;
@@ -55,9 +59,16 @@ async function createAuthStack(): Promise<{
     refreshTokens,
     issuePair,
   );
+  const logout = new LogoutAccount(
+    access,
+    new RedisAccessTokenDenyList(new InMemoryRedisClient()),
+    refreshTokens,
+    ttl.accessTokenTtlSeconds,
+  );
   return {
     login,
     refreshSession,
+    logout,
     accounts,
     refreshTokens,
     hasher,
@@ -190,12 +201,14 @@ describe('BE-024 RefreshAuthSession', () => {
   });
 
   it('HTTP refresh route is catalogued and maps reuse to 401', async () => {
-    const { login, refreshSession, accounts, hasher } = await createAuthStack();
+    const { login, refreshSession, logout, accounts, hasher } =
+      await createAuthStack();
     const password = 'http-refresh';
     const { email } = await seedActiveAccount(accounts, hasher, password);
     const routes = createAuthRoutes({
       loginAccount: login,
       refreshAuthSession: refreshSession,
+      logoutAccount: logout,
     });
     const refreshRoute = routes.find(
       (route) => route.path === '/api/v1/auth/refresh',

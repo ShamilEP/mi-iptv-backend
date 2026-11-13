@@ -126,6 +126,56 @@
         }
       }
     },
+    "/api/v1/auth/logout": {
+      "post": {
+        "operationId": "logout",
+        "summary": "Revoke the current device session (or all sessions)",
+        "description": "Places the access JWT jti on the Redis deny-list and revokes refresh tokens for the device. Set allSessions=true to close every account session (Security §2.2 / BE-025).",
+        "parameters": [
+          {
+            "name": "Authorization",
+            "in": "header",
+            "required": false,
+            "schema": { "type": "string" },
+            "description": "Bearer access JWT (preferred)"
+          }
+        ],
+        "requestBody": {
+          "required": false,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/LogoutRequest" }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Session(s) revoked",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/LogoutResponse" }
+              }
+            }
+          },
+          "400": {
+            "description": "Missing or invalid input",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/AuthError" }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing or invalid access token",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/AuthError" }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/sources": {
       "get": {
         "operationId": "listSources",
@@ -780,6 +830,33 @@
         "properties": {
           "error": { "type": "string" },
           "code": { "type": "string" }
+        }
+      },
+      "LogoutRequest": {
+        "type": "object",
+        "properties": {
+          "accessToken": {
+            "type": "string",
+            "description": "Access JWT when Authorization header is unavailable"
+          },
+          "allSessions": {
+            "type": "boolean",
+            "default": false,
+            "description": "When true, revoke every device session for the account"
+          },
+          "allDevices": {
+            "type": "boolean",
+            "default": false,
+            "description": "Alias of allSessions"
+          }
+        }
+      },
+      "LogoutResponse": {
+        "type": "object",
+        "required": ["status", "scope"],
+        "properties": {
+          "status": { "type": "string", "enum": ["OK"] },
+          "scope": { "type": "string", "enum": ["device", "account"] }
         }
       },
       "UpsertPlaybackStateRequest": {

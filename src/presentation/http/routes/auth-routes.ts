@@ -1,4 +1,5 @@
 import type { LoginAccount } from '../../../application/auth/login-account.js';
+import type { LogoutAccount } from '../../../application/auth/logout-account.js';
 import type { RefreshAuthSession } from '../../../application/auth/refresh-auth-session.js';
 import type {
   HttpRequest,
@@ -11,17 +12,20 @@ const JSON_HEADERS = {
   'content-type': 'application/json; charset=utf-8',
 } as const;
 
-const REFRESH_UNAUTHORIZED_CODES = new Set([
+const UNAUTHORIZED_CODES = new Set([
   'AUTH_REFRESH_INVALID',
   'AUTH_REFRESH_REVOKED',
   'AUTH_REFRESH_EXPIRED',
   'AUTH_REFRESH_REUSE',
   'AUTH_INVALID',
+  'AUTH_ACCESS_INVALID',
+  'AUTH_ACCESS_REVOKED',
 ]);
 
 export function createAuthRoutes(deps: {
   readonly loginAccount: LoginAccount;
   readonly refreshAuthSession: RefreshAuthSession;
+  readonly logoutAccount: LogoutAccount;
 }): readonly HttpRoute[] {
   return [
     {
@@ -33,6 +37,11 @@ export function createAuthRoutes(deps: {
       method: 'POST',
       path: '/api/v1/auth/refresh',
       handler: (request) => handleRefresh(request, deps.refreshAuthSession),
+    },
+    {
+      method: 'POST',
+      path: '/api/v1/auth/logout',
+      handler: (request) => handleLogout(request, deps.logoutAccount),
     },
   ];
 }
@@ -103,6 +112,69 @@ async function handleRefresh(
   }
 }
 
+async function handleLogout(
+  request: HttpRequest,
+  logoutAccount: LogoutAccount,
+): Promise<HttpResponse> {
+  const accessToken = readBearerToken(request) ?? readBodyAccessToken(request);
+  if (accessToken === null) {
+    return {
+      statusCode: 401,
+      headers: JSON_HEADERS,
+      body: {
+        error: 'Bearer access token required',
+        code: 'AUTH_ACCESS_INVALID',
+      },
+    };
+  }
+
+  const body = asObject(request.body) ?? {};
+  const allSessions =
+    body.allSessions === true || body.allDevices === true;
+
+  try {
+    const result = await logoutAccount.execute({
+      accessToken,
+      allSessions,
+    });
+    return {
+      statusCode: 200,
+      headers: JSON_HEADERS,
+      body: {
+        status: result.status,
+        scope: result.scope,
+      },
+    };
+  } catch (error: unknown) {
+    return mapDomainError(error);
+  }
+}
+
+function readBearerToken(request: HttpRequest): string | null {
+  const raw =
+    request.headers['authorization'] ?? request.headers['Authorization'];
+  const value = Array.isArray(raw) ? raw[0] : raw;
+  if (typeof value !== 'string') {
+    return null;
+  }
+  const match = /^Bearer\s+(.+)$/i.exec(value.trim());
+  if (!match || match[1] === undefined || match[1].trim() === '') {
+    return null;
+  }
+  return match[1].trim();
+}
+
+function readBodyAccessToken(request: HttpRequest): string | null {
+  const body = asObject(request.body);
+  if (!body) {
+    return null;
+  }
+  const token = body.accessToken;
+  return typeof token === 'string' && token.trim() !== ''
+    ? token.trim()
+    : null;
+}
+
 function asObject(body: unknown): Record<string, unknown> | null {
   if (body === null || typeof body !== 'object' || Array.isArray(body)) {
     return null;
@@ -115,7 +187,7 @@ function mapDomainError(error: unknown): HttpResponse {
     const statusCode =
       error.code === 'AUTH_ACCOUNT_INACTIVE'
         ? 403
-        : REFRESH_UNAUTHORIZED_CODES.has(error.code)
+        : UNAUTHORIZED_CODES.has(error.code)
           ? 401
           : 400;
     return {

@@ -3,10 +3,13 @@ import { generateKeyPairSync, randomUUID } from 'node:crypto';
 import { describe, it } from 'node:test';
 import { IssueAuthTokenPair } from '../../src/application/auth/issue-auth-token-pair.js';
 import { LoginAccount } from '../../src/application/auth/login-account.js';
+import { LogoutAccount } from '../../src/application/auth/logout-account.js';
 import { RefreshAuthSession } from '../../src/application/auth/refresh-auth-session.js';
 import { loadJwtTokenTtlConfig } from '../../src/config/jwt-tokens.js';
 import { loadPasswordHashParams } from '../../src/config/password-hashing.js';
 import { DomainError } from '../../src/domain/shared/domain-error.js';
+import { InMemoryRedisClient } from '../../src/infrastructure/cache/in-memory-redis-client.js';
+import { RedisAccessTokenDenyList } from '../../src/infrastructure/cache/redis-access-token-deny-list.js';
 import { Argon2PasswordHasher } from '../../src/infrastructure/crypto/argon2-password-hasher.js';
 import { NodeRs256AccessTokenService } from '../../src/infrastructure/crypto/node-rs256-access-token-service.js';
 import { OpaqueRefreshTokenService } from '../../src/infrastructure/crypto/opaque-refresh-token-service.js';
@@ -25,6 +28,7 @@ const testHashParams = loadPasswordHashParams({
 async function createLoginStack(): Promise<{
   readonly login: LoginAccount;
   readonly refreshSession: RefreshAuthSession;
+  readonly logout: LogoutAccount;
   readonly accounts: InMemoryAccountRepository;
   readonly refreshTokens: InMemoryRefreshTokenRepository;
   readonly hasher: Argon2PasswordHasher;
@@ -59,7 +63,21 @@ async function createLoginStack(): Promise<{
     refreshTokens,
     issuePair,
   );
-  return { login, refreshSession, accounts, refreshTokens, hasher, access };
+  const logout = new LogoutAccount(
+    access,
+    new RedisAccessTokenDenyList(new InMemoryRedisClient()),
+    refreshTokens,
+    ttl.accessTokenTtlSeconds,
+  );
+  return {
+    login,
+    refreshSession,
+    logout,
+    accounts,
+    refreshTokens,
+    hasher,
+    access,
+  };
 }
 
 describe('BE-022 LoginAccount', () => {
@@ -180,10 +198,11 @@ describe('BE-022 LoginAccount', () => {
   });
 
   it('HTTP login route maps AUTH_INVALID to 401 uniformly', async () => {
-    const { login, refreshSession } = await createLoginStack();
+    const { login, refreshSession, logout } = await createLoginStack();
     const [route] = createAuthRoutes({
       loginAccount: login,
       refreshAuthSession: refreshSession,
+      logoutAccount: logout,
     });
     assert.ok(route);
 

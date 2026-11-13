@@ -50,4 +50,19 @@ export interface RefreshTokenRepository {
     reason: RefreshTokenRevokeReason,
     revokedAt: Date,
   ): Promise<number>;
+
+  /** Revokes active refresh tokens for one device (POST /auth/logout). */
+  revokeByDevice(
+    accountId: string,
+    deviceId: string,
+    reason: RefreshTokenRevokeReason,
+    revokedAt: Date,
+  ): Promise<number>;
+
+  /** Revokes every active refresh token for the account (logout all sessions). */
+  revokeByAccount(
+    accountId: string,
+    reason: RefreshTokenRevokeReason,
+    revokedAt: Date,
+  ): Promise<number>;
 }
