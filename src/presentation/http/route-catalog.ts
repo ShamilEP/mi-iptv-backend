@@ -116,4 +116,9 @@ export const ROUTE_CATALOG: readonly RouteCatalogEntry[] = [
     path: '/api/v1/sync/favorites',
     operationId: 'setFavorite',
   },
+  {
+    method: 'POST',
+    path: '/api/v1/sync/events',
+    operationId: 'acceptBatchedSyncEvents',
+  },
 ] as const;

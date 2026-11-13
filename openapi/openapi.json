@@ -778,6 +778,62 @@
         }
       }
     },
+    "/api/v1/sync/events": {
+      "post": {
+        "operationId": "acceptBatchedSyncEvents",
+        "summary": "Accept batched offline sync events",
+        "description": "Drains the client outbox: array of playback_state and favorite writes with size limit (max 100) and per-event clientEventId idempotency (BE-067 / SRS §7).",
+        "parameters": [
+          {
+            "name": "x-account-id",
+            "in": "header",
+            "required": true,
+            "schema": { "type": "string", "format": "uuid" }
+          },
+          {
+            "name": "x-profile-id",
+            "in": "header",
+            "required": true,
+            "schema": { "type": "string", "format": "uuid" }
+          },
+          {
+            "name": "x-device-id",
+            "in": "header",
+            "required": true,
+            "schema": { "type": "string", "format": "uuid" }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/AcceptBatchedSyncEventsRequest" }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Per-event decisions applied or idempotently replayed",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/AcceptBatchedSyncEventsResponse" }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid batch envelope, size limit exceeded, or event payload",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/AuthError" }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing account/profile/device context headers"
+          }
+        }
+      }
+    },
     "/api/v1/sync/favorites": {
       "get": {
         "operationId": "listFavorites",
@@ -1498,6 +1554,95 @@
               { "$ref": "#/components/schemas/SyncConflictReport" },
               { "type": "null" }
             ]
+          }
+        }
+      },
+      "AcceptBatchedSyncEventsRequest": {
+        "type": "object",
+        "required": ["events"],
+        "properties": {
+          "events": {
+            "type": "array",
+            "minItems": 1,
+            "maxItems": 100,
+            "items": {
+              "oneOf": [
+                {
+                  "allOf": [
+                    {
+                      "type": "object",
+                      "required": ["entity"],
+                      "properties": {
+                        "entity": {
+                          "type": "string",
+                          "enum": ["playback_state"]
+                        }
+                      }
+                    },
+                    { "$ref": "#/components/schemas/UpsertPlaybackStateRequest" }
+                  ]
+                },
+                {
+                  "allOf": [
+                    {
+                      "type": "object",
+                      "required": ["entity"],
+                      "properties": {
+                        "entity": {
+                          "type": "string",
+                          "enum": ["favorite"]
+                        }
+                      }
+                    },
+                    { "$ref": "#/components/schemas/SetFavoriteRequest" }
+                  ]
+                }
+              ]
+            }
+          }
+        }
+      },
+      "BatchedSyncEventResult": {
+        "type": "object",
+        "required": [
+          "entity",
+          "clientEventId",
+          "accepted",
+          "currentVersion",
+          "serverTimestamp",
+          "resolvedBy",
+          "conflict"
+        ],
+        "properties": {
+          "entity": {
+            "type": "string",
+            "enum": ["playback_state", "favorite"]
+          },
+          "clientEventId": { "type": "string", "format": "uuid" },
+          "accepted": { "type": "boolean" },
+          "currentVersion": { "type": "integer" },
+          "serverTimestamp": { "type": "string", "format": "date-time" },
+          "resolvedBy": {
+            "type": "string",
+            "enum": ["accepted", "lww", "max_position", "force_reset"]
+          },
+          "changeSeq": { "type": ["integer", "null"] },
+          "conflict": {
+            "oneOf": [
+              { "$ref": "#/components/schemas/SyncConflictReport" },
+              { "type": "null" }
+            ]
+          }
+        }
+      },
+      "AcceptBatchedSyncEventsResponse": {
+        "type": "object",
+        "required": ["status", "results"],
+        "properties": {
+          "status": { "type": "string", "enum": ["OK"] },
+          "results": {
+            "type": "array",
+            "items": { "$ref": "#/components/schemas/BatchedSyncEventResult" }
           }
         }
       }

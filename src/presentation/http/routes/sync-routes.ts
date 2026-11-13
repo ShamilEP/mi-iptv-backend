@@ -1,3 +1,4 @@
+import type { AcceptBatchedSyncEvents } from '../../../application/sync/accept-batched-sync-events.js';
 import type { ListFavorites } from '../../../application/sync/list-favorites.js';
 import type { SetFavorite } from '../../../application/sync/set-favorite.js';
 import type { UpsertPlaybackState } from '../../../application/sync/upsert-playback-state.js';
@@ -6,6 +7,7 @@ import type {
   HttpResponse,
   HttpRoute,
 } from '../../../application/ports/http-server.js';
+import { handleAcceptBatchedSyncEvents } from './sync-events-route.js';
 import {
   SYNC_JSON_HEADERS,
   asObject,
@@ -24,6 +26,7 @@ export function createSyncRoutes(deps: {
   readonly upsertPlaybackState: UpsertPlaybackState;
   readonly listFavorites: ListFavorites;
   readonly setFavorite: SetFavorite;
+  readonly acceptBatchedSyncEvents: AcceptBatchedSyncEvents;
 }): readonly HttpRoute[] {
   return [
     {
@@ -41,6 +44,12 @@ export function createSyncRoutes(deps: {
       method: 'POST',
       path: '/api/v1/sync/favorites',
       handler: (request) => handleSetFavorite(request, deps.setFavorite),
+    },
+    {
+      method: 'POST',
+      path: '/api/v1/sync/events',
+      handler: (request) =>
+        handleAcceptBatchedSyncEvents(request, deps.acceptBatchedSyncEvents),
     },
   ];
 }

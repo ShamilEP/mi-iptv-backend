@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 import { DomainError } from '../../src/domain/shared/domain-error.js';
+import { AcceptBatchedSyncEvents } from '../../src/application/sync/accept-batched-sync-events.js';
 import { ListFavorites } from '../../src/application/sync/list-favorites.js';
 import { SetFavorite } from '../../src/application/sync/set-favorite.js';
 import { UpsertPlaybackState } from '../../src/application/sync/upsert-playback-state.js';
@@ -242,12 +243,17 @@ describe('SetFavorite / ListFavorites (BE-063)', () => {
 describe('GET/POST /api/v1/sync/favorites routes (BE-063)', () => {
   it('wires list and set through HTTP adapters', async () => {
     const api = buildApi();
+    const upsertPlaybackState = new UpsertPlaybackState(
+      new InMemoryPlaybackSyncRepository(),
+    );
     const routes = createSyncRoutes({
-      upsertPlaybackState: new UpsertPlaybackState(
-        new InMemoryPlaybackSyncRepository(),
-      ),
+      upsertPlaybackState,
       listFavorites: api.list,
       setFavorite: api.set,
+      acceptBatchedSyncEvents: new AcceptBatchedSyncEvents(
+        upsertPlaybackState,
+        api.set,
+      ),
     });
     const listRoute = routes.find(
       (route) => route.method === 'GET' && route.path === '/api/v1/sync/favorites',
