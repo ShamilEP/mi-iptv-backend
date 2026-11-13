@@ -37,6 +37,7 @@ Provision the **DEV** environment as the target for **CI** and **internal develo
 | Companion push (FCM / APNs secrets) | secret catalog + docs | INF-034 |
 | Anonymous crash reporting (TV + companion) | Crashlytics catalog + docs | INF-054 |
 | Cost budgets + anomaly alerts | `cost_budgets` | INF-061 |
+| DR / ops runbooks (restore, rollback, keys, failover) | `docs/infra/runbooks/*` | INF-062 |
 
 Deferred to dedicated tasks (not duplicated here):
 
