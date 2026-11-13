@@ -105,7 +105,7 @@ describe('BE-025 LogoutAccount', () => {
       refreshService,
       refreshSession,
     } = await createStack();
-    const password = 'logout-device';
+    const password = 'logout-device-1!';
     const { email } = await seedAccount(accounts, hasher, password);
     const deviceA = randomUUID();
     const deviceB = randomUUID();
@@ -164,7 +164,7 @@ describe('BE-025 LogoutAccount', () => {
       refreshService,
       refreshSession,
     } = await createStack();
-    const password = 'logout-all';
+    const password = 'logout-all-1!';
     const { email } = await seedAccount(accounts, hasher, password);
     const sessionA = await login.execute({
       email,
@@ -200,7 +200,7 @@ describe('BE-025 LogoutAccount', () => {
   it('HTTP logout route is catalogued and accepts Bearer token', async () => {
     const { login, refreshSession, logout, accounts, hasher } =
       await createStack();
-    const password = 'http-logout';
+    const password = 'http-logout-1!';
     const { email } = await seedAccount(accounts, hasher, password);
     const routes = createAuthRoutes({
       loginAccount: login,
