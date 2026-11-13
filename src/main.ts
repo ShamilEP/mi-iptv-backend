@@ -6,6 +6,7 @@ import { LogoutAccount } from './application/auth/logout-account.js';
 import { RefreshAuthSession } from './application/auth/refresh-auth-session.js';
 import { FetchXtreamCatalog } from './application/catalog/fetch-xtream-catalog.js';
 import { ParseM3uPlaylist } from './application/catalog/parse-m3u-playlist.js';
+import { ParseXmltvGuide } from './application/catalog/parse-xmltv-guide.js';
 import { DeviceHeartbeat } from './application/devices/device-heartbeat.js';
 import { ListDevices } from './application/devices/list-devices.js';
 import { RegisterDevice } from './application/devices/register-device.js';
@@ -25,6 +26,7 @@ import { UpsertPlaybackState } from './application/sync/upsert-playback-state.js
 import { loadConfig, loadInjectedSecrets } from './config/env.js';
 import { loadJwtTokenTtlConfig } from './config/jwt-tokens.js';
 import { loadM3uParserLimits } from './config/m3u-parser.js';
+import { loadXmltvParserLimits } from './config/xmltv-parser.js';
 import { loadPasswordHashParams } from './config/password-hashing.js';
 import { loadSourceHttpGuardConfig } from './config/source-http-guard.js';
 import { createIoredisRedisClientFromUrl } from './infrastructure/cache/ioredis-redis-client.js';
@@ -32,6 +34,7 @@ import { InMemoryRedisClient } from './infrastructure/cache/in-memory-redis-clie
 import { RedisAccessTokenDenyList } from './infrastructure/cache/redis-access-token-deny-list.js';
 import { HttpXtreamCodesClient } from './infrastructure/catalog/http-xtream-codes-client.js';
 import { IsolatedM3uPlaylistParser } from './infrastructure/catalog/isolated-m3u-playlist-parser.js';
+import { IsolatedXmltvGuideParser } from './infrastructure/catalog/isolated-xmltv-guide-parser.js';
 import { Argon2PasswordHasher } from './infrastructure/crypto/argon2-password-hasher.js';
 import {
   Aes256GcmSourceCredentialCipher,
@@ -168,6 +171,13 @@ async function bootstrap(): Promise<void> {
     m3uParserLimits,
   );
 
+  // SEC-032: isolated streaming XMLTV parser (EPG sandbox + resource caps).
+  const xmltvParserLimits = loadXmltvParserLimits(process.env);
+  const parseXmltvGuide = new ParseXmltvGuide(
+    new IsolatedXmltvGuideParser(xmltvParserLimits),
+    xmltvParserLimits,
+  );
+
   // BE-045: Xtream Codes player_api adapter (SSRF-safe fetch).
   const xtreamClient = new HttpXtreamCodesClient(fetchSourceUrlSafely);
   const fetchXtreamCatalog = new FetchXtreamCatalog(xtreamClient);
@@ -283,6 +293,10 @@ async function bootstrap(): Promise<void> {
     m3uParserMaxEntries: m3uParserLimits.maxEntries,
     m3uParserTimeoutMs: m3uParserLimits.timeoutMs,
     m3uParserReady: Boolean(parseM3uPlaylist),
+    xmltvParserMaxBytes: xmltvParserLimits.maxBytes,
+    xmltvParserTimeoutMs: xmltvParserLimits.timeoutMs,
+    xmltvParserMaxOldGenMb: xmltvParserLimits.maxOldGenerationSizeMb,
+    xmltvParserReady: Boolean(parseXmltvGuide),
     xtreamAdapterReady: Boolean(fetchXtreamCatalog),
     secretsLoaded,
   });
