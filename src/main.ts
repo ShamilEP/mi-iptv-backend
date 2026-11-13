@@ -1,6 +1,7 @@
 import { generateKeyPairSync, randomBytes } from 'node:crypto';
 import { IssueAuthTokenPair } from './application/auth/issue-auth-token-pair.js';
 import { LoginAccount } from './application/auth/login-account.js';
+import { LoginBruteForceGuard } from './application/auth/login-brute-force-guard.js';
 import { LogoutAccount } from './application/auth/logout-account.js';
 import { RefreshAuthSession } from './application/auth/refresh-auth-session.js';
 import { FetchXtreamCatalog } from './application/catalog/fetch-xtream-catalog.js';
@@ -97,14 +98,21 @@ async function bootstrap(): Promise<void> {
     refreshTokenService,
   );
 
-  // BE-022: email/password login with device-bound session (in-memory until Postgres adapters).
+  // Session Redis: deny-list + login rate limits (in-memory when REDIS_URL unset).
+  const sessionRedis =
+    createIoredisRedisClientFromUrl(secrets.redisUrl) ??
+    new InMemoryRedisClient();
+
+  // BE-022/BE-028: login with device-bound session + brute-force guard.
   const accountRepository = new InMemoryAccountRepository();
   const refreshTokenRepository = new InMemoryRefreshTokenRepository();
+  const loginBruteForceGuard = new LoginBruteForceGuard(sessionRedis, logger);
   const loginAccount = new LoginAccount(
     accountRepository,
     passwordHasher,
     issueAuthTokenPair,
     refreshTokenRepository,
+    loginBruteForceGuard,
   );
   const refreshAuthSession = new RefreshAuthSession(
     accountRepository,
@@ -113,10 +121,7 @@ async function bootstrap(): Promise<void> {
     issueAuthTokenPair,
   );
 
-  // BE-025: logout + Redis access-token deny-list (in-memory when REDIS_URL unset).
-  const sessionRedis =
-    createIoredisRedisClientFromUrl(secrets.redisUrl) ??
-    new InMemoryRedisClient();
+  // BE-025: logout + Redis access-token deny-list.
   const accessTokenDenyList = new RedisAccessTokenDenyList(sessionRedis);
   const logoutAccount = new LogoutAccount(
     accessTokenService,
@@ -249,6 +254,7 @@ async function bootstrap(): Promise<void> {
     authLoginReady: Boolean(loginAccount),
     authRefreshReady: Boolean(refreshAuthSession),
     authLogoutReady: Boolean(logoutAccount),
+    loginBruteForceReady: Boolean(loginBruteForceGuard),
     accessTokenDenyListReady: Boolean(accessTokenDenyList),
     sessionRedisMode: secrets.redisUrl ? 'ioredis' : 'in-memory',
     accountPersistence: 'in-memory',

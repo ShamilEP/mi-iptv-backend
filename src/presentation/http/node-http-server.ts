@@ -100,6 +100,7 @@ export class NodeHttpServer implements HttpServer {
       body,
       params: matched.params,
       accountId,
+      clientIp: resolveClientIp(req),
     };
 
     try {
@@ -151,6 +152,18 @@ function readOptionalHeader(
     return null;
   }
   return value.trim();
+}
+
+function resolveClientIp(req: http.IncomingMessage): string {
+  const forwarded = readOptionalHeader(req.headers, 'x-forwarded-for');
+  if (forwarded !== null) {
+    const first = forwarded.split(',')[0]?.trim();
+    if (first !== undefined && first.length > 0) {
+      return first;
+    }
+  }
+  const remote = req.socket.remoteAddress;
+  return remote !== undefined && remote.trim() !== '' ? remote : 'unknown';
 }
 
 async function readJsonBody(req: http.IncomingMessage): Promise<unknown> {

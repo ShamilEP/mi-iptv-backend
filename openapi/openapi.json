@@ -32,7 +32,7 @@
       "post": {
         "operationId": "login",
         "summary": "Authenticate with email and password",
-        "description": "Binds the session to deviceId. Wrong email and wrong password return the same AUTH_INVALID error.",
+        "description": "Binds the session to deviceId. Wrong email and wrong password return the same AUTH_INVALID error. After 5 failed attempts per IP or account in 15 minutes, returns 429 with Retry-After (BE-028).",
         "requestBody": {
           "required": true,
           "content": {
@@ -71,6 +71,20 @@
             "content": {
               "application/json": {
                 "schema": { "$ref": "#/components/schemas/AuthError" }
+              }
+            }
+          },
+          "429": {
+            "description": "Brute-force lockout (per IP or account)",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds until the lockout window expires",
+                "schema": { "type": "integer", "minimum": 1 }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/AuthRateLimitError" }
               }
             }
           }
@@ -830,6 +844,19 @@
         "properties": {
           "error": { "type": "string" },
           "code": { "type": "string" }
+        }
+      },
+      "AuthRateLimitError": {
+        "type": "object",
+        "required": ["error", "code", "retryAfter"],
+        "properties": {
+          "error": { "type": "string" },
+          "code": { "type": "string", "enum": ["AUTH_RATE_LIMITED"] },
+          "retryAfter": {
+            "type": "integer",
+            "minimum": 1,
+            "description": "Seconds until retry is allowed"
+          }
         }
       },
       "LogoutRequest": {

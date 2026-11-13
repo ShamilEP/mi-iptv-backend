@@ -1,3 +1,4 @@
+import { AuthRateLimitError } from '../../../application/auth/auth-rate-limit-error.js';
 import type { LoginAccount } from '../../../application/auth/login-account.js';
 import type { LogoutAccount } from '../../../application/auth/logout-account.js';
 import type { RefreshAuthSession } from '../../../application/auth/refresh-auth-session.js';
@@ -64,6 +65,7 @@ async function handleLogin(
       email: String(body.email ?? ''),
       password: String(body.password ?? ''),
       deviceId: String(body.deviceId ?? ''),
+      clientIp: request.clientIp ?? 'unknown',
     });
     return {
       statusCode: 200,
@@ -183,6 +185,21 @@ function asObject(body: unknown): Record<string, unknown> | null {
 }
 
 function mapDomainError(error: unknown): HttpResponse {
+  if (error instanceof AuthRateLimitError) {
+    const retryAfter = Math.max(1, Math.floor(error.retryAfterSeconds));
+    return {
+      statusCode: 429,
+      headers: {
+        ...JSON_HEADERS,
+        'retry-after': String(retryAfter),
+      },
+      body: {
+        error: error.message,
+        code: error.code,
+        retryAfter,
+      },
+    };
+  }
   if (error instanceof DomainError) {
     const statusCode =
       error.code === 'AUTH_ACCOUNT_INACTIVE'
