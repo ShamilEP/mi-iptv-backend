@@ -654,6 +654,50 @@
         }
       }
     },
+    "/api/v1/devices/companion-status": {
+      "post": {
+        "operationId": "notifyCompanionStatus",
+        "summary": "Push companion status fallback (FCM / APNs)",
+        "description": "Sends basic status notifications (connected, disconnected, pairing_error) to companion devices that have a push token and no open realtime socket (BE-081 / SRS §9).",
+        "parameters": [
+          {
+            "name": "x-account-id",
+            "in": "header",
+            "required": true,
+            "schema": { "type": "string", "format": "uuid" }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/NotifyCompanionStatusRequest" }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Fallback evaluated; sent count may be zero when sockets are open or tokens missing",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/NotifyCompanionStatusResponse" }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid status payload",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/AuthError" }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing account context"
+          }
+        }
+      }
+    },
     "/api/v1/devices/{id}": {
       "delete": {
         "operationId": "unlinkDevice",
@@ -1075,6 +1119,60 @@
           "appVersion": { "type": "string" },
           "osVersion": { "type": "string" },
           "pushToken": { "type": "string" }
+        }
+      },
+      "NotifyCompanionStatusRequest": {
+        "type": "object",
+        "required": ["status"],
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": ["connected", "disconnected", "pairing_error"]
+          },
+          "subjectDeviceId": {
+            "type": "string",
+            "format": "uuid",
+            "description": "Related TV or companion id (audit data only)"
+          }
+        }
+      },
+      "NotifyCompanionStatusAttempt": {
+        "type": "object",
+        "required": [
+          "deviceId",
+          "platform",
+          "skippedBecauseSocketOpen",
+          "skippedBecauseNoToken",
+          "channel",
+          "accepted"
+        ],
+        "properties": {
+          "deviceId": { "type": "string", "format": "uuid" },
+          "platform": { "type": "string" },
+          "skippedBecauseSocketOpen": { "type": "boolean" },
+          "skippedBecauseNoToken": { "type": "boolean" },
+          "channel": {
+            "oneOf": [
+              { "type": "string", "enum": ["fcm", "apns", "noop"] },
+              { "type": "null" }
+            ]
+          },
+          "accepted": { "type": "boolean" }
+        }
+      },
+      "NotifyCompanionStatusResponse": {
+        "type": "object",
+        "required": ["status", "sent", "attempted"],
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": ["connected", "disconnected", "pairing_error"]
+          },
+          "sent": { "type": "integer", "minimum": 0 },
+          "attempted": {
+            "type": "array",
+            "items": { "$ref": "#/components/schemas/NotifyCompanionStatusAttempt" }
+          }
         }
       },
       "RegisterRequest": {

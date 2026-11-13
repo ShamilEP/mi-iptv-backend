@@ -16,6 +16,7 @@ import { ParseM3uPlaylist } from './application/catalog/parse-m3u-playlist.js';
 import { ParseXmltvGuide } from './application/catalog/parse-xmltv-guide.js';
 import { DeviceHeartbeat } from './application/devices/device-heartbeat.js';
 import { ListDevices } from './application/devices/list-devices.js';
+import { NotifyCompanionStatusFallback } from './application/devices/notify-companion-status-fallback.js';
 import { RegisterDevice } from './application/devices/register-device.js';
 import { UnlinkDevice } from './application/devices/unlink-device.js';
 import { GetHealthStatus } from './application/health/get-health-status.js';
@@ -61,6 +62,8 @@ import { InMemoryProfileRepository } from './infrastructure/persistence/in-memor
 import { InMemorySyncLogRepository } from './infrastructure/persistence/in-memory-sync-log-repository.js';
 import { InMemoryRefreshTokenRepository } from './infrastructure/persistence/in-memory-refresh-token-repository.js';
 import { InMemorySourceRepository } from './infrastructure/persistence/in-memory-source-repository.js';
+import { InMemoryPushNotifier } from './infrastructure/push/in-memory-push-notifier.js';
+import { InMemoryDeviceSocketPresence } from './infrastructure/realtime/in-memory-device-socket-presence.js';
 import { EnvJwtSigningKeyStore } from './infrastructure/secrets/env-jwt-signing-key-store.js';
 import { EnvSecretStore } from './infrastructure/secrets/env-secret-store.js';
 import { StaticCredentialEncryptionKeyCatalog } from './infrastructure/secrets/static-credential-encryption-key-catalog.js';
@@ -214,12 +217,19 @@ async function bootstrap(): Promise<void> {
     sourceHttpGuard.timeoutMs,
   );
 
-  // BE-075: device registration / list / unlink / heartbeat.
+  // BE-075 / BE-081: devices + push fallback when no realtime socket.
   const deviceRepository = new InMemoryDeviceRepository();
   const listDevices = new ListDevices(deviceRepository);
   const registerDevice = new RegisterDevice(deviceRepository);
   const unlinkDevice = new UnlinkDevice(deviceRepository);
   const deviceHeartbeat = new DeviceHeartbeat(deviceRepository);
+  const deviceSocketPresence = new InMemoryDeviceSocketPresence();
+  const pushNotifier = new InMemoryPushNotifier();
+  const notifyCompanionStatusFallback = new NotifyCompanionStatusFallback(
+    deviceRepository,
+    deviceSocketPresence,
+    pushNotifier,
+  );
 
   // BE-061/BE-063/BE-065: sync writes + shared SyncLog (in-memory until Postgres).
   const syncLogRepository = new InMemorySyncLogRepository();
@@ -306,6 +316,7 @@ async function bootstrap(): Promise<void> {
     registerDevice,
     unlinkDevice,
     deviceHeartbeat,
+    notifyCompanionStatusFallback,
   })) {
     httpServer.register(route);
   }
@@ -357,6 +368,7 @@ async function bootstrap(): Promise<void> {
     sourceCredentialsDataKeyInjected: secretsLoaded.sourceCredentialsDataKey,
     sourceRegistryPersistence: 'in-memory',
     deviceRegistryPersistence: 'in-memory',
+    companionPushFallbackReady: Boolean(notifyCompanionStatusFallback),
     playbackSyncPersistence: 'in-memory',
     playbackSyncReady: Boolean(upsertPlaybackState),
     favoriteSyncPersistence: 'in-memory',

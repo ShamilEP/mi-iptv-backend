@@ -92,6 +92,11 @@ export const ROUTE_CATALOG: readonly RouteCatalogEntry[] = [
     operationId: 'registerDevice',
   },
   {
+    method: 'POST',
+    path: '/api/v1/devices/companion-status',
+    operationId: 'notifyCompanionStatus',
+  },
+  {
     method: 'DELETE',
     path: '/api/v1/devices/{id}',
     operationId: 'unlinkDevice',
