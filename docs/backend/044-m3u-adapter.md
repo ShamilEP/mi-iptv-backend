@@ -39,3 +39,5 @@ Malformed handling: orphan URIs, EXTINF without URI, `file:` / unknown schemes, 
 - Persisting parsed entries into `catalog_*` (later ingest)
 - `POST /sources/{id}/test` wiring (BE-043)
 - Xtream adapter (BE-045)
+
+Sandbox + fuzz (M3U/XMLTV) and shared limit philosophy: **SEC-032** (`docs/security/032-sandbox-fuzz-parsers.md`).
