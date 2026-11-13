@@ -3,6 +3,13 @@ import type {
   AccessTokenClaims,
   AccessTokenIssueInput,
 } from '../../domain/auth/access-token-claims.js';
+import {
+  assertAccessTokenIssueInput,
+  assertJwtAccessAlg,
+  assertJwtKid,
+  parseAccessTokenClaims,
+  REQUIRED_ACCESS_TOKEN_ALG,
+} from '../../domain/auth/access-token-rules.js';
 import { AuthTokenError } from '../../domain/auth/auth-token-error.js';
 import type {
   AccessTokenService,
@@ -13,6 +20,7 @@ import type { JwtTokenTtlConfig } from '../../config/jwt-tokens.js';
 
 /**
  * RS256 access JWT issuer/verifier using Node `crypto` (no third-party JWT SDK).
+ * Claim/alg rules live in domain (`access-token-rules`).
  */
 export class NodeRs256AccessTokenService implements AccessTokenService {
   constructor(
@@ -21,14 +29,7 @@ export class NodeRs256AccessTokenService implements AccessTokenService {
   ) {}
 
   issue(input: AccessTokenIssueInput): IssuedAccessToken {
-    assertNonEmpty(input.accountId, 'accountId');
-    assertNonEmpty(input.deviceId, 'deviceId');
-    if (input.roles.length === 0) {
-      throw new AuthTokenError(
-        'Access token requires at least one role',
-        'ACCESS_TOKEN_INVALID',
-      );
-    }
+    assertAccessTokenIssueInput(input);
 
     const signing = this.keys.getActiveSigningKey();
     const now = Math.floor(Date.now() / 1000);
@@ -36,7 +37,7 @@ export class NodeRs256AccessTokenService implements AccessTokenService {
     const jti = randomUUID();
 
     const header = {
-      alg: 'RS256',
+      alg: REQUIRED_ACCESS_TOKEN_ALG,
       typ: 'JWT',
       kid: signing.kid,
     };
@@ -109,19 +110,8 @@ export class NodeRs256AccessTokenService implements AccessTokenService {
       );
     }
 
-    if (header.alg !== 'RS256') {
-      throw new AuthTokenError(
-        'Access token algorithm must be RS256',
-        'ACCESS_TOKEN_INVALID',
-      );
-    }
-    const kid = header.kid;
-    if (kid === undefined || kid.trim() === '') {
-      throw new AuthTokenError(
-        'Access token kid is required',
-        'ACCESS_TOKEN_INVALID',
-      );
-    }
+    assertJwtAccessAlg(header.alg);
+    const kid = assertJwtKid(header.kid);
     const publicKeyPem = this.keys.getPublicKeyPem(kid);
     if (publicKeyPem === null) {
       throw new AuthTokenError(
@@ -146,57 +136,16 @@ export class NodeRs256AccessTokenService implements AccessTokenService {
       );
     }
 
-    const exp = asUnix(payload['exp']);
-    const iat = asUnix(payload['iat']);
-    const now = Math.floor(Date.now() / 1000);
-    if (exp === null || iat === null) {
-      throw new AuthTokenError(
-        'Access token time claims are invalid',
-        'ACCESS_TOKEN_INVALID',
-      );
-    }
-    if (exp <= now) {
-      throw new AuthTokenError(
-        'Access token has expired',
-        'ACCESS_TOKEN_EXPIRED',
-      );
-    }
-
-    const accountId = asNonEmptyString(payload['accountId'] ?? payload['sub']);
-    const deviceId = asNonEmptyString(payload['deviceId']);
-    const jti = asNonEmptyString(payload['jti']);
-    const roles = asStringArray(payload['roles']);
-    if (
-      accountId === null ||
-      deviceId === null ||
-      jti === null ||
-      roles === null ||
-      roles.length === 0
-    ) {
-      throw new AuthTokenError(
-        'Access token claims are incomplete',
-        'ACCESS_TOKEN_INVALID',
-      );
-    }
-
-    return {
-      accountId,
-      deviceId,
-      roles,
-      jti,
-      issuedAtUnix: iat,
-      expiresAtUnix: exp,
+    return parseAccessTokenClaims({
+      accountId: payload['accountId'] ?? payload['sub'],
+      deviceId: payload['deviceId'],
+      roles: payload['roles'],
+      jti: payload['jti'],
+      issuedAtUnix: payload['iat'],
+      expiresAtUnix: payload['exp'],
       kid,
-    };
-  }
-}
-
-function assertNonEmpty(value: string, field: string): void {
-  if (value.trim() === '') {
-    throw new AuthTokenError(
-      `${field} is required`,
-      'ACCESS_TOKEN_INVALID',
-    );
+      nowUnix: Math.floor(Date.now() / 1000),
+    });
   }
 }
 
@@ -220,28 +169,4 @@ function base64UrlDecodeToBuffer(value: string): Buffer {
 
 function base64UrlDecodeToString(value: string): string {
   return base64UrlDecodeToBuffer(value).toString('utf8');
-}
-
-function asUnix(value: unknown): number | null {
-  if (typeof value !== 'number' || !Number.isFinite(value)) {
-    return null;
-  }
-  return Math.trunc(value);
-}
-
-function asNonEmptyString(value: unknown): string | null {
-  if (typeof value !== 'string' || value.trim() === '') {
-    return null;
-  }
-  return value;
-}
-
-function asStringArray(value: unknown): readonly string[] | null {
-  if (!Array.isArray(value) || value.length === 0) {
-    return null;
-  }
-  if (!value.every((item) => typeof item === 'string' && item.trim() !== '')) {
-    return null;
-  }
-  return value as string[];
 }
