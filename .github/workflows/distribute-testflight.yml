@@ -98,7 +98,7 @@ jobs:
 
       - name: Upload to TestFlight
         if: steps.creds.outputs.present == 'true' && steps.ipa.outputs.found == 'true'
-        uses: apple-actions/upload-testflight-build@v2
+        uses: apple-actions/upload-testflight-build@v5
         with:
           app-path: ${{ steps.ipa.outputs.path }}
           issuer-id: ${{ secrets.APPLE_API_ISSUER_ID }}
