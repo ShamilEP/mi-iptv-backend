@@ -161,3 +161,23 @@ output "cdn_artwork_path_pattern" {
 output "cdn_thumbnail_variants" {
   value = module.cdn_artwork.thumbnail_variants
 }
+
+output "mail_domain" {
+  value = module.ses_email_domain.mail_domain
+}
+
+output "mail_from_address" {
+  value = module.ses_email_domain.from_address
+}
+
+output "mail_spf_record" {
+  value = module.ses_email_domain.spf_record
+}
+
+output "mail_dmarc_record" {
+  value = module.ses_email_domain.dmarc_record
+}
+
+output "mail_authentication" {
+  value = module.ses_email_domain.authentication
+}

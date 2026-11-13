@@ -118,3 +118,16 @@ variable "cdn_price_class" {
   description = "CloudFront price class (MVP NA/EU; raise for broader edge later)."
   default     = "PriceClass_100"
 }
+
+# INF-033 — transactional email domain (password-reset)
+variable "mail_domain" {
+  type        = string
+  description = "SES sending domain (SPF/DKIM/DMARC)."
+  default     = "mi-iptv.example"
+}
+
+variable "mail_dmarc_policy" {
+  type        = string
+  description = "DMARC policy for the mail domain."
+  default     = "quarantine"
+}

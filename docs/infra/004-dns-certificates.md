@@ -54,6 +54,10 @@ Optional A/AAAA alias records to the ALB are supported when `alb_dns_name` / `al
 - [x] Domain for realtime endpoint (`realtime…` FQDN per env)
 - [x] Automatically renewed TLS certificates (ACM + DNS validation)
 
+## Related
+
+- Transactional email SPF/DKIM/DMARC on the same zone: **INF-033** (`docs/infra/033-transactional-email-domain.md`).
+
 ## Live cutover
 
 1. Replace `*.mi-iptv.example` with the real registered domain; update registrar NS to the Route 53 zone NS outputs.

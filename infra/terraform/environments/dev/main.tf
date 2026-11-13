@@ -85,3 +85,14 @@ module "cdn_artwork" {
   tags        = module.naming_tags.tags
   price_class = var.cdn_price_class
 }
+
+# INF-033 — SES domain + SPF/DKIM/DMARC for password-reset mail.
+module "ses_email_domain" {
+  source = "../../modules/ses_email_domain"
+
+  name_prefix  = module.naming_tags.name_prefix
+  tags         = module.naming_tags.tags
+  zone_id      = module.dns_acm.zone_id
+  mail_domain  = var.mail_domain
+  dmarc_policy = var.mail_dmarc_policy
+}
