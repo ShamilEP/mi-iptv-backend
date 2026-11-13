@@ -2,6 +2,7 @@ import { generateKeyPairSync, randomBytes } from 'node:crypto';
 import { DeleteAccount } from './application/account/delete-account.js';
 import { ExportAccountData } from './application/account/export-account-data.js';
 import { IssueAuthTokenPair } from './application/auth/issue-auth-token-pair.js';
+import { CreateDefaultProfile } from './application/profiles/create-default-profile.js';
 import { LoginAccount } from './application/auth/login-account.js';
 import { LoginBruteForceGuard } from './application/auth/login-brute-force-guard.js';
 import { LogoutAccount } from './application/auth/logout-account.js';
@@ -215,8 +216,10 @@ async function bootstrap(): Promise<void> {
   const listFavorites = new ListFavorites(favoriteSyncRepository);
   const setFavorite = new SetFavorite(favoriteSyncRepository);
 
-  // BE-013: account export + cascade delete (profiles + revoke-all tokens).
+  // BE-013 / BE-029: profiles (default seed on registration) + account export/delete.
   const profileRepository = new InMemoryProfileRepository();
+  // Wired for BE-020 POST /auth/register after account insert.
+  const createDefaultProfile = new CreateDefaultProfile(profileRepository);
   const exportAccountData = new ExportAccountData(
     accessTokenService,
     accountRepository,
@@ -307,6 +310,7 @@ async function bootstrap(): Promise<void> {
     authLogoutReady: Boolean(logoutAccount),
     accountExportReady: Boolean(exportAccountData),
     accountDeleteReady: Boolean(deleteAccount),
+    createDefaultProfileReady: Boolean(createDefaultProfile),
     loginBruteForceReady: Boolean(loginBruteForceGuard),
     accessTokenDenyListReady: Boolean(accessTokenDenyList),
     sessionRedisMode: secrets.redisUrl ? 'ioredis' : 'in-memory',

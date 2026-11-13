@@ -1,6 +1,6 @@
 /**
  * Account profile row (Backend `app.profiles` / BE-013 cascade + export).
- * MVP typically has one default profile (created at registration in BE-029).
+ * MVP: exactly one default profile per account, seeded at registration (BE-029).
  */
 export type Profile = {
   readonly id: string;
