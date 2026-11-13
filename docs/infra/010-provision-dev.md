@@ -33,6 +33,7 @@ Provision the **DEV** environment as the target for **CI** and **internal develo
 | ECS cluster (Fargate) | `dev` cluster, no service yet | **INF-010** (service/image/ALB later) |
 | ECR API repository | `ecr` | **INF-005** |
 | Catalog artwork CDN | `cdn_artwork` | INF-031 |
+| Transactional email (SPF/DKIM/DMARC) | `ses_email_domain` | INF-033 |
 
 Deferred to dedicated tasks (not duplicated here):
 
