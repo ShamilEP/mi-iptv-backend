@@ -96,3 +96,16 @@ module "ses_email_domain" {
   mail_domain  = var.mail_domain
   dmarc_policy = var.mail_dmarc_policy
 }
+
+# INF-061 — per-env cost budget, allocation tags, anomaly alerts.
+module "cost_budgets" {
+  source = "../../modules/cost_budgets"
+
+  name_prefix                   = module.naming_tags.name_prefix
+  tags                          = module.naming_tags.tags
+  environment                   = "dev"
+  monthly_budget_usd            = var.monthly_budget_usd
+  budget_alert_emails           = var.budget_alert_emails
+  anomaly_threshold_usd         = var.anomaly_threshold_usd
+  enable_cost_allocation_tags   = var.enable_cost_allocation_tags
+}
