@@ -73,6 +73,7 @@ async function handleRegister(
       email: String(body.email ?? ''),
       password: String(body.password ?? ''),
       deviceId: String(body.deviceId ?? ''),
+      clientIp: request.clientIp ?? 'unknown',
     });
     return {
       statusCode: 201,
