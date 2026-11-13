@@ -1,0 +1,49 @@
+{
+  "purpose": "Sprint 0 mock catalog for anonymous client crash reporting (TV + companion). No DSN secrets or service-account JSON belong in this file.",
+  "refs": ["INF-054", "NFR-008", "SEC-003", "Security §6"],
+  "provider": "firebase-crashlytics",
+  "anonymity": {
+    "allowedIdentifiers": ["anonymousInstallationId", "anonymousSessionId", "appVersion", "osVersion", "platform"],
+    "forbiddenIdentifiers": ["email", "accountId", "refreshToken", "accessToken", "pushToken", "sourceCredentials"]
+  },
+  "apps": {
+    "androidTv": {
+      "packageName": "com.miiptv.tv",
+      "platforms": ["android_tv"]
+    },
+    "companionAndroid": {
+      "packageName": "com.miiptv.companion",
+      "platforms": ["android"]
+    },
+    "companionIos": {
+      "bundleId": "com.miiptv.companion",
+      "platforms": ["ios"]
+    }
+  },
+  "environments": {
+    "dev": {
+      "firebaseProjectId": "mi-iptv-companion-dev",
+      "tvFirebaseAppId": "1:000000000001:android:tvdev",
+      "companionAndroidFirebaseAppId": "1:000000000001:android:companiondev",
+      "companionIosFirebaseAppId": "1:000000000001:ios:companiondev"
+    },
+    "qa": {
+      "firebaseProjectId": "mi-iptv-companion-qa",
+      "tvFirebaseAppId": "1:000000000002:android:tvqa",
+      "companionAndroidFirebaseAppId": "1:000000000002:android:companionqa",
+      "companionIosFirebaseAppId": "1:000000000002:ios:companionqa"
+    },
+    "prod": {
+      "firebaseProjectId": "mi-iptv-companion-prod",
+      "tvFirebaseAppId": "1:000000000003:android:tvprod",
+      "companionAndroidFirebaseAppId": "1:000000000003:android:companionprod",
+      "companionIosFirebaseAppId": "1:000000000003:ios:companionprod"
+    }
+  },
+  "secretNames": {
+    "firebaseCiServiceAccountJson": "FIREBASE_CRASHLYTICS_CI_SERVICE_ACCOUNT_JSON",
+    "tvAndroidAppId": "FIREBASE_APP_ID_TV",
+    "companionAndroidAppId": "FIREBASE_APP_ID_COMPANION_ANDROID",
+    "companionIosAppId": "FIREBASE_APP_ID_COMPANION_IOS"
+  }
+}

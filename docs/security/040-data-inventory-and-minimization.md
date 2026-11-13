@@ -47,7 +47,7 @@ Passwords, tokens, and IPTV source credentials are **secrets**, not “personal 
 | Sources update | optional `name`, `uriRef`, `priority`, `enabled`, `credentials` | Functional + Secret | Same as create |
 | Sync playback | `contentId`, `positionSec`, `durationSec`, `completed`, `clientEventId`, `syncVersion` / base version, optional `sourceId`, `forceReset`, `clientReportedAt` | Functional / Technical | `app.playback_states` + `app.sync_events` |
 | Sync favorites | `contentId`/`itemId`, `type`, `action`, `sortOrder`, `clientEventId`, optional `clientReportedAt` / base version | Functional / Technical | `app.favorites` + sync ledger |
-| QoE / crash (clients) | Must use anonymous session/device ids only | Technical | HTTP QoE not wired in this backend yet; §6 requires dissociation from personal data |
+| QoE / crash (clients) | Must use anonymous session/device ids only | Technical | Crash: INF-054 Crashlytics; HTTP QoE not wired yet; §6 dissociation from personal data |
 
 ## Backend persistence inventory (MVP tables)
 

@@ -39,8 +39,11 @@ Logical secret names (stable for IaC later). Values are never committed; local/d
 | `mi-iptv/{env}/apns_key_id` | APNs Key ID | `APNS_KEY_ID` |
 | `mi-iptv/{env}/apns_team_id` | Apple Team ID | `APNS_TEAM_ID` |
 | `mi-iptv/{env}/apns_topic` | APNs topic / iOS bundle id | `APNS_TOPIC` |
+| `mi-iptv/{env}/firebase_crashlytics_ci_service_account_json` | CI upload for Crashlytics symbols (INF-054) | `FIREBASE_CRASHLYTICS_CI_SERVICE_ACCOUNT_JSON` |
 
 Companion push project IDs (non-secret): `docs/infra/034-push-notification-services.md` / `push-notification-projects.json`.
+
+Anonymous crash app ids (non-secret catalog): `docs/infra/054-crash-reporting.md` / `crash-reporting-projects.json`.
 
 In AWS later: Secrets Manager secrets encrypted with the **environment’s** KMS CMK; ECS task definition injects as env or runtime fetch via task role.
 
