@@ -17,6 +17,8 @@ import { ListSources } from './application/sources/list-sources.js';
 import { TestSource } from './application/sources/test-source.js';
 import { UpdateSource } from './application/sources/update-source.js';
 import { ValidateSourceUrl } from './application/sources/validate-source-url.js';
+import { ListFavorites } from './application/sync/list-favorites.js';
+import { SetFavorite } from './application/sync/set-favorite.js';
 import { UpsertPlaybackState } from './application/sync/upsert-playback-state.js';
 import { loadConfig, loadInjectedSecrets } from './config/env.js';
 import { loadJwtTokenTtlConfig } from './config/jwt-tokens.js';
@@ -37,6 +39,7 @@ import { JsonConsoleLogger } from './infrastructure/logging/json-console-logger.
 import { NodeDnsResolver } from './infrastructure/net/node-dns-resolver.js';
 import { InMemoryAccountRepository } from './infrastructure/persistence/in-memory-account-repository.js';
 import { InMemoryDeviceRepository } from './infrastructure/persistence/in-memory-device-repository.js';
+import { InMemoryFavoriteSyncRepository } from './infrastructure/persistence/in-memory-favorite-sync-repository.js';
 import { InMemoryPlaybackSyncRepository } from './infrastructure/persistence/in-memory-playback-sync-repository.js';
 import { InMemoryRefreshTokenRepository } from './infrastructure/persistence/in-memory-refresh-token-repository.js';
 import { InMemorySourceRepository } from './infrastructure/persistence/in-memory-source-repository.js';
@@ -164,9 +167,12 @@ async function bootstrap(): Promise<void> {
   const unlinkDevice = new UnlinkDevice(deviceRepository);
   const deviceHeartbeat = new DeviceHeartbeat(deviceRepository);
 
-  // BE-061: playback sync write (domain rules from BE-060; in-memory until Postgres).
+  // BE-061/BE-063: sync writes (domain rules from BE-060; in-memory until Postgres).
   const playbackSyncRepository = new InMemoryPlaybackSyncRepository();
   const upsertPlaybackState = new UpsertPlaybackState(playbackSyncRepository);
+  const favoriteSyncRepository = new InMemoryFavoriteSyncRepository();
+  const listFavorites = new ListFavorites(favoriteSyncRepository);
+  const setFavorite = new SetFavorite(favoriteSyncRepository);
 
   const getHealthStatus = new GetHealthStatus();
   const httpServer = new NodeHttpServer(logger);
@@ -192,7 +198,11 @@ async function bootstrap(): Promise<void> {
   })) {
     httpServer.register(route);
   }
-  for (const route of createSyncRoutes({ upsertPlaybackState })) {
+  for (const route of createSyncRoutes({
+    upsertPlaybackState,
+    listFavorites,
+    setFavorite,
+  })) {
     httpServer.register(route);
   }
 
@@ -226,6 +236,8 @@ async function bootstrap(): Promise<void> {
     deviceRegistryPersistence: 'in-memory',
     playbackSyncPersistence: 'in-memory',
     playbackSyncReady: Boolean(upsertPlaybackState),
+    favoriteSyncPersistence: 'in-memory',
+    favoriteSyncReady: Boolean(setFavorite),
     sourceCredentialsAutomaticCmkRotation:
       credentialKmsKey.automaticCmkRotation,
     sourceHttpMaxRedirects: sourceHttpGuard.maxRedirects,

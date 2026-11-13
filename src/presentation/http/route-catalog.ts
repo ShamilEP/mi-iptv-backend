@@ -76,4 +76,14 @@ export const ROUTE_CATALOG: readonly RouteCatalogEntry[] = [
     path: '/api/v1/sync/playback-state',
     operationId: 'upsertPlaybackState',
   },
+  {
+    method: 'GET',
+    path: '/api/v1/sync/favorites',
+    operationId: 'listFavorites',
+  },
+  {
+    method: 'POST',
+    path: '/api/v1/sync/favorites',
+    operationId: 'setFavorite',
+  },
 ] as const;

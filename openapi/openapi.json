@@ -476,6 +476,104 @@
           }
         }
       }
+    },
+    "/api/v1/sync/favorites": {
+      "get": {
+        "operationId": "listFavorites",
+        "summary": "List favorites for the active profile",
+        "description": "Returns non-deleted favorites scoped to x-profile-id, ordered by sortOrder then createdAt (BE-063).",
+        "parameters": [
+          {
+            "name": "x-account-id",
+            "in": "header",
+            "required": true,
+            "schema": { "type": "string", "format": "uuid" }
+          },
+          {
+            "name": "x-profile-id",
+            "in": "header",
+            "required": true,
+            "schema": { "type": "string", "format": "uuid" },
+            "description": "Sprint 0 stand-in for active profile context"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Active favorites for the profile",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["items"],
+                  "properties": {
+                    "items": {
+                      "type": "array",
+                      "items": { "$ref": "#/components/schemas/FavoritePublic" }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing account/profile context headers"
+          }
+        }
+      },
+      "post": {
+        "operationId": "setFavorite",
+        "summary": "Add or remove a favorite (offline-first sync)",
+        "description": "Idempotent via clientEventId. Always accepts; marks resolvedBy=lww on concurrent syncVersion mismatch. Optional sortOrder and type (ADR-005 / BE-063).",
+        "parameters": [
+          {
+            "name": "x-account-id",
+            "in": "header",
+            "required": true,
+            "schema": { "type": "string", "format": "uuid" }
+          },
+          {
+            "name": "x-profile-id",
+            "in": "header",
+            "required": true,
+            "schema": { "type": "string", "format": "uuid" }
+          },
+          {
+            "name": "x-device-id",
+            "in": "header",
+            "required": true,
+            "schema": { "type": "string", "format": "uuid" }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/SetFavoriteRequest" }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Write applied or idempotent replay",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/SetFavoriteResponse" }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid payload or domain validation failure",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/AuthError" }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing account/profile/device context headers"
+          }
+        }
+      }
     }
   },
   "components": {
@@ -750,6 +848,82 @@
           "changeSeq": {
             "type": ["integer", "null"],
             "description": "Account change_seq when accepted; null when rejected"
+          }
+        }
+      },
+      "FavoritePublic": {
+        "type": "object",
+        "required": [
+          "itemId",
+          "type",
+          "sortOrder",
+          "syncVersion",
+          "changeSeq",
+          "createdAt",
+          "updatedAt"
+        ],
+        "properties": {
+          "itemId": { "type": "string", "format": "uuid" },
+          "type": { "type": "string", "enum": ["channel", "vod"] },
+          "sortOrder": { "type": "integer" },
+          "syncVersion": { "type": "integer" },
+          "changeSeq": { "type": "integer" },
+          "createdAt": { "type": "string", "format": "date-time" },
+          "updatedAt": { "type": "string", "format": "date-time" }
+        }
+      },
+      "SetFavoriteRequest": {
+        "type": "object",
+        "required": ["clientEventId", "itemId", "action", "syncVersion"],
+        "properties": {
+          "clientEventId": {
+            "type": "string",
+            "format": "uuid",
+            "description": "Stable across retries (idempotency key)"
+          },
+          "itemId": { "type": "string", "format": "uuid" },
+          "action": { "type": "string", "enum": ["add", "remove"] },
+          "syncVersion": {
+            "type": "integer",
+            "minimum": 0,
+            "description": "Last sync_version observed by the client (baseVersion)"
+          },
+          "type": {
+            "type": "string",
+            "enum": ["channel", "vod"],
+            "description": "Optional client metadata; defaults to vod on create"
+          },
+          "sortOrder": {
+            "type": "integer",
+            "description": "Optional explicit sort position; preserves existing when omitted"
+          },
+          "clientReportedAt": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Informational only; never used for LWW"
+          }
+        }
+      },
+      "SetFavoriteResponse": {
+        "type": "object",
+        "required": [
+          "status",
+          "accepted",
+          "currentVersion",
+          "serverTimestamp",
+          "resolvedBy"
+        ],
+        "properties": {
+          "status": { "type": "string", "enum": ["OK"] },
+          "accepted": { "type": "boolean" },
+          "currentVersion": { "type": "integer" },
+          "serverTimestamp": { "type": "string", "format": "date-time" },
+          "resolvedBy": {
+            "type": "string",
+            "enum": ["accepted", "lww", "max_position", "force_reset"]
+          },
+          "changeSeq": {
+            "type": ["integer", "null"]
           }
         }
       }

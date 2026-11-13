@@ -1,17 +1,29 @@
+import type { ListFavorites } from '../../../application/sync/list-favorites.js';
+import type { SetFavorite } from '../../../application/sync/set-favorite.js';
 import type { UpsertPlaybackState } from '../../../application/sync/upsert-playback-state.js';
 import type {
   HttpRequest,
   HttpResponse,
   HttpRoute,
 } from '../../../application/ports/http-server.js';
-import { DomainError } from '../../../domain/shared/domain-error.js';
-
-const JSON_HEADERS = {
-  'content-type': 'application/json; charset=utf-8',
-} as const;
+import {
+  SYNC_JSON_HEADERS,
+  asObject,
+  mapSyncDomainError,
+  optionalBoolean,
+  optionalDate,
+  optionalNumber,
+  optionalString,
+  requireSyncHeader,
+  requiredBoolean,
+  requiredNumber,
+  requiredString,
+} from './sync-route-helpers.js';
 
 export function createSyncRoutes(deps: {
   readonly upsertPlaybackState: UpsertPlaybackState;
+  readonly listFavorites: ListFavorites;
+  readonly setFavorite: SetFavorite;
 }): readonly HttpRoute[] {
   return [
     {
@@ -20,6 +32,16 @@ export function createSyncRoutes(deps: {
       handler: (request) =>
         handleUpsertPlaybackState(request, deps.upsertPlaybackState),
     },
+    {
+      method: 'GET',
+      path: '/api/v1/sync/favorites',
+      handler: (request) => handleListFavorites(request, deps.listFavorites),
+    },
+    {
+      method: 'POST',
+      path: '/api/v1/sync/favorites',
+      handler: (request) => handleSetFavorite(request, deps.setFavorite),
+    },
   ];
 }
 
@@ -27,15 +49,15 @@ async function handleUpsertPlaybackState(
   request: HttpRequest,
   upsertPlaybackState: UpsertPlaybackState,
 ): Promise<HttpResponse> {
-  const accountId = requireHeader(request, 'x-account-id', 'account');
+  const accountId = requireSyncHeader(request, 'x-account-id', 'account');
   if (typeof accountId !== 'string') {
     return accountId;
   }
-  const profileId = requireHeader(request, 'x-profile-id', 'profile');
+  const profileId = requireSyncHeader(request, 'x-profile-id', 'profile');
   if (typeof profileId !== 'string') {
     return profileId;
   }
-  const deviceId = requireHeader(request, 'x-device-id', 'device');
+  const deviceId = requireSyncHeader(request, 'x-device-id', 'device');
   if (typeof deviceId !== 'string') {
     return deviceId;
   }
@@ -44,7 +66,7 @@ async function handleUpsertPlaybackState(
   if (!body) {
     return {
       statusCode: 400,
-      headers: JSON_HEADERS,
+      headers: SYNC_JSON_HEADERS,
       body: { error: 'JSON object body required' },
     };
   }
@@ -63,7 +85,7 @@ async function handleUpsertPlaybackState(
   ) {
     return {
       statusCode: 400,
-      headers: JSON_HEADERS,
+      headers: SYNC_JSON_HEADERS,
       body: {
         error:
           'clientEventId, contentId, position, completed, and syncVersion are required',
@@ -95,7 +117,7 @@ async function handleUpsertPlaybackState(
 
     return {
       statusCode: 200,
-      headers: JSON_HEADERS,
+      headers: SYNC_JSON_HEADERS,
       body: {
         status: result.status,
         accepted: result.accepted,
@@ -106,102 +128,112 @@ async function handleUpsertPlaybackState(
       },
     };
   } catch (error: unknown) {
-    return mapDomainError(error);
+    return mapSyncDomainError(error);
   }
 }
 
-function requireHeader(
+async function handleListFavorites(
   request: HttpRequest,
-  name: string,
-  label: string,
-): string | HttpResponse {
-  if (
-    name === 'x-account-id' &&
-    typeof request.accountId === 'string' &&
-    request.accountId.trim().length > 0
-  ) {
-    return request.accountId.trim();
+  listFavorites: ListFavorites,
+): Promise<HttpResponse> {
+  const accountId = requireSyncHeader(request, 'x-account-id', 'account');
+  if (typeof accountId !== 'string') {
+    return accountId;
+  }
+  const profileId = requireSyncHeader(request, 'x-profile-id', 'profile');
+  if (typeof profileId !== 'string') {
+    return profileId;
   }
 
-  const raw = request.headers[name] ?? request.headers[name.toLowerCase()];
-  const value = Array.isArray(raw) ? raw[0] : raw;
-  if (typeof value !== 'string' || value.trim().length === 0) {
-    if (name === 'x-account-id') {
-      return {
-        statusCode: 401,
-        headers: JSON_HEADERS,
-        body: { error: 'Missing x-account-id (Sprint 0 stand-in for JWT)' },
-      };
-    }
+  try {
+    const items = await listFavorites.execute(accountId, profileId);
     return {
-      statusCode: 401,
-      headers: JSON_HEADERS,
+      statusCode: 200,
+      headers: SYNC_JSON_HEADERS,
+      body: { items },
+    };
+  } catch (error: unknown) {
+    return mapSyncDomainError(error);
+  }
+}
+
+async function handleSetFavorite(
+  request: HttpRequest,
+  setFavorite: SetFavorite,
+): Promise<HttpResponse> {
+  const accountId = requireSyncHeader(request, 'x-account-id', 'account');
+  if (typeof accountId !== 'string') {
+    return accountId;
+  }
+  const profileId = requireSyncHeader(request, 'x-profile-id', 'profile');
+  if (typeof profileId !== 'string') {
+    return profileId;
+  }
+  const deviceId = requireSyncHeader(request, 'x-device-id', 'device');
+  if (typeof deviceId !== 'string') {
+    return deviceId;
+  }
+
+  const body = asObject(request.body);
+  if (!body) {
+    return {
+      statusCode: 400,
+      headers: SYNC_JSON_HEADERS,
+      body: { error: 'JSON object body required' },
+    };
+  }
+
+  const clientEventId = requiredString(body.clientEventId);
+  const itemId = requiredString(body.itemId);
+  const action = requiredString(body.action);
+  const syncVersion = requiredNumber(body.syncVersion);
+  if (
+    clientEventId === null ||
+    itemId === null ||
+    action === null ||
+    syncVersion === null
+  ) {
+    return {
+      statusCode: 400,
+      headers: SYNC_JSON_HEADERS,
       body: {
-        error: `Missing ${name} (Sprint 0 stand-in for ${label} context)`,
+        error: 'clientEventId, itemId, action, and syncVersion are required',
+        code: 'SYNC_PAYLOAD_INVALID',
       },
     };
   }
-  return value.trim();
-}
 
-function mapDomainError(error: unknown): HttpResponse {
-  if (error instanceof DomainError) {
+  try {
+    const type = optionalString(body.type);
+    const sortOrder = optionalNumber(body.sortOrder);
+    const clientReportedAt = optionalDate(body.clientReportedAt);
+
+    const result = await setFavorite.execute({
+      accountId,
+      profileId,
+      deviceId,
+      clientEventId,
+      itemId,
+      action,
+      syncVersion,
+      ...(type !== undefined ? { type } : {}),
+      ...(sortOrder !== undefined ? { sortOrder } : {}),
+      ...(clientReportedAt !== undefined ? { clientReportedAt } : {}),
+    });
+
     return {
-      statusCode: 400,
-      headers: JSON_HEADERS,
-      body: { error: error.message, code: error.code },
+      statusCode: 200,
+      headers: SYNC_JSON_HEADERS,
+      body: {
+        status: result.status,
+        accepted: result.accepted,
+        currentVersion: result.currentVersion,
+        serverTimestamp: result.serverTimestamp.toISOString(),
+        resolvedBy: result.resolvedBy,
+        changeSeq: result.changeSeq,
+      },
     };
+  } catch (error: unknown) {
+    return mapSyncDomainError(error);
   }
-  throw error;
-}
-
-function asObject(value: unknown): Record<string, unknown> | null {
-  if (value === null || typeof value !== 'object' || Array.isArray(value)) {
-    return null;
-  }
-  return value as Record<string, unknown>;
-}
-
-function requiredString(value: unknown): string | null {
-  return typeof value === 'string' && value.trim().length > 0
-    ? value.trim()
-    : null;
-}
-
-function requiredNumber(value: unknown): number | null {
-  return typeof value === 'number' && Number.isFinite(value) ? value : null;
-}
-
-function requiredBoolean(value: unknown): boolean | null {
-  return typeof value === 'boolean' ? value : null;
-}
-
-function optionalString(value: unknown): string | undefined {
-  return typeof value === 'string' ? value : undefined;
-}
-
-function optionalNumber(value: unknown): number | undefined {
-  return typeof value === 'number' && Number.isFinite(value)
-    ? value
-    : undefined;
-}
-
-function optionalBoolean(value: unknown): boolean | undefined {
-  return typeof value === 'boolean' ? value : undefined;
-}
-
-function optionalDate(value: unknown): Date | null | undefined {
-  if (value === undefined) {
-    return undefined;
-  }
-  if (value === null) {
-    return null;
-  }
-  if (typeof value === 'string' || typeof value === 'number') {
-    const date = new Date(value);
-    if (!Number.isNaN(date.getTime())) {
-      return date;
-    }
-  }
-  return undefined;
 }
