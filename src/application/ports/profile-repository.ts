@@ -10,7 +10,10 @@ export type NewProfile = Omit<Profile, 'createdAt' | 'updatedAt'> & {
  */
 export interface ProfileRepository {
   listByAccount(accountId: string): Promise<readonly Profile[]>;
+  /** MVP single default profile for the account (BE-035). */
+  findDefaultByAccount(accountId: string): Promise<Profile | null>;
   insert(profile: NewProfile): Promise<Profile>;
+  save(profile: Profile): Promise<Profile>;
   /** Hard-delete every profile for the account (Postgres ON DELETE CASCADE). */
   deleteByAccount(accountId: string): Promise<number>;
 }
