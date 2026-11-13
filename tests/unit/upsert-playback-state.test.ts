@@ -27,7 +27,7 @@ function buildUseCase() {
 
 describe('UpsertPlaybackState (BE-061)', () => {
   it('accepts a first write and returns accepted, currentVersion, serverTimestamp', async () => {
-    const { upsert } = buildUseCase();
+    const { upsert, repository } = buildUseCase();
     const result = await upsert.execute({
       accountId,
       profileId,
@@ -44,8 +44,14 @@ describe('UpsertPlaybackState (BE-061)', () => {
     assert.equal(result.accepted, true);
     assert.equal(result.currentVersion, 1);
     assert.equal(result.resolvedBy, 'accepted');
+    assert.equal(result.conflict, null);
     assert.ok(result.serverTimestamp instanceof Date);
     assert.equal(result.changeSeq, 1);
+
+    const log = await repository.findSyncEvent(accountId, event1);
+    assert.equal(log?.entity, 'playback_state');
+    assert.equal(log?.operation, 'upsert');
+    assert.equal(log?.resolvedBy, 'accepted');
   });
 
   it('is idempotent for the same clientEventId', async () => {
@@ -112,6 +118,13 @@ describe('UpsertPlaybackState (BE-061)', () => {
     assert.equal(rejected.resolvedBy, 'max_position');
     assert.equal(rejected.currentVersion, 1);
     assert.equal(rejected.changeSeq, null);
+    assert.deepEqual(rejected.conflict, {
+      resolved: true,
+      notice: 'Sync Conflict',
+      entity: 'playback_state',
+      operation: 'upsert',
+      resolvedBy: 'max_position',
+    });
 
     const kept = await repository.findPlaybackState(
       accountId,
@@ -149,6 +162,13 @@ describe('UpsertPlaybackState (BE-061)', () => {
     assert.equal(reset.accepted, true);
     assert.equal(reset.resolvedBy, 'force_reset');
     assert.equal(reset.currentVersion, 2);
+    assert.deepEqual(reset.conflict, {
+      resolved: true,
+      notice: 'Sync Conflict',
+      entity: 'playback_state',
+      operation: 'reset',
+      resolvedBy: 'force_reset',
+    });
     const stored = await repository.findPlaybackState(
       accountId,
       profileId,
@@ -249,6 +269,7 @@ describe('POST /api/v1/sync/playback-state route (BE-061)', () => {
     assert.equal(body.currentVersion, 1);
     assert.equal(typeof body.serverTimestamp, 'string');
     assert.equal(body.resolvedBy, 'accepted');
+    assert.equal(body.conflict, null);
   });
 
   it('requires profile and device context headers', async () => {

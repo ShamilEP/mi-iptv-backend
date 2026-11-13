@@ -1,6 +1,10 @@
 import { DomainError } from '../../domain/shared/domain-error.js';
 import { parseClientEventId } from '../../domain/sync/client-event-id.js';
 import { decidePlaybackWrite } from '../../domain/sync/decide-playback-write.js';
+import {
+  buildSyncConflictReport,
+  type SyncConflictReport,
+} from '../../domain/sync/sync-log.js';
 import type { SyncResolvedBy } from '../../domain/sync/sync-types.js';
 import type { PlaybackSyncRepository } from '../ports/playback-sync-repository.js';
 
@@ -26,10 +30,11 @@ export type UpsertPlaybackStateResult = {
   readonly serverTimestamp: Date;
   readonly resolvedBy: SyncResolvedBy;
   readonly changeSeq: number | null;
+  readonly conflict: SyncConflictReport | null;
 };
 
 /**
- * POST /api/v1/sync/playback-state (BE-061 / Backend §3.1 / ADR-005).
+ * POST /api/v1/sync/playback-state (BE-061 / BE-065 / Backend §3.1 / ADR-005).
  */
 export class UpsertPlaybackState {
   constructor(private readonly repository: PlaybackSyncRepository) {}
@@ -77,14 +82,19 @@ export class UpsertPlaybackState {
       },
     });
 
-    if (decision.isReplay) {
+    if (decision.isReplay && priorEvent !== null) {
       return {
         status: 'OK',
         accepted: decision.accepted,
         currentVersion: decision.resultVersion,
         serverTimestamp: serverNow,
         resolvedBy: decision.resolvedBy,
-        changeSeq: priorEvent?.changeSeq ?? null,
+        changeSeq: priorEvent.changeSeq,
+        conflict: buildSyncConflictReport(
+          priorEvent.entity,
+          priorEvent.operation,
+          priorEvent.resolvedBy,
+        ),
       };
     }
 
@@ -113,6 +123,11 @@ export class UpsertPlaybackState {
       serverTimestamp: serverNow,
       resolvedBy: decision.resolvedBy,
       changeSeq: applied.changeSeq,
+      conflict: buildSyncConflictReport(
+        applied.syncLog.entity,
+        applied.syncLog.operation,
+        applied.syncLog.resolvedBy,
+      ),
     };
   }
 }

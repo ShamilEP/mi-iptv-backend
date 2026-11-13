@@ -6,7 +6,7 @@ import {
   type IncomingFavoriteWrite,
 } from './favorite-conflict.js';
 import { replayIfDuplicate } from './idempotency.js';
-import type { RecordedSyncEvent, SyncOperation } from './sync-types.js';
+import type { RecordedSyncEvent } from './sync-types.js';
 
 export type DecideFavoriteWriteInput = {
   readonly clientEventId: string;
@@ -27,12 +27,10 @@ export function decideFavoriteWrite(
     input.priorEvent,
     input.existing?.syncVersion ?? null,
   );
-  if (replay !== null) {
-    const operation: SyncOperation =
-      input.write.action === 'add' ? 'upsert' : 'delete';
+  if (replay !== null && input.priorEvent !== null) {
     return {
       ...replay,
-      operation,
+      operation: input.priorEvent.operation,
     };
   }
 

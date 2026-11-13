@@ -125,6 +125,7 @@ async function handleUpsertPlaybackState(
         serverTimestamp: result.serverTimestamp.toISOString(),
         resolvedBy: result.resolvedBy,
         changeSeq: result.changeSeq,
+        conflict: result.conflict,
       },
     };
   } catch (error: unknown) {
@@ -231,6 +232,7 @@ async function handleSetFavorite(
         serverTimestamp: result.serverTimestamp.toISOString(),
         resolvedBy: result.resolvedBy,
         changeSeq: result.changeSeq,
+        conflict: result.conflict,
       },
     };
   } catch (error: unknown) {
