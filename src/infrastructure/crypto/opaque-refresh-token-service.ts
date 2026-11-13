@@ -9,7 +9,8 @@ import type { JwtTokenTtlConfig } from '../../config/jwt-tokens.js';
 
 /**
  * Opaque refresh tokens: random secret + SHA-256 hash for DB storage.
- * Bound to accountId + deviceId in the issued metadata (ADR-004).
+ * Bound to accountId + deviceId in the issued metadata (ADR-004 / SEC-012).
+ * Cleartext is returned once to the client; only `tokenHash` is persisted.
  */
 export class OpaqueRefreshTokenService implements RefreshTokenService {
   constructor(private readonly ttl: JwtTokenTtlConfig) {}

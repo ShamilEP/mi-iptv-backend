@@ -246,4 +246,14 @@ describe('loadJwtTokenTtlConfig', () => {
       loadJwtTokenTtlConfig({ JWT_ACCESS_TTL_SECONDS: '7200' }),
     );
   });
+
+  it('bounds refresh TTL to 1–30 days (SEC-012)', () => {
+    assert.equal(loadJwtTokenTtlConfig({}).refreshTokenTtlSeconds, 2_592_000);
+    assert.throws(() =>
+      loadJwtTokenTtlConfig({ JWT_REFRESH_TTL_SECONDS: '3600' }),
+    );
+    assert.throws(() =>
+      loadJwtTokenTtlConfig({ JWT_REFRESH_TTL_SECONDS: '2592001' }),
+    );
+  });
 });

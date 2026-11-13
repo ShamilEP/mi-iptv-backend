@@ -19,3 +19,5 @@
 5. `AssertAccessTokenActive` checks jti deny-list + account epoch (for middleware / tests).
 
 Sprint 0 uses `InMemoryRedisClient` when `REDIS_URL` is unset; otherwise `IoredisRedisClient`.
+
+Refresh-token security review (hash, rotation/reuse, device bind, 30-day TTL, revoke-all): **SEC-012** (`docs/security/012-refresh-token-security-review.md`).

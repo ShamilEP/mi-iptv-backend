@@ -13,6 +13,8 @@ import {
   isAllowedAccessTokenTtlSeconds,
   parseAccessTokenClaims,
   REFRESH_TOKEN_TTL_DEFAULT_SECONDS,
+  REFRESH_TOKEN_TTL_MAX_SECONDS,
+  REFRESH_TOKEN_TTL_MIN_SECONDS,
   REQUIRED_ACCESS_TOKEN_ALG,
 } from '../../src/domain/auth/access-token-rules.js';
 import { AuthTokenError } from '../../src/domain/auth/auth-token-error.js';
@@ -22,6 +24,8 @@ describe('access token rules (BE-120 / Security §2.2)', () => {
     assert.equal(ACCESS_TOKEN_TTL_MIN_SECONDS, 900);
     assert.equal(ACCESS_TOKEN_TTL_MAX_SECONDS, 3600);
     assert.equal(ACCESS_TOKEN_TTL_DEFAULT_SECONDS, 3600);
+    assert.equal(REFRESH_TOKEN_TTL_MIN_SECONDS, 86_400);
+    assert.equal(REFRESH_TOKEN_TTL_MAX_SECONDS, 2_592_000);
     assert.equal(REFRESH_TOKEN_TTL_DEFAULT_SECONDS, 2_592_000);
     assert.equal(isAllowedAccessTokenTtlSeconds(900), true);
     assert.equal(isAllowedAccessTokenTtlSeconds(3600), true);
