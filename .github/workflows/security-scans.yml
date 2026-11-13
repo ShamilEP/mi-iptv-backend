@@ -1,5 +1,7 @@
 name: Security scans
 
+# INF-044 scanners; SEC-004 severity thresholds + patch SLAs:
+# docs/security/004-dependency-image-vulnerability-policy.md
 on:
   pull_request:
     branches:

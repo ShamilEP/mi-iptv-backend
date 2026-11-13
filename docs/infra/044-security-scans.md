@@ -39,6 +39,8 @@ No AWS credentials and **no new application npm dependencies**. Marketplace Acti
 
 Moderate npm advisories (e.g. current `minimatch` via ESLint toolchain) are reported by `npm audit` locally but do not fail CI until `--audit-level=high` is crossed. Track upgrades separately (prefer non-breaking bumps).
 
+**Patch SLAs and dependency/image vulnerability ownership:** **SEC-004** (`docs/security/004-dependency-image-vulnerability-policy.md`).
+
 ### Local commands
 
 ```bash
@@ -64,6 +66,6 @@ npm run security:deps
 
 ## Follow-ups
 
-- Enable GitHub Dependabot / native secret scanning in repo settings when the org allows it.
+- Dependabot config lives in `.github/dependabot.yml` (SEC-004); enable alerts in org settings if needed.
 - Tighten Trivy / CodeQL gates after baseline noise is cleared.
 - INF-005 image baseline / registry push can reuse the same Trivy step before push.

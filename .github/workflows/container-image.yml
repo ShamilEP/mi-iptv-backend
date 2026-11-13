@@ -1,6 +1,7 @@
 name: Container image
 
 # INF-005 / INF-041 — build multi-stage non-root image, Trivy-scan, then push to ECR when configured.
+# SEC-004 — HIGH/CRITICAL gate + patch SLAs: docs/security/004-dependency-image-vulnerability-policy.md
 on:
   push:
     branches:
