@@ -11,6 +11,7 @@ import type { ProfileRepository } from '../ports/profile-repository.js';
 import type { RefreshTokenRepository } from '../ports/refresh-token-repository.js';
 import type { SourceRepository } from '../ports/source-repository.js';
 import type { SyncLogRepository } from '../ports/sync-log-repository.js';
+import type { WatchHistoryRepository } from '../ports/watch-history-repository.js';
 
 export type DeleteAccountInput = {
   readonly accessToken: string;
@@ -37,6 +38,7 @@ export class DeleteAccount {
     private readonly favorites: FavoriteSyncRepository,
     private readonly playback: PlaybackSyncRepository,
     private readonly syncLog: SyncLogRepository,
+    private readonly watchHistory: WatchHistoryRepository,
     private readonly accessTokenTtlSeconds: number,
   ) {}
 
@@ -72,6 +74,7 @@ export class DeleteAccount {
     // 2. Cascade purge (Sprint 0 in-memory; Postgres uses FK CASCADE).
     await this.favorites.deleteByAccount(claims.accountId);
     await this.playback.deleteByAccount(claims.accountId);
+    await this.watchHistory.deleteByAccount(claims.accountId);
     await this.syncLog.deleteByAccount(claims.accountId);
     await this.sources.deleteByAccount(claims.accountId);
     await this.devices.deleteByAccount(claims.accountId);

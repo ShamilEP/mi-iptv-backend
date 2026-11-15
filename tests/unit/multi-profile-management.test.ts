@@ -24,6 +24,7 @@ import { InMemoryFavoriteSyncRepository } from '../../src/infrastructure/persist
 import { InMemoryPlaybackSyncRepository } from '../../src/infrastructure/persistence/in-memory-playback-sync-repository.js';
 import { InMemoryProfileRepository } from '../../src/infrastructure/persistence/in-memory-profile-repository.js';
 import { InMemoryRefreshTokenRepository } from '../../src/infrastructure/persistence/in-memory-refresh-token-repository.js';
+import { InMemoryWatchHistoryRepository } from '../../src/infrastructure/persistence/in-memory-watch-history-repository.js';
 import { EnvJwtSigningKeyStore } from '../../src/infrastructure/secrets/env-jwt-signing-key-store.js';
 
 const testHashParams = loadPasswordHashParams({
@@ -50,6 +51,7 @@ async function createStack() {
   const profiles = new InMemoryProfileRepository();
   const favorites = new InMemoryFavoriteSyncRepository();
   const playback = new InMemoryPlaybackSyncRepository();
+  const watchHistory = new InMemoryWatchHistoryRepository();
   const register = new RegisterAccount(
     new InMemoryAccountRepository(),
     hasher,
@@ -66,7 +68,13 @@ async function createStack() {
     listProfiles: new ListProfiles(access, profiles),
     createProfile: new CreateProfile(access, profiles),
     updateProfile: new UpdateProfile(access, profiles),
-    deleteProfile: new DeleteProfile(access, profiles, favorites, playback),
+    deleteProfile: new DeleteProfile(
+      access,
+      profiles,
+      favorites,
+      playback,
+      watchHistory,
+    ),
     listFavorites: new ListFavorites(favorites, profiles),
     setFavorite: new SetFavorite(favorites, profiles),
     upsertPlayback: new UpsertPlaybackState(playback, profiles),

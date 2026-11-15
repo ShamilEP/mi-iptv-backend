@@ -1,3 +1,4 @@
+import { DEFAULT_HISTORY_ENABLED } from '../history/watch-history-privacy.js';
 import type { Profile } from './profile.js';
 
 /**
@@ -42,6 +43,7 @@ export function buildDefaultProfile(
     subtitlePrefs: {},
     restrictions: {},
     pinHash: null,
+    historyEnabled: DEFAULT_HISTORY_ENABLED,
     createdAt: now,
     updatedAt: now,
   };

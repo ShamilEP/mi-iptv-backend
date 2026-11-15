@@ -16,6 +16,8 @@ export type ProfilePublicView = {
   readonly restrictions: ParentalRestrictions;
   /** True when a parental PIN is set — never includes the hash or clear PIN. */
   readonly pinConfigured: boolean;
+  /** FR-021 privacy toggle for watch history (BE-105). */
+  readonly historyEnabled: boolean;
   readonly createdAt: string;
   readonly updatedAt: string;
 };
@@ -33,6 +35,7 @@ export function toProfilePublicView(profile: Profile): ProfilePublicView {
     restrictions: parseParentalRestrictions(profile.restrictions),
     pinConfigured:
       profile.pinHash !== null && profile.pinHash.trim().length > 0,
+    historyEnabled: profile.historyEnabled,
     createdAt: profile.createdAt.toISOString(),
     updatedAt: profile.updatedAt.toISOString(),
   };

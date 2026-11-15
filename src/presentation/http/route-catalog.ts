@@ -88,6 +88,31 @@ export const ROUTE_CATALOG: readonly RouteCatalogEntry[] = [
   },
   {
     method: 'GET',
+    path: '/api/v1/profiles/{id}/history',
+    operationId: 'listWatchHistory',
+  },
+  {
+    method: 'POST',
+    path: '/api/v1/profiles/{id}/history',
+    operationId: 'recordWatchHistory',
+  },
+  {
+    method: 'DELETE',
+    path: '/api/v1/profiles/{id}/history',
+    operationId: 'clearWatchHistory',
+  },
+  {
+    method: 'GET',
+    path: '/api/v1/profiles/{id}/privacy',
+    operationId: 'getWatchHistoryPrivacy',
+  },
+  {
+    method: 'PATCH',
+    path: '/api/v1/profiles/{id}/privacy',
+    operationId: 'updateWatchHistoryPrivacy',
+  },
+  {
+    method: 'GET',
     path: '/api/v1/sources',
     operationId: 'listSources',
   },

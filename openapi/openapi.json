@@ -1736,6 +1736,345 @@
           }
         }
       }
+    },
+    "/api/v1/profiles/{id}/history": {
+      "get": {
+        "operationId": "listWatchHistory",
+        "summary": "List watch history for a profile",
+        "description": "FR-021 / BE-105 history view, separate from Continue Watching (sync/playback-history). Returns empty items when privacy is off.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "Authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Bearer access JWT (preferred)"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "History list",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WatchHistoryList"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AuthError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Profile not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AuthError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "operationId": "recordWatchHistory",
+        "summary": "Append a watch history entry",
+        "description": "Records a history row when privacy allows (BE-105). Does not mutate playback_states.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "Authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Bearer access JWT (preferred)"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RecordWatchHistoryRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Recorded",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WatchHistoryItem"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid input",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AuthError"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AuthError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "History privacy disabled",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AuthError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Profile not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AuthError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "operationId": "clearWatchHistory",
+        "summary": "Clear watch history for a profile",
+        "description": "Deletes history rows only; Continue Watching / playback_states are unchanged (BE-105).",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "Authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Bearer access JWT (preferred)"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Cleared",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ClearWatchHistoryResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AuthError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Profile not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AuthError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/profiles/{id}/privacy": {
+      "get": {
+        "operationId": "getWatchHistoryPrivacy",
+        "summary": "Get watch history privacy toggle",
+        "description": "FR-021 privacy setting for the profile (BE-105).",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "Authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Bearer access JWT (preferred)"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Privacy settings",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WatchHistoryPrivacy"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AuthError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Profile not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AuthError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "patch": {
+        "operationId": "updateWatchHistoryPrivacy",
+        "summary": "Update watch history privacy toggle",
+        "description": "Enable or disable history recording/listing for the profile (BE-105).",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "Authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Bearer access JWT (preferred)"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateWatchHistoryPrivacyRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Updated privacy",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WatchHistoryPrivacy"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid input",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AuthError"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AuthError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Profile not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AuthError"
+                }
+              }
+            }
+          }
+        }
+      }
     }
   },
   "components": {
@@ -2383,7 +2722,8 @@
           "restrictions",
           "createdAt",
           "updatedAt",
-          "pinConfigured"
+          "pinConfigured",
+          "historyEnabled"
         ],
         "properties": {
           "id": {
@@ -2431,6 +2771,10 @@
           },
           "pinConfigured": {
             "type": "boolean"
+          },
+          "historyEnabled": {
+            "type": "boolean",
+            "description": "FR-021 watch history privacy toggle"
           }
         }
       },
@@ -2632,7 +2976,8 @@
           "devices",
           "sources",
           "favorites",
-          "playbackStates"
+          "playbackStates",
+          "watchHistory"
         ],
         "properties": {
           "exportedAt": {
@@ -2670,6 +3015,28 @@
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/AccountExportPlayback"
+            }
+          },
+          "watchHistory": {
+            "type": "array",
+            "items": {
+              "allOf": [
+                {
+                  "$ref": "#/components/schemas/WatchHistoryItem"
+                },
+                {
+                  "type": "object",
+                  "required": [
+                    "profileId"
+                  ],
+                  "properties": {
+                    "profileId": {
+                      "type": "string",
+                      "format": "uuid"
+                    }
+                  }
+                }
+              ]
             }
           }
         }
@@ -3271,6 +3638,152 @@
             "items": {
               "type": "string"
             }
+          }
+        }
+      },
+      "WatchHistoryItem": {
+        "type": "object",
+        "required": [
+          "id",
+          "contentId",
+          "sourceId",
+          "positionSec",
+          "durationSec",
+          "completed",
+          "watchedAt"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "contentId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "sourceId": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "uuid"
+          },
+          "positionSec": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "minimum": 0
+          },
+          "durationSec": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "minimum": 0
+          },
+          "completed": {
+            "type": "boolean"
+          },
+          "watchedAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "WatchHistoryList": {
+        "type": "object",
+        "required": [
+          "historyEnabled",
+          "items"
+        ],
+        "properties": {
+          "historyEnabled": {
+            "type": "boolean"
+          },
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/WatchHistoryItem"
+            }
+          }
+        }
+      },
+      "RecordWatchHistoryRequest": {
+        "type": "object",
+        "required": [
+          "contentId"
+        ],
+        "properties": {
+          "contentId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "sourceId": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "uuid"
+          },
+          "positionSec": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "durationSec": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "completed": {
+            "type": "boolean"
+          },
+          "watchedAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "ClearWatchHistoryResponse": {
+        "type": "object",
+        "required": [
+          "cleared",
+          "deletedCount"
+        ],
+        "properties": {
+          "cleared": {
+            "type": "boolean",
+            "const": true
+          },
+          "deletedCount": {
+            "type": "integer",
+            "minimum": 0
+          }
+        }
+      },
+      "WatchHistoryPrivacy": {
+        "type": "object",
+        "required": [
+          "profileId",
+          "historyEnabled"
+        ],
+        "properties": {
+          "profileId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "historyEnabled": {
+            "type": "boolean"
+          }
+        }
+      },
+      "UpdateWatchHistoryPrivacyRequest": {
+        "type": "object",
+        "required": [
+          "historyEnabled"
+        ],
+        "properties": {
+          "historyEnabled": {
+            "type": "boolean"
           }
         }
       }
