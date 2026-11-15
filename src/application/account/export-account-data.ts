@@ -7,6 +7,7 @@ import type { FavoriteSyncRepository } from '../ports/favorite-sync-repository.j
 import type { PlaybackSyncRepository } from '../ports/playback-sync-repository.js';
 import type { ProfileRepository } from '../ports/profile-repository.js';
 import type { SourceRepository } from '../ports/source-repository.js';
+import type { WatchHistoryRepository } from '../ports/watch-history-repository.js';
 import {
   toAccountDataExport,
   type AccountDataExport,
@@ -29,6 +30,7 @@ export class ExportAccountData {
     private readonly sources: SourceRepository,
     private readonly favorites: FavoriteSyncRepository,
     private readonly playback: PlaybackSyncRepository,
+    private readonly watchHistory: WatchHistoryRepository,
   ) {}
 
   async execute(input: ExportAccountDataInput): Promise<AccountDataExport> {
@@ -52,13 +54,14 @@ export class ExportAccountData {
       throw new DomainError('Account not found', 'AUTH_ACCOUNT_NOT_FOUND');
     }
 
-    const [profiles, devices, sources, favorites, playbackStates] =
+    const [profiles, devices, sources, favorites, playbackStates, watchHistory] =
       await Promise.all([
         this.profiles.listByAccount(accountId),
         this.devices.listAllByAccount(accountId),
         this.sources.listAllByAccount(accountId),
         this.favorites.listFavoritesByAccount(accountId),
         this.playback.listPlaybackByAccount(accountId),
+        this.watchHistory.listByAccount(accountId),
       ]);
 
     return toAccountDataExport({
@@ -68,6 +71,7 @@ export class ExportAccountData {
       sources,
       favorites,
       playbackStates,
+      watchHistory,
     });
   }
 }

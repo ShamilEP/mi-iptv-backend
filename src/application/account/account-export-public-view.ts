@@ -6,8 +6,10 @@ import {
 } from '../../domain/profiles/parental-restrictions.js';
 import type { Device } from '../../domain/devices/device.js';
 import type { UserSource } from '../../domain/sources/user-source.js';
+import type { WatchHistoryEntry } from '../../domain/history/watch-history-entry.js';
 import type { Favorite } from '../../domain/sync/favorite.js';
 import type { PlaybackState } from '../../domain/sync/playback-state.js';
+import { toWatchHistoryPublicItem } from '../history/watch-history-public-view.js';
 import { toSourcePublicView } from '../sources/source-public-view.js';
 import { toFavoritePublicView } from '../sync/favorite-public-view.js';
 
@@ -32,6 +34,7 @@ export type AccountExportProfileView = {
   readonly subtitlePrefs: Readonly<Record<string, unknown>>;
   readonly restrictions: ParentalRestrictions;
   readonly pinConfigured: boolean;
+  readonly historyEnabled: boolean;
   readonly createdAt: string;
   readonly updatedAt: string;
 };
@@ -73,6 +76,11 @@ export type AccountDataExport = {
     readonly profileId: string;
   })[];
   readonly playbackStates: readonly AccountExportPlaybackView[];
+  readonly watchHistory: readonly (ReturnType<
+    typeof toWatchHistoryPublicItem
+  > & {
+    readonly profileId: string;
+  })[];
 };
 
 /** Builds a privacy-safe export (NFR-006 / Security §6). Never includes secrets. */
@@ -83,6 +91,7 @@ export function toAccountDataExport(input: {
   readonly sources: readonly UserSource[];
   readonly favorites: readonly Favorite[];
   readonly playbackStates: readonly PlaybackState[];
+  readonly watchHistory: readonly WatchHistoryEntry[];
   readonly exportedAt?: Date;
 }): AccountDataExport {
   const exportedAt = (input.exportedAt ?? new Date()).toISOString();
@@ -109,6 +118,7 @@ export function toAccountDataExport(input: {
       restrictions: parseParentalRestrictions(profile.restrictions),
       pinConfigured:
         profile.pinHash !== null && profile.pinHash.trim().length > 0,
+      historyEnabled: profile.historyEnabled,
       createdAt: profile.createdAt.toISOString(),
       updatedAt: profile.updatedAt.toISOString(),
     })),
@@ -147,5 +157,9 @@ export function toAccountDataExport(input: {
         createdAt: row.createdAt.toISOString(),
         updatedAt: row.updatedAt.toISOString(),
       })),
+    watchHistory: input.watchHistory.map((row) => ({
+      profileId: row.profileId,
+      ...toWatchHistoryPublicItem(row),
+    })),
   };
 }

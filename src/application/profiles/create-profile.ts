@@ -1,5 +1,6 @@
 import { randomUUID } from 'node:crypto';
 import { DomainError } from '../../domain/shared/domain-error.js';
+import { DEFAULT_HISTORY_ENABLED } from '../../domain/history/watch-history-privacy.js';
 import {
   DEFAULT_PROFILE_AUTOPLAY,
   DEFAULT_PROFILE_LANGUAGE,
@@ -75,6 +76,7 @@ export class CreateProfile {
       subtitlePrefs: input.subtitlePrefs ?? {},
       restrictions: {},
       pinHash: null,
+      historyEnabled: DEFAULT_HISTORY_ENABLED,
       createdAt: now,
       updatedAt: now,
     });

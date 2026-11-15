@@ -19,6 +19,8 @@ export type Profile = {
    * Never expose in API responses — use `pinConfigured` on public views.
    */
   readonly pinHash: string | null;
+  /** FR-021 / BE-105: when false, history is not recorded or listed. */
+  readonly historyEnabled: boolean;
   readonly createdAt: Date;
   readonly updatedAt: Date;
 };

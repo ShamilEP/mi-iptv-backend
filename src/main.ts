@@ -8,6 +8,13 @@ import { LogoutAccount } from './application/auth/logout-account.js';
 import { RefreshAuthSession } from './application/auth/refresh-auth-session.js';
 import { RegisterAbuseGuard } from './application/auth/register-abuse-guard.js';
 import { RegisterAccount } from './application/auth/register-account.js';
+import { ClearWatchHistory } from './application/history/clear-watch-history.js';
+import { ListWatchHistory } from './application/history/list-watch-history.js';
+import { RecordWatchHistory } from './application/history/record-watch-history.js';
+import {
+  GetWatchHistoryPrivacy,
+  UpdateWatchHistoryPrivacy,
+} from './application/history/update-watch-history-privacy.js';
 import { CreateDefaultProfile } from './application/profiles/create-default-profile.js';
 import { CreateProfile } from './application/profiles/create-profile.js';
 import { DeleteProfile } from './application/profiles/delete-profile.js';
@@ -70,6 +77,7 @@ import { InMemoryProfileRepository } from './infrastructure/persistence/in-memor
 import { InMemorySyncLogRepository } from './infrastructure/persistence/in-memory-sync-log-repository.js';
 import { InMemoryRefreshTokenRepository } from './infrastructure/persistence/in-memory-refresh-token-repository.js';
 import { InMemorySourceRepository } from './infrastructure/persistence/in-memory-source-repository.js';
+import { InMemoryWatchHistoryRepository } from './infrastructure/persistence/in-memory-watch-history-repository.js';
 import { InMemoryPushNotifier } from './infrastructure/push/in-memory-push-notifier.js';
 import { InMemoryDeviceSocketPresence } from './infrastructure/realtime/in-memory-device-socket-presence.js';
 import { EnvJwtSigningKeyStore } from './infrastructure/secrets/env-jwt-signing-key-store.js';
@@ -81,6 +89,7 @@ import { createAccountRoutes } from './presentation/http/routes/account-routes.j
 import { createAuthRoutes } from './presentation/http/routes/auth-routes.js';
 import { createDevicesRoutes } from './presentation/http/routes/devices-routes.js';
 import { createHealthRoute } from './presentation/http/routes/health-route.js';
+import { createProfilesHistoryRoutes } from './presentation/http/routes/profiles-history-routes.js';
 import { createProfilesParentalRoutes } from './presentation/http/routes/profiles-parental-routes.js';
 import { createProfilesRoutes } from './presentation/http/routes/profiles-routes.js';
 import { createSourcesRoutes } from './presentation/http/routes/sources-routes.js';
@@ -269,6 +278,32 @@ async function bootstrap(): Promise<void> {
     setFavorite,
   );
 
+  // BE-105: per-profile watch history (separate from Continue Watching).
+  const watchHistoryRepository = new InMemoryWatchHistoryRepository();
+  const listWatchHistory = new ListWatchHistory(
+    accessTokenService,
+    profileRepository,
+    watchHistoryRepository,
+  );
+  const recordWatchHistory = new RecordWatchHistory(
+    accessTokenService,
+    profileRepository,
+    watchHistoryRepository,
+  );
+  const clearWatchHistory = new ClearWatchHistory(
+    accessTokenService,
+    profileRepository,
+    watchHistoryRepository,
+  );
+  const getWatchHistoryPrivacy = new GetWatchHistoryPrivacy(
+    accessTokenService,
+    profileRepository,
+  );
+  const updateWatchHistoryPrivacy = new UpdateWatchHistoryPrivacy(
+    accessTokenService,
+    profileRepository,
+  );
+
   // BE-013: account export + cascade delete (reuses profiles from register wiring).
   const exportAccountData = new ExportAccountData(
     accessTokenService,
@@ -278,6 +313,7 @@ async function bootstrap(): Promise<void> {
     sourceRepository,
     favoriteSyncRepository,
     playbackSyncRepository,
+    watchHistoryRepository,
   );
   const deleteAccount = new DeleteAccount(
     accessTokenService,
@@ -290,6 +326,7 @@ async function bootstrap(): Promise<void> {
     favoriteSyncRepository,
     playbackSyncRepository,
     syncLogRepository,
+    watchHistoryRepository,
     jwtTtl.accessTokenTtlSeconds,
   );
 
@@ -309,6 +346,7 @@ async function bootstrap(): Promise<void> {
     profileRepository,
     favoriteSyncRepository,
     playbackSyncRepository,
+    watchHistoryRepository,
   );
   const parentalPinThrottle = new ParentalPinThrottle(sessionRedis, logger);
   const setParentalPin = new SetParentalPin(
@@ -358,6 +396,15 @@ async function bootstrap(): Promise<void> {
     setParentalPin,
     verifyParentalPin,
     updateProfileRestrictions,
+  })) {
+    httpServer.register(route);
+  }
+  for (const route of createProfilesHistoryRoutes({
+    listWatchHistory,
+    recordWatchHistory,
+    clearWatchHistory,
+    getWatchHistoryPrivacy,
+    updateWatchHistoryPrivacy,
   })) {
     httpServer.register(route);
   }

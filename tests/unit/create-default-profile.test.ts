@@ -29,6 +29,7 @@ describe('BE-029 CreateDefaultProfile', () => {
     assert.equal(profile.region, null);
     assert.deepEqual(profile.subtitlePrefs, {});
     assert.deepEqual(profile.restrictions, {});
+    assert.equal(profile.historyEnabled, true);
 
     const listed = await profiles.listByAccount(accountId);
     assert.equal(listed.length, 1);

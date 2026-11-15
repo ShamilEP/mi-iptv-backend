@@ -3,6 +3,7 @@ import type { AccessTokenService } from '../ports/access-token-service.js';
 import type { FavoriteSyncRepository } from '../ports/favorite-sync-repository.js';
 import type { PlaybackSyncRepository } from '../ports/playback-sync-repository.js';
 import type { ProfileRepository } from '../ports/profile-repository.js';
+import type { WatchHistoryRepository } from '../ports/watch-history-repository.js';
 import { requireOwnedProfile } from './require-owned-profile.js';
 import { verifyProfileAccessAccountId } from './verify-profile-access-token.js';
 
@@ -26,6 +27,7 @@ export class DeleteProfile {
     private readonly profiles: ProfileRepository,
     private readonly favorites: FavoriteSyncRepository,
     private readonly playback: PlaybackSyncRepository,
+    private readonly watchHistory: WatchHistoryRepository,
   ) {}
 
   async execute(input: DeleteProfileInput): Promise<DeleteProfileResult> {
@@ -49,6 +51,7 @@ export class DeleteProfile {
 
     await this.favorites.deleteByProfile(accountId, profile.id);
     await this.playback.deleteByProfile(accountId, profile.id);
+    await this.watchHistory.deleteByProfile(accountId, profile.id);
 
     const removed = await this.profiles.deleteById(accountId, profile.id);
     if (!removed) {

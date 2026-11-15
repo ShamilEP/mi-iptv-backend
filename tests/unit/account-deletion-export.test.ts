@@ -23,6 +23,7 @@ import { InMemoryProfileRepository } from '../../src/infrastructure/persistence/
 import { InMemoryRefreshTokenRepository } from '../../src/infrastructure/persistence/in-memory-refresh-token-repository.js';
 import { InMemorySourceRepository } from '../../src/infrastructure/persistence/in-memory-source-repository.js';
 import { InMemorySyncLogRepository } from '../../src/infrastructure/persistence/in-memory-sync-log-repository.js';
+import { InMemoryWatchHistoryRepository } from '../../src/infrastructure/persistence/in-memory-watch-history-repository.js';
 import { EnvJwtSigningKeyStore } from '../../src/infrastructure/secrets/env-jwt-signing-key-store.js';
 import { createAccountRoutes } from '../../src/presentation/http/routes/account-routes.js';
 import { ROUTE_CATALOG } from '../../src/presentation/http/route-catalog.js';
@@ -56,6 +57,7 @@ async function createStack() {
   const syncLog = new InMemorySyncLogRepository();
   const favorites = new InMemoryFavoriteSyncRepository(syncLog);
   const playback = new InMemoryPlaybackSyncRepository(syncLog);
+  const watchHistory = new InMemoryWatchHistoryRepository();
   const issuePair = new IssueAuthTokenPair(access, refreshService);
   const denyList = new RedisAccessTokenDenyList(new InMemoryRedisClient());
   const login = new LoginAccount(accounts, hasher, issuePair, refreshTokens);
@@ -73,6 +75,7 @@ async function createStack() {
     sources,
     favorites,
     playback,
+    watchHistory,
   );
   const deleteAccount = new DeleteAccount(
     access,
@@ -85,6 +88,7 @@ async function createStack() {
     favorites,
     playback,
     syncLog,
+    watchHistory,
     ttl.accessTokenTtlSeconds,
   );
   const assertActive = new AssertAccessTokenActive(access, denyList);
@@ -162,6 +166,7 @@ describe('BE-013 account deletion and export', () => {
       subtitlePrefs: {},
       restrictions: {},
       pinHash: null,
+      historyEnabled: true,
     });
     await devices.insert({
       id: deviceId,
@@ -251,6 +256,8 @@ describe('BE-013 account deletion and export', () => {
     assert.equal(exported.favorites[0]?.itemId, itemId);
     assert.equal(exported.playbackStates.length, 1);
     assert.equal(exported.playbackStates[0]?.positionSec, 42);
+    assert.equal(exported.profiles[0]?.historyEnabled, true);
+    assert.ok(Array.isArray(exported.watchHistory));
     assert.equal(
       Object.prototype.hasOwnProperty.call(exported.account, 'passwordHash'),
       false,
@@ -303,6 +310,7 @@ describe('BE-013 account deletion and export', () => {
       subtitlePrefs: {},
       restrictions: {},
       pinHash: null,
+      historyEnabled: true,
     });
     await profiles.insert({
       id: randomUUID(),
@@ -316,6 +324,7 @@ describe('BE-013 account deletion and export', () => {
       subtitlePrefs: {},
       restrictions: {},
       pinHash: null,
+      historyEnabled: true,
     });
     await devices.insert({
       id: deviceId,

@@ -21,5 +21,6 @@ export async function seedTestProfile(
     subtitlePrefs: {},
     restrictions: {},
     pinHash: null,
+    historyEnabled: true,
   });
 }
