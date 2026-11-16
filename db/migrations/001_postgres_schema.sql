@@ -507,10 +507,10 @@ BEGIN
   RETURN ROW(true, v_resolved, v_version, v_seq, v_now)::app.sync_result;
 END $$;
 
--- GET /sync/state?cursor=N  (resolves PRD-023: sources travel in the same delta as favorites and progress).
+-- GET /sync/state?cursor=N  (PRD-023 / ADR-009: sources travel in the same delta as favorites and progress).
 -- The API must first compare the cursor with accounts.tombstone_floor: if cursor < floor, answer
 -- "full resync required". Paginate with the last returned seq. Sources are projected explicitly so that
--- no secret column can ever leak through this endpoint.
+-- no secret column can ever leak through this endpoint. Mutations remain on /sources CRUD.
 CREATE OR REPLACE FUNCTION app.sync_delta(p_account_id uuid, p_cursor bigint, p_limit int DEFAULT 500)
 RETURNS TABLE (entity text, seq bigint, deleted boolean, payload jsonb)
 LANGUAGE sql STABLE AS $$
@@ -546,7 +546,7 @@ $$;
 -- -----------------------------------------------------------------------------
 -- D-pad / keyboard / transport commands are NOT persisted: they travel over the realtime channel
 -- (Valkey pub/sub) and are fire-and-forget. Only 'play' (send-to-TV) is stored, so it survives a TV that is
--- briefly offline, can be expired, and is auditable (PRD-026, SEC-035).
+-- briefly offline, can be expired, and is auditable (PRD-026 / ADR-008, SEC-035).
 
 CREATE TABLE app.device_commands (
   id               uuid        PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -560,7 +560,7 @@ CREATE TABLE app.device_commands (
   created_at       timestamptz NOT NULL DEFAULT now(),
   delivered_at     timestamptz,
   acked_at         timestamptz,
-  expires_at       timestamptz NOT NULL DEFAULT now() + interval '10 minutes',
+  expires_at       timestamptz NOT NULL DEFAULT now() + interval '5 minutes',
   -- both devices must belong to the SAME account as the command (IDOR / BOLA guard, SEC-015)
   FOREIGN KEY (sender_device_id, account_id) REFERENCES app.devices (id, account_id) ON DELETE CASCADE,
   FOREIGN KEY (target_device_id, account_id) REFERENCES app.devices (id, account_id) ON DELETE CASCADE

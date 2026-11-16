@@ -21,3 +21,5 @@ Required: `clientEventId`, `syncVersion`, `payload` (object). Only syncable keys
 ## Delta pull
 
 Use `GET /sync/state?cursor={changeSeq}` (account `change_seq`), not wall-clock client time.
+
+Entities in the delta: `playback_state`, `favorite`, and **`source`** (PRD-023 / ADR-009). Source rows are metadata-only (no credentials). Source mutations stay on `/sources` CRUD.
