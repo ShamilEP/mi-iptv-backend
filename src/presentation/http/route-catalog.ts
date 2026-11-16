@@ -182,6 +182,16 @@ export const ROUTE_CATALOG: readonly RouteCatalogEntry[] = [
     operationId: 'setFavorite',
   },
   {
+    method: 'GET',
+    path: '/api/v1/sync/settings',
+    operationId: 'getProfileSettings',
+  },
+  {
+    method: 'POST',
+    path: '/api/v1/sync/settings',
+    operationId: 'upsertProfileSettings',
+  },
+  {
     method: 'POST',
     path: '/api/v1/sync/events',
     operationId: 'acceptBatchedSyncEvents',

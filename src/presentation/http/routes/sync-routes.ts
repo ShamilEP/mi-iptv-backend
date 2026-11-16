@@ -1,8 +1,10 @@
 import type { AcceptBatchedSyncEvents } from '../../../application/sync/accept-batched-sync-events.js';
+import type { GetProfileSettings } from '../../../application/sync/get-profile-settings.js';
 import type { ListFavorites } from '../../../application/sync/list-favorites.js';
 import type { ListPlaybackHistory } from '../../../application/sync/list-playback-history.js';
 import type { SetFavorite } from '../../../application/sync/set-favorite.js';
 import type { UpsertPlaybackState } from '../../../application/sync/upsert-playback-state.js';
+import type { UpsertProfileSettings } from '../../../application/sync/upsert-profile-settings.js';
 import type {
   HttpRequest,
   HttpResponse,
@@ -28,6 +30,8 @@ export function createSyncRoutes(deps: {
   readonly listPlaybackHistory: ListPlaybackHistory;
   readonly listFavorites: ListFavorites;
   readonly setFavorite: SetFavorite;
+  readonly getProfileSettings: GetProfileSettings;
+  readonly upsertProfileSettings: UpsertProfileSettings;
   readonly acceptBatchedSyncEvents: AcceptBatchedSyncEvents;
 }): readonly HttpRoute[] {
   return [
@@ -52,6 +56,18 @@ export function createSyncRoutes(deps: {
       method: 'POST',
       path: '/api/v1/sync/favorites',
       handler: (request) => handleSetFavorite(request, deps.setFavorite),
+    },
+    {
+      method: 'GET',
+      path: '/api/v1/sync/settings',
+      handler: (request) =>
+        handleGetProfileSettings(request, deps.getProfileSettings),
+    },
+    {
+      method: 'POST',
+      path: '/api/v1/sync/settings',
+      handler: (request) =>
+        handleUpsertProfileSettings(request, deps.upsertProfileSettings),
     },
     {
       method: 'POST',
@@ -275,6 +291,102 @@ async function handleSetFavorite(
         resolvedBy: result.resolvedBy,
         changeSeq: result.changeSeq,
         conflict: result.conflict,
+      },
+    };
+  } catch (error: unknown) {
+    return mapSyncDomainError(error);
+  }
+}
+
+async function handleGetProfileSettings(
+  request: HttpRequest,
+  getProfileSettings: GetProfileSettings,
+): Promise<HttpResponse> {
+  const accountId = requireSyncHeader(request, 'x-account-id', 'account');
+  if (typeof accountId !== 'string') {
+    return accountId;
+  }
+  const profileId = requireSyncHeader(request, 'x-profile-id', 'profile');
+  if (typeof profileId !== 'string') {
+    return profileId;
+  }
+
+  try {
+    const body = await getProfileSettings.execute(accountId, profileId);
+    return {
+      statusCode: 200,
+      headers: SYNC_JSON_HEADERS,
+      body,
+    };
+  } catch (error: unknown) {
+    return mapSyncDomainError(error);
+  }
+}
+
+async function handleUpsertProfileSettings(
+  request: HttpRequest,
+  upsertProfileSettings: UpsertProfileSettings,
+): Promise<HttpResponse> {
+  const accountId = requireSyncHeader(request, 'x-account-id', 'account');
+  if (typeof accountId !== 'string') {
+    return accountId;
+  }
+  const profileId = requireSyncHeader(request, 'x-profile-id', 'profile');
+  if (typeof profileId !== 'string') {
+    return profileId;
+  }
+  const deviceId = requireSyncHeader(request, 'x-device-id', 'device');
+  if (typeof deviceId !== 'string') {
+    return deviceId;
+  }
+
+  const body = asObject(request.body);
+  if (!body) {
+    return {
+      statusCode: 400,
+      headers: SYNC_JSON_HEADERS,
+      body: { error: 'JSON object body required' },
+    };
+  }
+
+  const clientEventId = requiredString(body.clientEventId);
+  const syncVersion = requiredNumber(body.syncVersion);
+  const payload = asObject(body.payload);
+  if (clientEventId === null || syncVersion === null || payload === null) {
+    return {
+      statusCode: 400,
+      headers: SYNC_JSON_HEADERS,
+      body: {
+        error: 'clientEventId, syncVersion, and payload object are required',
+        code: 'SYNC_PAYLOAD_INVALID',
+      },
+    };
+  }
+
+  try {
+    const clientReportedAt = optionalDate(body.clientReportedAt);
+    const result = await upsertProfileSettings.execute({
+      accountId,
+      profileId,
+      deviceId,
+      clientEventId,
+      syncVersion,
+      payload,
+      ...(clientReportedAt !== undefined ? { clientReportedAt } : {}),
+    });
+
+    return {
+      statusCode: 200,
+      headers: SYNC_JSON_HEADERS,
+      body: {
+        status: result.status,
+        accepted: result.accepted,
+        currentVersion: result.currentVersion,
+        serverTimestamp: result.serverTimestamp.toISOString(),
+        resolvedBy: result.resolvedBy,
+        changeSeq: result.changeSeq,
+        conflict: result.conflict,
+        settings: result.settings,
       },
     };
   } catch (error: unknown) {

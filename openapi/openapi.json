@@ -2075,6 +2075,141 @@
           }
         }
       }
+    },
+    "/api/v1/sync/settings": {
+      "get": {
+        "operationId": "getProfileSettings",
+        "summary": "Get syncable profile settings",
+        "description": "Returns syncable settings payload for a profile (BE-106 / SRS §7). Non-syncable keys are omitted.",
+        "parameters": [
+          {
+            "name": "x-account-id",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "x-profile-id",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Settings document",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProfileSettingsPublic"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid context",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AuthError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Profile not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AuthError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "operationId": "upsertProfileSettings",
+        "summary": "Upsert syncable profile settings",
+        "description": "Merges syncable fields with favorites-style LWW conflict rules (always accept; resolvedBy=lww on base mismatch). Idempotent via clientEventId.",
+        "parameters": [
+          {
+            "name": "x-account-id",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "x-profile-id",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "x-device-id",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpsertProfileSettingsRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Write result",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UpsertProfileSettingsResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid payload",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AuthError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Profile not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AuthError"
+                }
+              }
+            }
+          }
+        }
+      }
     }
   },
   "components": {
@@ -3784,6 +3919,122 @@
         "properties": {
           "historyEnabled": {
             "type": "boolean"
+          }
+        }
+      },
+      "ProfileSettingsPublic": {
+        "type": "object",
+        "required": [
+          "profileId",
+          "payload",
+          "syncVersion",
+          "changeSeq",
+          "updatedAt"
+        ],
+        "properties": {
+          "profileId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "payload": {
+            "type": "object",
+            "additionalProperties": true
+          },
+          "syncVersion": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "changeSeq": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "UpsertProfileSettingsRequest": {
+        "type": "object",
+        "required": [
+          "clientEventId",
+          "syncVersion",
+          "payload"
+        ],
+        "properties": {
+          "clientEventId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "syncVersion": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "payload": {
+            "type": "object",
+            "additionalProperties": true,
+            "description": "Only syncable keys are persisted (autoplay, subtitlePrefs, language, region, historyEnabled, restrictions)."
+          },
+          "clientReportedAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "UpsertProfileSettingsResponse": {
+        "type": "object",
+        "required": [
+          "status",
+          "accepted",
+          "currentVersion",
+          "serverTimestamp",
+          "resolvedBy",
+          "changeSeq",
+          "conflict",
+          "settings"
+        ],
+        "properties": {
+          "status": {
+            "type": "string",
+            "const": "OK"
+          },
+          "accepted": {
+            "type": "boolean"
+          },
+          "currentVersion": {
+            "type": "integer"
+          },
+          "serverTimestamp": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "resolvedBy": {
+            "type": "string",
+            "enum": [
+              "accepted",
+              "lww",
+              "max_position",
+              "force_reset"
+            ]
+          },
+          "changeSeq": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "conflict": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/SyncConflictReport"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "settings": {
+            "$ref": "#/components/schemas/ProfileSettingsPublic"
           }
         }
       }

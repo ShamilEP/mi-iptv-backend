@@ -4,7 +4,11 @@ import { DomainError } from '../shared/domain-error.js';
  * Offline outbox drain (SRS §7 / local `outbox` entity set).
  * Sources remain out of batch until BE-064.
  */
-export const BATCHED_SYNC_ENTITIES = ['playback_state', 'favorite'] as const;
+export const BATCHED_SYNC_ENTITIES = [
+  'playback_state',
+  'favorite',
+  'setting',
+] as const;
 
 export type BatchedSyncEntity = (typeof BATCHED_SYNC_ENTITIES)[number];
 

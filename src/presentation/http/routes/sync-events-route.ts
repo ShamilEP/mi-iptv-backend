@@ -136,7 +136,7 @@ function parseBatchedEvent(
         statusCode: 400,
         headers: SYNC_JSON_HEADERS,
         body: {
-          error: `events[${index}].entity must be playback_state or favorite`,
+          error: `events[${index}].entity must be playback_state, favorite, or setting`,
           code: 'SYNC_BATCH_ENTITY_INVALID',
         },
       },
@@ -146,8 +146,10 @@ function parseBatchedEvent(
   if (entityRaw === 'playback_state') {
     return parsePlaybackBatchEvent(body, index);
   }
-
-  return parseFavoriteBatchEvent(body, index);
+  if (entityRaw === 'favorite') {
+    return parseFavoriteBatchEvent(body, index);
+  }
+  return parseSettingBatchEvent(body, index);
 }
 
 function parsePlaybackBatchEvent(
@@ -238,6 +240,38 @@ function parseFavoriteBatchEvent(
       syncVersion,
       ...(type !== undefined ? { type } : {}),
       ...(sortOrder !== undefined ? { sortOrder } : {}),
+      ...(clientReportedAt !== undefined ? { clientReportedAt } : {}),
+    },
+  };
+}
+
+function parseSettingBatchEvent(
+  body: Record<string, unknown>,
+  index: number,
+): { value: BatchedSyncEventInput } | { error: HttpResponse } {
+  const clientEventId = requiredString(body.clientEventId);
+  const syncVersion = requiredNumber(body.syncVersion);
+  const payload = asObject(body.payload);
+  if (clientEventId === null || syncVersion === null || payload === null) {
+    return {
+      error: {
+        statusCode: 400,
+        headers: SYNC_JSON_HEADERS,
+        body: {
+          error: `events[${index}] setting requires clientEventId, syncVersion, payload object`,
+          code: 'SYNC_PAYLOAD_INVALID',
+        },
+      },
+    };
+  }
+
+  const clientReportedAt = optionalDate(body.clientReportedAt);
+  return {
+    value: {
+      entity: 'setting',
+      clientEventId,
+      syncVersion,
+      payload,
       ...(clientReportedAt !== undefined ? { clientReportedAt } : {}),
     },
   };

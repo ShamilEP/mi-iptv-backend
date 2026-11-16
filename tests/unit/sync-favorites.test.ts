@@ -2,13 +2,16 @@ import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 import { DomainError } from '../../src/domain/shared/domain-error.js';
 import { AcceptBatchedSyncEvents } from '../../src/application/sync/accept-batched-sync-events.js';
+import { GetProfileSettings } from '../../src/application/sync/get-profile-settings.js';
 import { ListFavorites } from '../../src/application/sync/list-favorites.js';
 import { SetFavorite } from '../../src/application/sync/set-favorite.js';
 import { UpsertPlaybackState } from '../../src/application/sync/upsert-playback-state.js';
 import { ListPlaybackHistory } from '../../src/application/sync/list-playback-history.js';
+import { UpsertProfileSettings } from '../../src/application/sync/upsert-profile-settings.js';
 import { InMemoryFavoriteSyncRepository } from '../../src/infrastructure/persistence/in-memory-favorite-sync-repository.js';
 import { InMemoryPlaybackSyncRepository } from '../../src/infrastructure/persistence/in-memory-playback-sync-repository.js';
 import { InMemoryProfileRepository } from '../../src/infrastructure/persistence/in-memory-profile-repository.js';
+import { InMemorySettingsSyncRepository } from '../../src/infrastructure/persistence/in-memory-settings-sync-repository.js';
 import { createSyncRoutes } from '../../src/presentation/http/routes/sync-routes.js';
 import { seedTestProfile } from './helpers/seed-test-profile.js';
 
@@ -258,14 +261,22 @@ describe('GET/POST /api/v1/sync/favorites routes (BE-063)', () => {
       playbackRepo,
       api.profiles,
     );
+    const settings = new InMemorySettingsSyncRepository();
+    const upsertProfileSettings = new UpsertProfileSettings(
+      settings,
+      api.profiles,
+    );
     const routes = createSyncRoutes({
       upsertPlaybackState,
       listPlaybackHistory: new ListPlaybackHistory(playbackRepo, api.profiles),
       listFavorites: api.list,
       setFavorite: api.set,
+      getProfileSettings: new GetProfileSettings(settings, api.profiles),
+      upsertProfileSettings,
       acceptBatchedSyncEvents: new AcceptBatchedSyncEvents(
         upsertPlaybackState,
         api.set,
+        upsertProfileSettings,
       ),
     });
     const listRoute = routes.find(

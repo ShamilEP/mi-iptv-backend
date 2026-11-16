@@ -10,6 +10,10 @@ import type {
   UpsertPlaybackState,
   UpsertPlaybackStateInput,
 } from './upsert-playback-state.js';
+import type {
+  UpsertProfileSettings,
+  UpsertProfileSettingsInput,
+} from './upsert-profile-settings.js';
 
 type PlaybackBatchEvent = {
   readonly entity: 'playback_state';
@@ -22,7 +26,17 @@ type FavoriteBatchEvent = {
   readonly entity: 'favorite';
 } & Omit<SetFavoriteInput, 'accountId' | 'profileId' | 'deviceId'>;
 
-export type BatchedSyncEventInput = PlaybackBatchEvent | FavoriteBatchEvent;
+type SettingBatchEvent = {
+  readonly entity: 'setting';
+} & Omit<
+  UpsertProfileSettingsInput,
+  'accountId' | 'profileId' | 'deviceId'
+>;
+
+export type BatchedSyncEventInput =
+  | PlaybackBatchEvent
+  | FavoriteBatchEvent
+  | SettingBatchEvent;
 
 export type AcceptBatchedSyncEventsInput = {
   readonly accountId: string;
@@ -48,13 +62,14 @@ export type AcceptBatchedSyncEventsResult = {
 };
 
 /**
- * POST /api/v1/sync/events — drain offline outbox batches (BE-067 / SRS §7).
+ * POST /api/v1/sync/events — drain offline outbox batches (BE-067 / SRS §7 / BE-106).
  * Reuses single-write use cases so per-event clientEventId idempotency is unchanged.
  */
 export class AcceptBatchedSyncEvents {
   constructor(
     private readonly upsertPlaybackState: UpsertPlaybackState,
     private readonly setFavorite: SetFavorite,
+    private readonly upsertProfileSettings: UpsertProfileSettings,
   ) {}
 
   async execute(
@@ -138,8 +153,32 @@ export class AcceptBatchedSyncEvents {
       };
     }
 
+    if (event.entity === 'setting') {
+      const result = await this.upsertProfileSettings.execute({
+        accountId: context.accountId,
+        profileId: context.profileId,
+        deviceId: context.deviceId,
+        clientEventId: event.clientEventId,
+        syncVersion: event.syncVersion,
+        payload: event.payload,
+        ...(event.clientReportedAt !== undefined
+          ? { clientReportedAt: event.clientReportedAt }
+          : {}),
+      });
+      return {
+        entity: 'setting',
+        clientEventId: event.clientEventId,
+        accepted: result.accepted,
+        currentVersion: result.currentVersion,
+        serverTimestamp: result.serverTimestamp,
+        resolvedBy: result.resolvedBy,
+        changeSeq: result.changeSeq,
+        conflict: result.conflict,
+      };
+    }
+
     throw new DomainError(
-      'entity must be playback_state or favorite',
+      'entity must be playback_state, favorite, or setting',
       'SYNC_BATCH_ENTITY_INVALID',
     );
   }

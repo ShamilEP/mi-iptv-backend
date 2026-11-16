@@ -14,6 +14,10 @@ Optional: `duration`, `sourceId`, `forceReset` (default false), `clientReportedA
 
 Required: `clientEventId`, `itemId`, `action`, `syncVersion`.
 
+## Settings write (BE-106)
+
+Required: `clientEventId`, `syncVersion`, `payload` (object). Only syncable keys are persisted — see `docs/backend/106-settings-sync.md`.
+
 ## Delta pull
 
 Use `GET /sync/state?cursor={changeSeq}` (account `change_seq`), not wall-clock client time.
