@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Mi IPTV API — Swagger UI</title>
+    <link
+      rel="stylesheet"
+      href="https://unpkg.com/swagger-ui-dist@5.17.14/swagger-ui.css"
+      crossorigin="anonymous"
+    />
+    <style>
+      body {
+        margin: 0;
+        background: #fafafa;
+      }
+      .topbar {
+        display: none;
+      }
+      .mi-banner {
+        font-family: system-ui, sans-serif;
+        padding: 12px 20px;
+        background: #111827;
+        color: #f9fafb;
+        font-size: 14px;
+      }
+      .mi-banner code {
+        background: #374151;
+        padding: 2px 6px;
+        border-radius: 4px;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="mi-banner">
+      Mi IPTV Backend — OpenAPI MVP v1 (<code>openapi/openapi.json</code>). For
+      parallel TV / companion / QA work use
+      <code>npm run mock:api</code> alongside this docs server.
+    </div>
+    <div id="swagger-ui"></div>
+    <script
+      src="https://unpkg.com/swagger-ui-dist@5.17.14/swagger-ui-bundle.js"
+      crossorigin="anonymous"
+    ></script>
+    <script
+      src="https://unpkg.com/swagger-ui-dist@5.17.14/swagger-ui-standalone-preset.js"
+      crossorigin="anonymous"
+    ></script>
+    <script>
+      window.ui = SwaggerUIBundle({
+        url: '/openapi.json',
+        dom_id: '#swagger-ui',
+        deepLinking: true,
+        presets: [SwaggerUIBundle.presets.apis, SwaggerUIStandalonePreset],
+        layout: 'StandaloneLayout',
+        tryItOutEnabled: true,
+      });
+    </script>
+  </body>
+</html>
