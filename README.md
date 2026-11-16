@@ -17,6 +17,16 @@ npm run dev
 
 Health check: `GET http://localhost:3000/health`
 
+## API docs & mock (BE-004)
+
+```bash
+npm run docs:api                 # Swagger UI → http://localhost:4010/docs
+npm run mock:api                 # OpenAPI mock → http://localhost:4011
+npm run openapi:generate-clients # TypeScript stubs → generated/clients/typescript/
+```
+
+See `docs/backend/004-api-docs-mock.md`.
+
 ## Layout
 
 - `src/domain` — domain model
