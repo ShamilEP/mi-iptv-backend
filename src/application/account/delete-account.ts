@@ -11,6 +11,7 @@ import type { ProfileRepository } from '../ports/profile-repository.js';
 import type { RefreshTokenRepository } from '../ports/refresh-token-repository.js';
 import type { SourceRepository } from '../ports/source-repository.js';
 import type { SyncLogRepository } from '../ports/sync-log-repository.js';
+import type { SettingsSyncRepository } from '../ports/settings-sync-repository.js';
 import type { WatchHistoryRepository } from '../ports/watch-history-repository.js';
 
 export type DeleteAccountInput = {
@@ -39,6 +40,7 @@ export class DeleteAccount {
     private readonly playback: PlaybackSyncRepository,
     private readonly syncLog: SyncLogRepository,
     private readonly watchHistory: WatchHistoryRepository,
+    private readonly settings: SettingsSyncRepository,
     private readonly accessTokenTtlSeconds: number,
   ) {}
 
@@ -75,6 +77,7 @@ export class DeleteAccount {
     await this.favorites.deleteByAccount(claims.accountId);
     await this.playback.deleteByAccount(claims.accountId);
     await this.watchHistory.deleteByAccount(claims.accountId);
+    await this.settings.deleteByAccount(claims.accountId);
     await this.syncLog.deleteByAccount(claims.accountId);
     await this.sources.deleteByAccount(claims.accountId);
     await this.devices.deleteByAccount(claims.accountId);

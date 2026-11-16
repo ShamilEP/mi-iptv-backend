@@ -6,10 +6,13 @@ import { SetFavorite } from '../../src/application/sync/set-favorite.js';
 import { UpsertPlaybackState } from '../../src/application/sync/upsert-playback-state.js';
 import { DomainError } from '../../src/domain/shared/domain-error.js';
 import { SYNC_BATCH_MAX_EVENTS } from '../../src/domain/sync/sync-batch.js';
+import { GetProfileSettings } from '../../src/application/sync/get-profile-settings.js';
 import { ListPlaybackHistory } from '../../src/application/sync/list-playback-history.js';
+import { UpsertProfileSettings } from '../../src/application/sync/upsert-profile-settings.js';
 import { InMemoryFavoriteSyncRepository } from '../../src/infrastructure/persistence/in-memory-favorite-sync-repository.js';
 import { InMemoryPlaybackSyncRepository } from '../../src/infrastructure/persistence/in-memory-playback-sync-repository.js';
 import { InMemoryProfileRepository } from '../../src/infrastructure/persistence/in-memory-profile-repository.js';
+import { InMemorySettingsSyncRepository } from '../../src/infrastructure/persistence/in-memory-settings-sync-repository.js';
 import { InMemorySyncLogRepository } from '../../src/infrastructure/persistence/in-memory-sync-log-repository.js';
 import { createSyncRoutes } from '../../src/presentation/http/routes/sync-routes.js';
 import { seedTestProfile } from './helpers/seed-test-profile.js';
@@ -33,15 +36,24 @@ async function buildStack() {
   const setFavorite = new SetFavorite(favoriteRepo, profiles);
   const listFavorites = new ListFavorites(favoriteRepo, profiles);
   const listPlaybackHistory = new ListPlaybackHistory(playbackRepo, profiles);
+  const settingsRepo = new InMemorySettingsSyncRepository(syncLog);
+  const getProfileSettings = new GetProfileSettings(settingsRepo, profiles);
+  const upsertProfileSettings = new UpsertProfileSettings(
+    settingsRepo,
+    profiles,
+  );
   const acceptBatchedSyncEvents = new AcceptBatchedSyncEvents(
     upsertPlaybackState,
     setFavorite,
+    upsertProfileSettings,
   );
   return {
     upsertPlaybackState,
     setFavorite,
     listFavorites,
     listPlaybackHistory,
+    getProfileSettings,
+    upsertProfileSettings,
     acceptBatchedSyncEvents,
     favoriteRepo,
     profiles,

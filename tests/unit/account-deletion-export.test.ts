@@ -23,6 +23,7 @@ import { InMemoryProfileRepository } from '../../src/infrastructure/persistence/
 import { InMemoryRefreshTokenRepository } from '../../src/infrastructure/persistence/in-memory-refresh-token-repository.js';
 import { InMemorySourceRepository } from '../../src/infrastructure/persistence/in-memory-source-repository.js';
 import { InMemorySyncLogRepository } from '../../src/infrastructure/persistence/in-memory-sync-log-repository.js';
+import { InMemorySettingsSyncRepository } from '../../src/infrastructure/persistence/in-memory-settings-sync-repository.js';
 import { InMemoryWatchHistoryRepository } from '../../src/infrastructure/persistence/in-memory-watch-history-repository.js';
 import { EnvJwtSigningKeyStore } from '../../src/infrastructure/secrets/env-jwt-signing-key-store.js';
 import { createAccountRoutes } from '../../src/presentation/http/routes/account-routes.js';
@@ -58,6 +59,7 @@ async function createStack() {
   const favorites = new InMemoryFavoriteSyncRepository(syncLog);
   const playback = new InMemoryPlaybackSyncRepository(syncLog);
   const watchHistory = new InMemoryWatchHistoryRepository();
+  const settings = new InMemorySettingsSyncRepository(syncLog);
   const issuePair = new IssueAuthTokenPair(access, refreshService);
   const denyList = new RedisAccessTokenDenyList(new InMemoryRedisClient());
   const login = new LoginAccount(accounts, hasher, issuePair, refreshTokens);
@@ -89,6 +91,7 @@ async function createStack() {
     playback,
     syncLog,
     watchHistory,
+    settings,
     ttl.accessTokenTtlSeconds,
   );
   const assertActive = new AssertAccessTokenActive(access, denyList);

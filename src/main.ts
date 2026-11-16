@@ -43,10 +43,12 @@ import { TestSource } from './application/sources/test-source.js';
 import { UpdateSource } from './application/sources/update-source.js';
 import { ValidateSourceUrl } from './application/sources/validate-source-url.js';
 import { AcceptBatchedSyncEvents } from './application/sync/accept-batched-sync-events.js';
+import { GetProfileSettings } from './application/sync/get-profile-settings.js';
 import { ListFavorites } from './application/sync/list-favorites.js';
 import { ListPlaybackHistory } from './application/sync/list-playback-history.js';
 import { SetFavorite } from './application/sync/set-favorite.js';
 import { UpsertPlaybackState } from './application/sync/upsert-playback-state.js';
+import { UpsertProfileSettings } from './application/sync/upsert-profile-settings.js';
 import { loadConfig, loadInjectedSecrets } from './config/env.js';
 import { loadJwtTokenTtlConfig } from './config/jwt-tokens.js';
 import { loadM3uParserLimits } from './config/m3u-parser.js';
@@ -77,6 +79,7 @@ import { InMemoryProfileRepository } from './infrastructure/persistence/in-memor
 import { InMemorySyncLogRepository } from './infrastructure/persistence/in-memory-sync-log-repository.js';
 import { InMemoryRefreshTokenRepository } from './infrastructure/persistence/in-memory-refresh-token-repository.js';
 import { InMemorySourceRepository } from './infrastructure/persistence/in-memory-source-repository.js';
+import { InMemorySettingsSyncRepository } from './infrastructure/persistence/in-memory-settings-sync-repository.js';
 import { InMemoryWatchHistoryRepository } from './infrastructure/persistence/in-memory-watch-history-repository.js';
 import { InMemoryPushNotifier } from './infrastructure/push/in-memory-push-notifier.js';
 import { InMemoryDeviceSocketPresence } from './infrastructure/realtime/in-memory-device-socket-presence.js';
@@ -273,9 +276,23 @@ async function bootstrap(): Promise<void> {
     playbackSyncRepository,
     profileRepository,
   );
+
+  // BE-106: syncable profile settings (same LWW rules as favorites).
+  const settingsSyncRepository = new InMemorySettingsSyncRepository(
+    syncLogRepository,
+  );
+  const getProfileSettings = new GetProfileSettings(
+    settingsSyncRepository,
+    profileRepository,
+  );
+  const upsertProfileSettings = new UpsertProfileSettings(
+    settingsSyncRepository,
+    profileRepository,
+  );
   const acceptBatchedSyncEvents = new AcceptBatchedSyncEvents(
     upsertPlaybackState,
     setFavorite,
+    upsertProfileSettings,
   );
 
   // BE-105: per-profile watch history (separate from Continue Watching).
@@ -327,6 +344,7 @@ async function bootstrap(): Promise<void> {
     playbackSyncRepository,
     syncLogRepository,
     watchHistoryRepository,
+    settingsSyncRepository,
     jwtTtl.accessTokenTtlSeconds,
   );
 
@@ -347,6 +365,7 @@ async function bootstrap(): Promise<void> {
     favoriteSyncRepository,
     playbackSyncRepository,
     watchHistoryRepository,
+    settingsSyncRepository,
   );
   const parentalPinThrottle = new ParentalPinThrottle(sessionRedis, logger);
   const setParentalPin = new SetParentalPin(
@@ -431,6 +450,8 @@ async function bootstrap(): Promise<void> {
     listPlaybackHistory,
     listFavorites,
     setFavorite,
+    getProfileSettings,
+    upsertProfileSettings,
     acceptBatchedSyncEvents,
   })) {
     httpServer.register(route);

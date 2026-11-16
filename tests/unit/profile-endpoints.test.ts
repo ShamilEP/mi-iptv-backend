@@ -20,6 +20,7 @@ import { InMemoryFavoriteSyncRepository } from '../../src/infrastructure/persist
 import { InMemoryPlaybackSyncRepository } from '../../src/infrastructure/persistence/in-memory-playback-sync-repository.js';
 import { InMemoryProfileRepository } from '../../src/infrastructure/persistence/in-memory-profile-repository.js';
 import { InMemoryRefreshTokenRepository } from '../../src/infrastructure/persistence/in-memory-refresh-token-repository.js';
+import { InMemorySettingsSyncRepository } from '../../src/infrastructure/persistence/in-memory-settings-sync-repository.js';
 import { InMemoryWatchHistoryRepository } from '../../src/infrastructure/persistence/in-memory-watch-history-repository.js';
 import { EnvJwtSigningKeyStore } from '../../src/infrastructure/secrets/env-jwt-signing-key-store.js';
 import { createProfilesRoutes } from '../../src/presentation/http/routes/profiles-routes.js';
@@ -52,6 +53,7 @@ async function createStack() {
   const favorites = new InMemoryFavoriteSyncRepository();
   const playback = new InMemoryPlaybackSyncRepository();
   const watchHistory = new InMemoryWatchHistoryRepository();
+  const settings = new InMemorySettingsSyncRepository();
   const createDefaultProfile = new CreateDefaultProfile(profiles);
   const issuePair = new IssueAuthTokenPair(access, refresh);
   const register = new RegisterAccount(
@@ -71,6 +73,7 @@ async function createStack() {
     favorites,
     playback,
     watchHistory,
+    settings,
   );
   return {
     register,
