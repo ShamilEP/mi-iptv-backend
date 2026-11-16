@@ -1,4 +1,9 @@
+import type { AccessTokenClaims } from '../../domain/auth/access-token-claims.js';
+
 export type HttpMethod = 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE';
+
+/** Gateway auth mode (BE-006). Default for `/api/v1` routes is `required`. */
+export type HttpRouteAuth = 'public' | 'required';
 
 export type HttpRequest = {
   readonly method: HttpMethod | string;
@@ -8,9 +13,14 @@ export type HttpRequest = {
   readonly body?: unknown;
   /** Path template params, e.g. `{ id: "..." }` for `/api/v1/sources/{id}`. */
   readonly params?: Readonly<Record<string, string>>;
-  /** Sprint 0 account scope from `x-account-id` until JWT auth (BE-023). */
+  /**
+   * Account scope from verified JWT (gateway) or test harness.
+   * Do not trust client-supplied `x-account-id` alone in production.
+   */
   readonly accountId?: string | null;
-  /** Client IP for rate limits (BE-028); from socket or X-Forwarded-For. */
+  /** Verified access JWT claims when gateway JWT middleware ran. */
+  readonly auth?: AccessTokenClaims | null;
+  /** Client IP for rate limits (BE-028 / BE-006); from socket or X-Forwarded-For. */
   readonly clientIp?: string | null;
 };
 
@@ -28,6 +38,8 @@ export type HttpRoute = {
   readonly method: HttpMethod;
   readonly path: string;
   readonly handler: HttpRouteHandler;
+  /** When omitted: `/health` and `/realtime` are public; all other routes require JWT. */
+  readonly auth?: HttpRouteAuth;
 };
 
 export interface HttpServer {

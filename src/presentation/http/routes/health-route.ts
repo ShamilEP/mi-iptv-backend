@@ -5,6 +5,7 @@ export function createHealthRoute(getHealthStatus: GetHealthStatus): HttpRoute {
   return {
     method: 'GET',
     path: '/health',
+    auth: 'public',
     handler: () => ({
       statusCode: 200,
       headers: { 'content-type': 'application/json; charset=utf-8' },

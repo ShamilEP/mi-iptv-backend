@@ -8,18 +8,25 @@ import type {
 import type { Logger } from '../../application/ports/logger.js';
 import { buildErrorEnvelope } from '../../domain/api/error-envelope.js';
 import { resolveTraceId } from '../../shared/trace-id.js';
+import type { ApiGateway } from './gateway/api-gateway.js';
 import { matchRoutePath } from './match-route-path.js';
 
 /**
  * Thin adapter over Node's built-in `node:http`.
  * Replaceable later by an approved third-party HTTP framework adapter
  * that implements the same `HttpServer` port.
+ *
+ * When an `ApiGateway` is provided (BE-006), runs validation / JWT /
+ * rate-limit hooks before the matched route handler.
  */
 export class NodeHttpServer implements HttpServer {
   private readonly routes: HttpRoute[] = [];
   private server: http.Server | undefined;
 
-  constructor(private readonly logger?: Logger) {}
+  constructor(
+    private readonly logger?: Logger,
+    private readonly gateway?: ApiGateway,
+  ) {}
 
   register(route: HttpRoute): void {
     this.routes.push(route);
@@ -61,10 +68,9 @@ export class NodeHttpServer implements HttpServer {
     const host = req.headers.host ?? 'localhost';
     const url = new URL(req.url ?? '/', `http://${host}`);
     const traceId = resolveTraceId(req.headers);
-    const accountId = readOptionalHeader(req.headers, 'x-account-id');
-    const requestLogger = this.logger?.child({
+    let requestLogger = this.logger?.child({
       trace_id: traceId,
-      account_id: accountId,
+      account_id: null,
     });
 
     const matched = this.routes
@@ -97,8 +103,25 @@ export class NodeHttpServer implements HttpServer {
 
     let body: unknown;
     try {
-      body = await readJsonBody(req);
-    } catch {
+      body = await readJsonBody(
+        req,
+        this.gateway?.maxJsonBodyBytes ?? Number.POSITIVE_INFINITY,
+      );
+    } catch (error: unknown) {
+      if (error instanceof BodyTooLargeError) {
+        this.write(
+          res,
+          413,
+          buildErrorEnvelope({
+            error: 'Request body too large',
+            code: 'REQUEST_BODY_TOO_LARGE',
+            traceId,
+            details: { maxBytes: error.maxBytes },
+          }),
+          traceId,
+        );
+        return;
+      }
       this.write(
         res,
         400,
@@ -112,15 +135,46 @@ export class NodeHttpServer implements HttpServer {
       return;
     }
 
-    const request: HttpRequest = {
+    let request: HttpRequest = {
       method,
       url: url.pathname,
       headers: req.headers,
       body,
       params: matched.params,
-      accountId,
+      accountId: null,
+      auth: null,
       clientIp: resolveClientIp(req),
     };
+
+    if (this.gateway !== undefined) {
+      const gatewayResult = await this.gateway.beforeHandler(
+        request,
+        matched.route,
+        traceId,
+      );
+      if ('statusCode' in gatewayResult) {
+        requestLogger?.info('HTTP gateway rejected request', {
+          method,
+          path: url.pathname,
+          statusCode: gatewayResult.statusCode,
+        });
+        this.write(
+          res,
+          gatewayResult.statusCode,
+          gatewayResult.body,
+          traceId,
+          gatewayResult.headers,
+        );
+        return;
+      }
+      request = gatewayResult.request;
+      if (request.accountId) {
+        requestLogger = this.logger?.child({
+          trace_id: traceId,
+          account_id: request.accountId,
+        });
+      }
+    }
 
     try {
       const response = await matched.route.handler(request);
@@ -170,16 +224,11 @@ export class NodeHttpServer implements HttpServer {
   }
 }
 
-function readOptionalHeader(
-  headers: http.IncomingHttpHeaders,
-  name: string,
-): string | null {
-  const raw = headers[name];
-  const value = Array.isArray(raw) ? raw[0] : raw;
-  if (typeof value !== 'string' || value.trim() === '') {
-    return null;
+class BodyTooLargeError extends Error {
+  constructor(readonly maxBytes: number) {
+    super('Request body too large');
+    this.name = 'BodyTooLargeError';
   }
-  return value.trim();
 }
 
 function resolveClientIp(req: http.IncomingMessage): string {
@@ -194,15 +243,37 @@ function resolveClientIp(req: http.IncomingMessage): string {
   return remote !== undefined && remote.trim() !== '' ? remote : 'unknown';
 }
 
-async function readJsonBody(req: http.IncomingMessage): Promise<unknown> {
+function readOptionalHeader(
+  headers: http.IncomingHttpHeaders,
+  name: string,
+): string | null {
+  const raw = headers[name];
+  const value = Array.isArray(raw) ? raw[0] : raw;
+  if (typeof value !== 'string' || value.trim() === '') {
+    return null;
+  }
+  return value.trim();
+}
+
+async function readJsonBody(
+  req: http.IncomingMessage,
+  maxBytes: number,
+): Promise<unknown> {
   const method = (req.method ?? 'GET').toUpperCase();
   if (method === 'GET' || method === 'HEAD' || method === 'DELETE') {
     return undefined;
   }
 
   const chunks: Buffer[] = [];
+  let total = 0;
   for await (const chunk of req) {
-    chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk));
+    const buf = Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk);
+    total += buf.length;
+    if (Number.isFinite(maxBytes) && total > maxBytes) {
+      req.destroy();
+      throw new BodyTooLargeError(maxBytes);
+    }
+    chunks.push(buf);
   }
   if (chunks.length === 0) {
     return undefined;

@@ -35,21 +35,25 @@ export function createAuthRoutes(deps: {
     {
       method: 'POST',
       path: '/api/v1/auth/register',
+      auth: 'public',
       handler: (request) => handleRegister(request, deps.registerAccount),
     },
     {
       method: 'POST',
       path: '/api/v1/auth/login',
+      auth: 'public',
       handler: (request) => handleLogin(request, deps.loginAccount),
     },
     {
       method: 'POST',
       path: '/api/v1/auth/refresh',
+      auth: 'public',
       handler: (request) => handleRefresh(request, deps.refreshAuthSession),
     },
     {
       method: 'POST',
       path: '/api/v1/auth/logout',
+      auth: 'required',
       handler: (request) => handleLogout(request, deps.logoutAccount),
     },
   ];
