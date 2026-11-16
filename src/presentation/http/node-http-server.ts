@@ -6,6 +6,7 @@ import type {
   HttpServer,
 } from '../../application/ports/http-server.js';
 import type { Logger } from '../../application/ports/logger.js';
+import { buildErrorEnvelope } from '../../domain/api/error-envelope.js';
 import { resolveTraceId } from '../../shared/trace-id.js';
 import { matchRoutePath } from './match-route-path.js';
 
@@ -81,7 +82,16 @@ export class NodeHttpServer implements HttpServer {
 
     if (!matched) {
       requestLogger?.warn('HTTP not found', { method, path: url.pathname });
-      this.write(res, 404, { error: 'Not Found' }, traceId);
+      this.write(
+        res,
+        404,
+        buildErrorEnvelope({
+          error: 'Not Found',
+          code: 'NOT_FOUND',
+          traceId,
+        }),
+        traceId,
+      );
       return;
     }
 
@@ -89,7 +99,16 @@ export class NodeHttpServer implements HttpServer {
     try {
       body = await readJsonBody(req);
     } catch {
-      this.write(res, 400, { error: 'Invalid JSON body' }, traceId);
+      this.write(
+        res,
+        400,
+        buildErrorEnvelope({
+          error: 'Invalid JSON body',
+          code: 'REQUEST_BODY_INVALID',
+          traceId,
+        }),
+        traceId,
+      );
       return;
     }
 
@@ -123,7 +142,16 @@ export class NodeHttpServer implements HttpServer {
         path: url.pathname,
         errorName: error instanceof Error ? error.name : 'UnknownError',
       });
-      this.write(res, 500, { error: 'Internal Server Error' }, traceId);
+      this.write(
+        res,
+        500,
+        buildErrorEnvelope({
+          error: 'Internal Server Error',
+          code: 'INTERNAL',
+          traceId,
+        }),
+        traceId,
+      );
     }
   }
 

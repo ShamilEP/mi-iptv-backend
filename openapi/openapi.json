@@ -3,7 +3,7 @@
   "info": {
     "title": "Mi IPTV Backend API",
     "version": "1.0.0",
-    "description": "Mi IPTV Backend API — **MVP OpenAPI v1 freeze (BE-003 / ADR-010 Package A)**. Public REST under `/api/v1`; `/health` is the ALB probe; `/realtime` is the authenticated WSS upgrade. EPG is Release 1 and omitted. Favorites live under `/sync/favorites`."
+    "description": "Mi IPTV Backend API — **MVP OpenAPI v1 freeze (BE-003 / ADR-010 Package A)** with cross-cutting conventions (BE-005 / ADR-011). Public REST under /api/v1; /health is the ALB probe; /realtime is the authenticated WSS upgrade. Errors use ErrorEnvelope; list pages use cursor pagination; sync writes require clientEventId; responses echo x-trace-id; timestamps are UTC with server clock authoritative. EPG is Release 1 and omitted. Favorites live under /sync/favorites."
   },
   "paths": {
     "/health": {
@@ -3384,7 +3384,8 @@
           "code": {
             "type": "string"
           }
-        }
+        },
+        "description": "Auth error body; compatible with ErrorEnvelope (BE-005)."
       },
       "AuthRateLimitError": {
         "type": "object",
@@ -4752,7 +4753,8 @@
       "CatalogListResponse": {
         "type": "object",
         "required": [
-          "items"
+          "items",
+          "nextCursor"
         ],
         "additionalProperties": false,
         "properties": {
@@ -4768,7 +4770,8 @@
               "null"
             ]
           }
-        }
+        },
+        "description": "Catalog list page following CursorPage (items + nextCursor)."
       },
       "CatalogItemSummary": {
         "type": "object",
@@ -5135,6 +5138,88 @@
             "type": "string",
             "format": "date-time"
           }
+        }
+      },
+      "ErrorEnvelope": {
+        "type": "object",
+        "required": [
+          "error",
+          "code"
+        ],
+        "description": "Canonical JSON error body (BE-005 / ADR-011). Specializations may add fields (e.g. retryAfter).",
+        "properties": {
+          "error": {
+            "type": "string",
+            "description": "Human-readable message; never secrets"
+          },
+          "code": {
+            "type": "string",
+            "description": "Stable machine-readable code"
+          },
+          "traceId": {
+            "type": "string",
+            "format": "uuid",
+            "description": "Same value as response header x-trace-id when included in body"
+          },
+          "details": {
+            "type": "object",
+            "additionalProperties": true,
+            "description": "Safe structured hints only"
+          }
+        }
+      },
+      "CursorPage": {
+        "type": "object",
+        "required": [
+          "items",
+          "nextCursor"
+        ],
+        "description": "Canonical cursor page (BE-005). Concrete list schemas (e.g. CatalogListResponse) follow this shape.",
+        "additionalProperties": false,
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {}
+          },
+          "nextCursor": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Opaque cursor for the next page; null when exhausted"
+          }
+        }
+      }
+    },
+    "parameters": {
+      "XTraceId": {
+        "name": "x-trace-id",
+        "in": "header",
+        "required": false,
+        "description": "Optional client correlation id. Server echoes or generates; always returned on the response (BE-005).",
+        "schema": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        }
+      },
+      "PageCursor": {
+        "name": "cursor",
+        "in": "query",
+        "required": false,
+        "description": "Opaque pagination cursor; omit or empty to start (BE-005).",
+        "schema": {
+          "type": "string"
+        }
+      },
+      "PageLimit": {
+        "name": "limit",
+        "in": "query",
+        "required": false,
+        "description": "Page size (resource-specific default and max; BE-005).",
+        "schema": {
+          "type": "integer",
+          "minimum": 1
         }
       }
     }

@@ -524,3 +524,15 @@ export type IngestQoeResponse = {
 export type NetworkDiagnosticsResponse = {
   readonly "serverTimestamp": string;
 };
+
+export type ErrorEnvelope = {
+  readonly "error": string;
+  readonly "code": string;
+  readonly "traceId"?: string;
+  readonly "details"?: Readonly<Record<string, unknown>>;
+};
+
+export type CursorPage = {
+  readonly "items": ReadonlyArray<unknown>;
+  readonly "nextCursor"?: string;
+};
