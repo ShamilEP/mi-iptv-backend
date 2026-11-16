@@ -58,7 +58,8 @@ Passwords, tokens, and IPTV source credentials are **secrets**, not “personal 
 | `accounts.email` | **Personal** | Only §6 personal data |
 | `accounts.password_hash` | Secret | PHC; never plaintext |
 | `accounts.role`, `status`, `email_verified_at`, `deletion_requested_at`, `last_login_at`, `change_seq`, `tombstone_floor`, timestamps | Technical / Functional | Operational account state — not additional contact PII |
-| `profiles.name`, `avatar`, `language`, `region`, `autoplay`, `subtitle_prefs`, `restrictions` | Functional | Household profile label — policy: **do not** solicit legal name / government id |
+| `profiles.name`, `avatar`, `language`, `region`, `autoplay`, `subtitle_prefs`, `restrictions` | Functional | Household profile label — policy: **do not** solicit legal name / government id; `restrictions.kidMode` is a preference flag (SEC-044), not child identity |
+| `profiles.pin_hash` | Secret | Parental PIN Argon2id PHC (BE-037 / SEC-044); never returned; API exposes `pinConfigured` only |
 | `devices` (`device_type`, `platform`, `name`, `model`, `app_version`, `os_version`, `push_token`, `paired_at`, `last_seen_at`, `revoked_at`) | Functional / Technical | Push token not exposed on APIs |
 | `refresh_tokens.token_hash` (+ family / device / revoke metadata) | Secret | |
 | `password_reset_tokens.token_hash` | Secret | |

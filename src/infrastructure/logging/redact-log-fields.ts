@@ -34,6 +34,9 @@ const SENSITIVE_EXACT = new Set(
     'passwordhash',
     'pin_hash',
     'pinhash',
+    // Parental PIN cleartext (SEC-044 / BE-037) — never log request bodies.
+    'pin',
+    'currentpin',
   ].map((name) => name.toLowerCase()),
 );
 
