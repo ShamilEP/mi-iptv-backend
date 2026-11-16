@@ -1,9 +1,11 @@
 import { readFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { MVP_V1_OPERATIONS } from '../openapi/mvp-v1-inventory.js';
 import { ROUTE_CATALOG } from '../src/presentation/http/route-catalog.js';
 
 type OpenApiDocument = {
+  readonly info?: { readonly version?: string };
   readonly paths?: Readonly<
     Record<string, Readonly<Record<string, unknown>> | undefined>
   >;
@@ -45,30 +47,64 @@ function main(): void {
   const catalogOps = new Set(
     ROUTE_CATALOG.map((entry) => operationKey(entry.method, entry.path)),
   );
+  const mvpOps = new Set(
+    MVP_V1_OPERATIONS.map((entry) => operationKey(entry.method, entry.path)),
+  );
 
   const missingInOpenApi = [...catalogOps].filter(
     (key) => !openApiOps.has(key),
   );
-  const missingInCatalog = [...openApiOps].filter(
-    (key) => !catalogOps.has(key),
-  );
+  const catalogNotInMvp = [...catalogOps].filter((key) => !mvpOps.has(key));
+  const mvpMissingInOpenApi = [...mvpOps].filter((key) => !openApiOps.has(key));
+  const openApiOutsideMvp = [...openApiOps].filter((key) => !mvpOps.has(key));
 
-  if (missingInOpenApi.length === 0 && missingInCatalog.length === 0) {
-    console.log(
-      `OpenAPI verification passed (${catalogOps.size} operation(s) aligned).`,
+  const version = doc.info?.version;
+  const versionOk = version === '1.0.0';
+
+  let failed = false;
+
+  if (!versionOk) {
+    failed = true;
+    console.error(
+      `OpenAPI info.version must be frozen at 1.0.0 (found ${String(version)}).`,
     );
-    return;
   }
 
   if (missingInOpenApi.length > 0) {
+    failed = true;
     console.error('Routes in catalog missing from OpenAPI:');
     for (const key of missingInOpenApi) console.error(`  - ${key}`);
   }
-  if (missingInCatalog.length > 0) {
-    console.error('OpenAPI operations missing from route catalog:');
-    for (const key of missingInCatalog) console.error(`  - ${key}`);
+
+  if (catalogNotInMvp.length > 0) {
+    failed = true;
+    console.error('Implemented catalog routes missing from MVP v1 inventory:');
+    for (const key of catalogNotInMvp) console.error(`  - ${key}`);
   }
-  process.exitCode = 1;
+
+  if (mvpMissingInOpenApi.length > 0) {
+    failed = true;
+    console.error('MVP v1 inventory operations missing from OpenAPI:');
+    for (const key of mvpMissingInOpenApi) console.error(`  - ${key}`);
+  }
+
+  if (openApiOutsideMvp.length > 0) {
+    failed = true;
+    console.error(
+      'OpenAPI operations outside MVP v1 freeze (remove or extend inventory):',
+    );
+    for (const key of openApiOutsideMvp) console.error(`  - ${key}`);
+  }
+
+  if (failed) {
+    process.exitCode = 1;
+    return;
+  }
+
+  const pending = MVP_V1_OPERATIONS.filter((op) => !op.implemented).length;
+  console.log(
+    `OpenAPI MVP v1 freeze verified (${mvpOps.size} operations; ${catalogOps.size} implemented; ${pending} contract-only; version ${version}).`,
+  );
 }
 
 main();
