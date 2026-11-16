@@ -433,7 +433,7 @@ export type ConfirmPasswordResetRequest = {
 
 export type CatalogListResponse = {
   readonly "items": ReadonlyArray<CatalogItemSummary>;
-  readonly "nextCursor"?: string;
+  readonly "nextCursor": string;
 };
 
 export type CatalogItemSummary = {
@@ -534,5 +534,5 @@ export type ErrorEnvelope = {
 
 export type CursorPage = {
   readonly "items": ReadonlyArray<unknown>;
-  readonly "nextCursor"?: string;
+  readonly "nextCursor": string;
 };

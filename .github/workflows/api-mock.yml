@@ -1,0 +1,157 @@
+name: API contract tests and mock
+
+# INF-045 — OpenAPI contract tests in CI + host mock/docs for client teams.
+on:
+  pull_request:
+    branches:
+      - main
+      - develop
+      - 'release/**'
+  push:
+    branches:
+      - main
+      - develop
+  workflow_dispatch:
+
+concurrency:
+  group: api-mock-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+env:
+  MOCK_IMAGE_NAME: mi-iptv-api-mock
+
+jobs:
+  contract-tests:
+    name: OpenAPI contract tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version: '22'
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: OpenAPI vs code
+        run: npm run openapi:verify
+
+      - name: OpenAPI contract tests (mock)
+        run: npm run openapi:contract-test
+
+      - name: Upload docs + OpenAPI artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: api-contract-docs
+          path: |
+            openapi/openapi.json
+            docs/api/
+            generated/clients/typescript/
+          if-no-files-found: error
+
+  mock-image:
+    name: Build / smoke mock image
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    needs: contract-tests
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v4
+
+      - name: Build mock image
+        uses: docker/build-push-action@v7
+        with:
+          context: .
+          file: ./Dockerfile.api-mock
+          load: true
+          tags: ${{ env.MOCK_IMAGE_NAME }}:ci
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Smoke mock container
+        run: |
+          docker run -d --name api-mock -p 8080:8080 "${MOCK_IMAGE_NAME}:ci"
+          for i in $(seq 1 30); do
+            if curl -fsS "http://127.0.0.1:8080/health" >/tmp/health.json; then
+              break
+            fi
+            sleep 1
+          done
+          cat /tmp/health.json
+          grep -q '"status"' /tmp/health.json
+          curl -fsS "http://127.0.0.1:8080/openapi.json" | grep -q '"openapi"'
+          curl -fsS "http://127.0.0.1:8080/docs" | grep -qi 'swagger'
+          docker stop api-mock
+
+      - name: Configure AWS credentials (OIDC)
+        if: ${{ github.event_name != 'pull_request' && vars.AWS_ROLE_ARN != '' && vars.ECR_REGISTRY != '' }}
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ vars.AWS_ROLE_ARN }}
+          aws-region: ${{ vars.AWS_REGION || 'us-east-1' }}
+
+      - name: Login to Amazon ECR
+        if: ${{ github.event_name != 'pull_request' && vars.AWS_ROLE_ARN != '' && vars.ECR_REGISTRY != '' }}
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Push mock image to ECR
+        if: ${{ github.event_name != 'pull_request' && vars.AWS_ROLE_ARN != '' && vars.ECR_REGISTRY != '' }}
+        uses: docker/build-push-action@v7
+        with:
+          context: .
+          file: ./Dockerfile.api-mock
+          push: true
+          tags: |
+            ${{ vars.ECR_REGISTRY }}/${{ env.MOCK_IMAGE_NAME }}:sha-${{ github.sha }}
+            ${{ vars.ECR_REGISTRY }}/${{ env.MOCK_IMAGE_NAME }}:latest
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  publish-docs:
+    name: Publish Swagger UI (GitHub Pages)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    needs: contract-tests
+    # Opt-in: set repository variable ENABLE_API_DOCS_PAGES=true after enabling Pages.
+    if: ${{ github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/develop') && vars.ENABLE_API_DOCS_PAGES == 'true' }}
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Stage Pages site
+        run: |
+          mkdir -p _site
+          cp docs/api/index.html _site/index.html
+          cp openapi/openapi.json _site/openapi.json
+          # Pages hosts at site root; point Swagger at relative openapi.json
+          sed -i 's|url: '\''/openapi.json'\''|url: '\''./openapi.json'\''|' _site/index.html
+
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
