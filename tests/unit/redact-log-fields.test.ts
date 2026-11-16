@@ -35,6 +35,8 @@ describe('redactLogFields', () => {
   it('recognizes sensitive field names', () => {
     assert.equal(isSensitiveFieldName('Authorization'), true);
     assert.equal(isSensitiveFieldName('SOURCE_CREDENTIALS_DATA_KEY'), true);
+    assert.equal(isSensitiveFieldName('pin'), true);
+    assert.equal(isSensitiveFieldName('currentPin'), true);
     assert.equal(isSensitiveFieldName('account_id'), false);
   });
 });

@@ -38,6 +38,7 @@ PRs and pushes to `main` / `develop` must keep the **secrets** job green. Do not
 | Never log (raw) | Examples |
 | --- | --- |
 | Passwords | Account password, Xtream password |
+| Parental PIN | Clear `pin` / `currentPin` on parental endpoints (SEC-044) |
 | Tokens | Access JWT, refresh token, pairing codes |
 | Source credentials | M3U basic-auth, Xtream user/pass, proprietary tokens |
 | Key material | `JWT_PRIVATE_KEY`, `SOURCE_CREDENTIALS_DATA_KEY`, KMS plaintext |

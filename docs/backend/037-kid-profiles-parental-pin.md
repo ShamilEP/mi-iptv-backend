@@ -39,3 +39,7 @@ Public profile views expose `pinConfigured: boolean` and structured `restriction
 ## Migration
 
 `db/migrations/004_profile_pin_parental.sql` adds `app.profiles.pin_hash`.
+
+## Privacy review
+
+Child-privacy assessment before enabling kid profiles: **[SEC-044](../security/044-childrens-data-handling-review.md)**.
