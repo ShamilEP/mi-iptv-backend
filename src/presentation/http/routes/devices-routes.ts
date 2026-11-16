@@ -204,7 +204,10 @@ function requireAccountId(request: HttpRequest): string | HttpResponse {
     return {
       statusCode: 401,
       headers: JSON_HEADERS,
-      body: { error: 'Missing x-account-id (Sprint 0 stand-in for JWT)' },
+      body: {
+        error: 'Bearer access token required',
+        code: 'AUTH_ACCESS_INVALID',
+      },
     };
   }
   return request.accountId;

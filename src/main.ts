@@ -33,6 +33,8 @@ import { ListDevices } from './application/devices/list-devices.js';
 import { NotifyCompanionStatusFallback } from './application/devices/notify-companion-status-fallback.js';
 import { RegisterDevice } from './application/devices/register-device.js';
 import { UnlinkDevice } from './application/devices/unlink-device.js';
+import { AssertAccessTokenActive } from './application/auth/assert-access-token-active.js';
+import { ApiRateLimitGuard } from './application/gateway/api-rate-limit-guard.js';
 import { GetHealthStatus } from './application/health/get-health-status.js';
 import type { JwtSigningKeyStore } from './application/ports/jwt-signing-key-store.js';
 import { CreateSource } from './application/sources/create-source.js';
@@ -49,6 +51,7 @@ import { ListPlaybackHistory } from './application/sync/list-playback-history.js
 import { SetFavorite } from './application/sync/set-favorite.js';
 import { UpsertPlaybackState } from './application/sync/upsert-playback-state.js';
 import { UpsertProfileSettings } from './application/sync/upsert-profile-settings.js';
+import { loadApiGatewayConfig } from './config/api-gateway.js';
 import { loadConfig, loadInjectedSecrets } from './config/env.js';
 import { loadJwtTokenTtlConfig } from './config/jwt-tokens.js';
 import { loadM3uParserLimits } from './config/m3u-parser.js';
@@ -87,6 +90,7 @@ import { EnvJwtSigningKeyStore } from './infrastructure/secrets/env-jwt-signing-
 import { EnvSecretStore } from './infrastructure/secrets/env-secret-store.js';
 import { StaticCredentialEncryptionKeyCatalog } from './infrastructure/secrets/static-credential-encryption-key-catalog.js';
 import { StaticKmsKeyResolver } from './infrastructure/secrets/static-kms-key-resolver.js';
+import { createApiGateway } from './presentation/http/gateway/api-gateway.js';
 import { NodeHttpServer } from './presentation/http/node-http-server.js';
 import { createAccountRoutes } from './presentation/http/routes/account-routes.js';
 import { createAuthRoutes } from './presentation/http/routes/auth-routes.js';
@@ -173,12 +177,29 @@ async function bootstrap(): Promise<void> {
 
   // BE-025: logout + Redis access-token deny-list.
   const accessTokenDenyList = new RedisAccessTokenDenyList(sessionRedis);
+  const assertAccessTokenActive = new AssertAccessTokenActive(
+    accessTokenService,
+    accessTokenDenyList,
+  );
   const logoutAccount = new LogoutAccount(
     accessTokenService,
     accessTokenDenyList,
     refreshTokenRepository,
     jwtTtl.accessTokenTtlSeconds,
   );
+
+  // BE-006: API Gateway / BFF hooks (JWT, validation, global rate limit).
+  const apiGatewayConfig = loadApiGatewayConfig(process.env);
+  const apiRateLimitGuard = new ApiRateLimitGuard(
+    sessionRedis,
+    apiGatewayConfig.rateLimitMaxRequests,
+    apiGatewayConfig.rateLimitWindowSeconds,
+  );
+  const apiGateway = createApiGateway({
+    assertAccessTokenActive,
+    apiRateLimitGuard,
+    maxJsonBodyBytes: apiGatewayConfig.maxJsonBodyBytes,
+  });
 
   // BE-042/SEC-030: AES-256-GCM with KMS-managed DEK. Fail closed outside dev.
   const sourceCredentialCipher = new Aes256GcmSourceCredentialCipher(
@@ -385,7 +406,7 @@ async function bootstrap(): Promise<void> {
   );
 
   const getHealthStatus = new GetHealthStatus();
-  const httpServer = new NodeHttpServer(logger);
+  const httpServer = new NodeHttpServer(logger, apiGateway);
 
   httpServer.register(createHealthRoute(getHealthStatus));
   for (const route of createAuthRoutes({
@@ -488,6 +509,10 @@ async function bootstrap(): Promise<void> {
     loginBruteForceReady: Boolean(loginBruteForceGuard),
     registerAbuseGuardReady: Boolean(registerAbuseGuard),
     accessTokenDenyListReady: Boolean(accessTokenDenyList),
+    apiGatewayReady: Boolean(apiGateway),
+    apiRateLimitMaxRequests: apiGatewayConfig.rateLimitMaxRequests,
+    apiRateLimitWindowSeconds: apiGatewayConfig.rateLimitWindowSeconds,
+    apiMaxJsonBodyBytes: apiGatewayConfig.maxJsonBodyBytes,
     sessionRedisMode: secrets.redisUrl ? 'ioredis' : 'in-memory',
     accountPersistence: 'in-memory',
     profilePersistence: 'in-memory',
