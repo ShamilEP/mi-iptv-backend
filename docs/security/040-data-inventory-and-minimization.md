@@ -94,4 +94,4 @@ No phone number, postal address, government ID, date of birth, payment card, rea
 
 - Account erase / export (right to deletion) should treat `email` as the personal anchor and wipe or anonymize linked rows
 - Keep profile `name` as a non-legal household label in product copy
-- When QoE (`/diagnostics/qoe`) lands, enforce anonymous ids only (Security §6 telemetry rule)
+- When QoE (`/diagnostics/qoe`) lands, enforce anonymous ids only (Security §6 telemetry rule); see STRIDE QoE threats in `docs/security/001-stride-threat-model.md` (SEC-001)
