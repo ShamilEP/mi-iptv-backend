@@ -14,6 +14,8 @@ Publish interactive API docs and a contract-driven mock so TV, companion, and QA
 | --- | --- | --- |
 | `npm run docs:api` | http://localhost:4010/docs | Swagger UI over the frozen OpenAPI |
 | `npm run mock:api` | http://localhost:4011 | Mock HTTP responses from schemas/examples |
+| `npm run contract:serve` | http://localhost:8080/docs | Combined docs + mock (INF-045 hosting) |
+| `npm run openapi:contract-test` | (CI) | Exercise all MVP ops against the mock |
 | `npm run openapi:generate-clients` | `generated/clients/typescript/` | TypeScript fetch client stubs |
 
 Ports: `API_DOCS_PORT` (default `4010`), `API_MOCK_PORT` (default `4011`).

@@ -22,10 +22,12 @@ Health check: `GET http://localhost:3000/health`
 ```bash
 npm run docs:api                 # Swagger UI → http://localhost:4010/docs
 npm run mock:api                 # OpenAPI mock → http://localhost:4011
+npm run contract:serve           # Combined docs + mock → http://localhost:8080/docs
+npm run openapi:contract-test    # CI contract tests against the mock
 npm run openapi:generate-clients # TypeScript stubs → generated/clients/typescript/
 ```
 
-See `docs/backend/004-api-docs-mock.md`.
+See `docs/backend/004-api-docs-mock.md` and `docs/infra/045-contract-tests-mock.md`.
 
 ## Layout
 

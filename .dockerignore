@@ -5,8 +5,11 @@ coverage
 .cursor
 task-tracker
 tools
-docs
+docs/**
+!docs/api/
+!docs/api/**
 **/*.md
+!docs/api/**/*.html
 .env
 .env.*
 !.env.example

@@ -18,12 +18,14 @@
     "format:check": "prettier --check \"src/**/*.{ts,js}\" \"tests/**/*.{ts,js}\" \"scripts/**/*.{ts,js}\" \"*.{js,json}\" \"openapi/**/*.json\"",
     "openapi:verify": "tsx scripts/verify-openapi.ts",
     "openapi:generate-clients": "tsx scripts/generate-client-stubs.ts",
+    "openapi:contract-test": "tsx scripts/run-openapi-contract-tests.ts",
     "docs:api": "tsx scripts/serve-api-docs.ts",
     "mock:api": "tsx scripts/mock-api-server.ts",
+    "contract:serve": "tsx scripts/serve-contract-stack.ts",
     "security:deps": "npm audit --audit-level=high",
     "db:migrate": "tsx scripts/db-migrate.ts",
     "db:seed": "tsx scripts/db-seed.ts",
-    "ci": "npm run format:check && npm run lint && npm run typecheck && npm test && npm run openapi:verify"
+    "ci": "npm run format:check && npm run lint && npm run typecheck && npm test && npm run openapi:verify && npm run openapi:contract-test"
   },
   "devDependencies": {
     "@types/node": "^26.6.6",
