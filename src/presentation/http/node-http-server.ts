@@ -161,6 +161,7 @@ export class NodeHttpServer implements HttpServer {
       clientIp: resolveClientIp(req),
     };
 
+    let rateLimitHeaders: Readonly<Record<string, string>> | undefined;
     if (this.gateway !== undefined) {
       const gatewayResult = await this.gateway.beforeHandler(
         request,
@@ -183,6 +184,7 @@ export class NodeHttpServer implements HttpServer {
         return;
       }
       request = gatewayResult.request;
+      rateLimitHeaders = gatewayResult.rateLimitHeaders;
       if (request.accountId) {
         requestLogger = this.logger?.child({
           trace_id: traceId,
@@ -203,7 +205,11 @@ export class NodeHttpServer implements HttpServer {
         response.statusCode,
         response.body,
         traceId,
-        response.headers,
+        {
+          'content-type': 'application/json; charset=utf-8',
+          ...(rateLimitHeaders ?? {}),
+          ...(response.headers ?? {}),
+        },
       );
     } catch (error: unknown) {
       requestLogger?.error('HTTP request failed', {
