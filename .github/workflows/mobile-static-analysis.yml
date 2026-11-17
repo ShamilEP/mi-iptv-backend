@@ -1,0 +1,101 @@
+name: Mobile static analysis
+
+# SEC-051 — conditional client static analysis when app trees exist (INF-041).
+# Full MobSF / APK-IPA SAST remains in TV/Companion release pipelines.
+on:
+  pull_request:
+    branches:
+      - main
+      - develop
+      - 'release/**'
+  push:
+    branches:
+      - main
+      - develop
+  workflow_dispatch:
+
+concurrency:
+  group: mobile-static-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  android-tv-lint:
+    name: Android TV Lint
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Resolve Android TV project
+        id: path
+        run: |
+          PROJECT_PATH="apps/android-tv"
+          echo "project_path=${PROJECT_PATH}" >> "$GITHUB_OUTPUT"
+          if [ -d "${PROJECT_PATH}" ]; then
+            echo "present=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "present=false" >> "$GITHUB_OUTPUT"
+            echo "No Android TV project at ${PROJECT_PATH}; skipping Lint (SEC-051)."
+          fi
+
+      - name: Set up JDK 17
+        if: steps.path.outputs.present == 'true'
+        uses: actions/setup-java@v6
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Android Lint
+        if: steps.path.outputs.present == 'true'
+        working-directory: ${{ steps.path.outputs.project_path }}
+        run: |
+          if [ -f gradlew ]; then
+            chmod +x gradlew
+            ./gradlew lint --no-daemon
+          else
+            echo "gradlew missing under apps/android-tv"
+            exit 1
+          fi
+
+  companion-analyze:
+    name: Companion static analysis
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Resolve companion project
+        id: path
+        run: |
+          for candidate in apps/companion apps/mi-iptv-companion companion; do
+            if [ -d "${candidate}" ] && { [ -f "${candidate}/pubspec.yaml" ] || [ -f "${candidate}/analysis_options.yaml" ]; }; then
+              echo "project_path=${candidate}" >> "$GITHUB_OUTPUT"
+              echo "present=true" >> "$GITHUB_OUTPUT"
+              exit 0
+            fi
+          done
+          echo "present=false" >> "$GITHUB_OUTPUT"
+          echo "No companion Dart/Flutter project found; skipping analyze (SEC-051)."
+
+      - name: Set up Flutter
+        if: steps.path.outputs.present == 'true'
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - name: dart analyze / flutter analyze
+        if: steps.path.outputs.present == 'true'
+        working-directory: ${{ steps.path.outputs.project_path }}
+        run: |
+          if [ -f pubspec.yaml ]; then
+            flutter pub get
+            flutter analyze
+          else
+            dart analyze
+          fi
