@@ -20,7 +20,7 @@ function buildStack() {
   const presence = new InMemoryDeviceSocketPresence();
   const push = new InMemoryPushNotifier();
   const notify = new NotifyCompanionStatusFallback(devices, presence, push);
-  const register = new RegisterDevice(devices);
+  const register = new RegisterDevice(devices, presence);
   return { devices, presence, push, notify, register };
 }
 
@@ -141,10 +141,10 @@ describe('POST /api/v1/devices/companion-status (BE-081)', () => {
       pushToken: 'route-token',
     });
     const routes = createDevicesRoutes({
-      listDevices: new ListDevices(api.devices),
+      listDevices: new ListDevices(api.devices, api.presence),
       registerDevice: api.register,
       unlinkDevice: new UnlinkDevice(api.devices),
-      deviceHeartbeat: new DeviceHeartbeat(api.devices),
+      deviceHeartbeat: new DeviceHeartbeat(api.devices, api.presence),
       notifyCompanionStatusFallback: api.notify,
       sendToTv: { execute: async () => ({}) } as never,
     });

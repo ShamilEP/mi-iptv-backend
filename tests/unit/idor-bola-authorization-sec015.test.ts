@@ -160,11 +160,11 @@ describe('SEC-015 IDOR / BOLA authorization', () => {
 
   it('rejects cross-account device unlink/heartbeat and send-to-TV', async () => {
     const devices = new InMemoryDeviceRepository();
-    const register = new RegisterDevice(devices);
-    const unlink = new UnlinkDevice(devices);
-    const heartbeat = new DeviceHeartbeat(devices);
-    const commands = new InMemoryDeviceCommandRepository();
     const presence = new InMemoryDeviceSocketPresence();
+    const register = new RegisterDevice(devices, presence);
+    const unlink = new UnlinkDevice(devices);
+    const heartbeat = new DeviceHeartbeat(devices, presence);
+    const commands = new InMemoryDeviceCommandRepository();
     const fanOut = new FanOutDeviceCommand(
       new RedisRealtimeDeviceBus(new InMemoryRedisClient()),
     );

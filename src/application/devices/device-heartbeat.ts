@@ -1,5 +1,6 @@
 import { DomainError } from '../../domain/shared/domain-error.js';
 import type { DeviceRepository } from '../ports/device-repository.js';
+import type { DeviceSocketPresence } from '../ports/device-socket-presence.js';
 import {
   toDevicePublicView,
   type DevicePublicView,
@@ -15,7 +16,10 @@ export type DeviceHeartbeatInput = {
  * Updates last_seen_at (and optional push token rotation) for an active device.
  */
 export class DeviceHeartbeat {
-  constructor(private readonly devices: DeviceRepository) {}
+  constructor(
+    private readonly devices: DeviceRepository,
+    private readonly presence: DeviceSocketPresence,
+  ) {}
 
   async execute(input: DeviceHeartbeatInput): Promise<DevicePublicView> {
     const existing = await this.devices.findById(
@@ -37,6 +41,10 @@ export class DeviceHeartbeat {
       pushToken,
       lastSeenAt: new Date(),
     });
-    return toDevicePublicView(saved);
+    const statuses = await this.presence.getConnectionStatuses(
+      saved.accountId,
+      [saved.id],
+    );
+    return toDevicePublicView(saved, statuses.get(saved.id) ?? 'offline');
   }
 }

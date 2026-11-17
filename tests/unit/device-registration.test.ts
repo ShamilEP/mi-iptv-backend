@@ -6,16 +6,19 @@ import { RegisterDevice } from '../../src/application/devices/register-device.js
 import { UnlinkDevice } from '../../src/application/devices/unlink-device.js';
 import { DomainError } from '../../src/domain/shared/domain-error.js';
 import { InMemoryDeviceRepository } from '../../src/infrastructure/persistence/in-memory-device-repository.js';
+import { InMemoryDeviceSocketPresence } from '../../src/infrastructure/realtime/in-memory-device-socket-presence.js';
 
 const accountId = '22222222-2222-2222-2222-222222222222';
 
 function buildApi() {
   const repo = new InMemoryDeviceRepository();
+  const presence = new InMemoryDeviceSocketPresence();
   return {
-    register: new RegisterDevice(repo),
-    list: new ListDevices(repo),
+    register: new RegisterDevice(repo, presence),
+    list: new ListDevices(repo, presence),
     unlink: new UnlinkDevice(repo),
-    heartbeat: new DeviceHeartbeat(repo),
+    heartbeat: new DeviceHeartbeat(repo, presence),
+    presence,
   };
 }
 
@@ -34,6 +37,7 @@ describe('Device registration (BE-075)', () => {
     assert.equal(tv.pushTokenConfigured, true);
     assert.equal(Object.prototype.hasOwnProperty.call(tv, 'pushToken'), false);
     assert.ok(tv.lastSeenAt);
+    assert.equal(tv.connectionStatus, 'offline');
 
     const companion = await api.register.execute({
       accountId,
@@ -47,6 +51,7 @@ describe('Device registration (BE-075)', () => {
     const listed = await api.list.execute(accountId);
     assert.equal(listed.length, 2);
     assert.ok(listed.every((item) => item.pushTokenConfigured));
+    assert.ok(listed.every((item) => item.connectionStatus === 'offline'));
 
     const before = tv.lastSeenAt;
     await new Promise((resolve) => setTimeout(resolve, 5));

@@ -1,4 +1,5 @@
 import type { Device } from '../../domain/devices/device.js';
+import type { DeviceConnectionStatus } from '../../domain/devices/device-connection-status.js';
 
 export type DevicePublicView = {
   readonly id: string;
@@ -12,9 +13,17 @@ export type DevicePublicView = {
   readonly pushTokenConfigured: boolean;
   readonly pairedAt: string;
   readonly lastSeenAt: string | null;
+  /**
+   * Live WSS presence (BE-076). Independent of `lastSeenAt` (HTTP heartbeat).
+   * `online` = open realtime socket with unexpired presence TTL.
+   */
+  readonly connectionStatus: DeviceConnectionStatus;
 };
 
-export function toDevicePublicView(device: Device): DevicePublicView {
+export function toDevicePublicView(
+  device: Device,
+  connectionStatus: DeviceConnectionStatus = 'offline',
+): DevicePublicView {
   return {
     id: device.id,
     deviceType: device.deviceType,
@@ -27,5 +36,6 @@ export function toDevicePublicView(device: Device): DevicePublicView {
       device.pushToken !== null && device.pushToken.length > 0,
     pairedAt: device.pairedAt.toISOString(),
     lastSeenAt: device.lastSeenAt?.toISOString() ?? null,
+    connectionStatus,
   };
 }

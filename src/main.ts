@@ -30,6 +30,7 @@ import { ParseM3uPlaylist } from './application/catalog/parse-m3u-playlist.js';
 import { ParseXmltvGuide } from './application/catalog/parse-xmltv-guide.js';
 import { DeviceHeartbeat } from './application/devices/device-heartbeat.js';
 import { FlushPendingDeviceCommands } from './application/devices/flush-pending-device-commands.js';
+import { AnnounceDevicePresence } from './application/devices/announce-device-presence.js';
 import { ListDevices } from './application/devices/list-devices.js';
 import { NotifyCompanionStatusFallback } from './application/devices/notify-companion-status-fallback.js';
 import { RegisterDevice } from './application/devices/register-device.js';
@@ -279,17 +280,23 @@ async function bootstrap(): Promise<void> {
     sourceHttpGuard.timeoutMs,
   );
 
-  // BE-075 / BE-081: devices + push fallback when no realtime socket.
+  // BE-075 / BE-076 / BE-081: devices + live presence + push fallback.
   const deviceRepository = new InMemoryDeviceRepository();
   const deviceCommandRepository = new InMemoryDeviceCommandRepository();
-  const listDevices = new ListDevices(deviceRepository);
-  const registerDevice = new RegisterDevice(deviceRepository);
-  const unlinkDevice = new UnlinkDevice(deviceRepository);
-  const deviceHeartbeat = new DeviceHeartbeat(deviceRepository);
   // BE-077: Redis presence when REDIS_URL set; otherwise in-memory.
   const deviceSocketPresence = secrets.redisUrl
     ? new RedisDeviceSocketPresence(sessionRedis)
     : new InMemoryDeviceSocketPresence();
+  const listDevices = new ListDevices(deviceRepository, deviceSocketPresence);
+  const registerDevice = new RegisterDevice(
+    deviceRepository,
+    deviceSocketPresence,
+  );
+  const unlinkDevice = new UnlinkDevice(deviceRepository);
+  const deviceHeartbeat = new DeviceHeartbeat(
+    deviceRepository,
+    deviceSocketPresence,
+  );
   const pushNotifier = new InMemoryPushNotifier();
   const notifyCompanionStatusFallback = new NotifyCompanionStatusFallback(
     deviceRepository,
@@ -309,6 +316,12 @@ async function bootstrap(): Promise<void> {
     deviceCommandRepository,
     fanOutDeviceCommand,
   );
+  // BE-076: announce online/offline to peers (+ companion push when TV changes).
+  const announceDevicePresence = new AnnounceDevicePresence(
+    deviceRepository,
+    fanOutDeviceCommand,
+    notifyCompanionStatusFallback,
+  );
   // BE-080: send-to-TV (queue + live fan-out + push wake).
   const sendToTv = new SendToTv(
     deviceRepository,
@@ -325,6 +338,7 @@ async function bootstrap(): Promise<void> {
     sessions: realtimeSessionStore,
     config: realtimeConfig,
     flushPendingCommands: flushPendingDeviceCommands,
+    announcePresence: announceDevicePresence,
     logger,
   });
 

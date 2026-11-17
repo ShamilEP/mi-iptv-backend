@@ -2,6 +2,7 @@ import { randomUUID } from 'node:crypto';
 import type { IncomingMessage } from 'node:http';
 import type { Duplex } from 'node:stream';
 import { URL } from 'node:url';
+import type { AnnounceDevicePresence } from '../../application/devices/announce-device-presence.js';
 import type { FlushPendingDeviceCommands } from '../../application/devices/flush-pending-device-commands.js';
 import type { AuthenticateRealtimeHandshake } from '../../application/realtime/authenticate-realtime-handshake.js';
 import { RealtimeConnectionRegistry } from '../../application/realtime/realtime-connection-registry.js';
@@ -42,6 +43,8 @@ export class NodeRealtimeGateway {
       readonly config: RealtimeGatewayConfig;
       /** Optional: flush queued send-to-TV commands after handshake (BE-080). */
       readonly flushPendingCommands?: FlushPendingDeviceCommands;
+      /** Optional: announce online/offline to account peers (BE-076). */
+      readonly announcePresence?: AnnounceDevicePresence;
       readonly logger?: Logger;
     },
   ) {
@@ -142,6 +145,11 @@ export class NodeRealtimeGateway {
         claims.deviceId,
         this.deps.config.nodeId,
       );
+      this.announcePresenceChange(
+        claims.accountId,
+        claims.deviceId,
+        'online',
+      );
 
       const unsubscribe = await this.deps.bus.subscribe(
         claims.deviceId,
@@ -206,6 +214,11 @@ export class NodeRealtimeGateway {
           void this.deps.presence.markDisconnected(
             removed.accountId,
             removed.deviceId,
+          );
+          this.announcePresenceChange(
+            removed.accountId,
+            removed.deviceId,
+            'offline',
           );
         }
       };
@@ -284,6 +297,29 @@ export class NodeRealtimeGateway {
       });
       await this.deps.bus.publish(deviceId, body);
     }
+  }
+
+  private announcePresenceChange(
+    accountId: string,
+    deviceId: string,
+    connectionStatus: 'online' | 'offline',
+  ): void {
+    if (!this.deps.announcePresence) {
+      return;
+    }
+    void this.deps.announcePresence
+      .execute({
+        accountId,
+        subjectDeviceId: deviceId,
+        connectionStatus,
+      })
+      .catch((error: unknown) => {
+        this.deps.logger?.warn('Realtime presence announce failed', {
+          trace_id: null,
+          account_id: accountId,
+          errorName: error instanceof Error ? error.name : 'UnknownError',
+        });
+      });
   }
 
   private sendText(socket: Duplex, text: string): void {

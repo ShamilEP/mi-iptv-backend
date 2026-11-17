@@ -1,4 +1,8 @@
 import type { DeviceSocketPresence } from '../../application/ports/device-socket-presence.js';
+import {
+  connectionStatusFromSocketOpen,
+  type DeviceConnectionStatus,
+} from '../../domain/devices/device-connection-status.js';
 import { REALTIME_PRESENCE_TTL_SECONDS } from '../../domain/realtime/realtime-limits.js';
 
 type PresenceEntry = {
@@ -41,6 +45,18 @@ export class InMemoryDeviceSocketPresence implements DeviceSocketPresence {
       return false;
     }
     return entry.accountId === accountId;
+  }
+
+  async getConnectionStatuses(
+    accountId: string,
+    deviceIds: readonly string[],
+  ): Promise<ReadonlyMap<string, DeviceConnectionStatus>> {
+    const result = new Map<string, DeviceConnectionStatus>();
+    for (const deviceId of deviceIds) {
+      const open = await this.hasOpenSocket(accountId, deviceId);
+      result.set(deviceId, connectionStatusFromSocketOpen(open));
+    }
+    return result;
   }
 
   async markConnected(
