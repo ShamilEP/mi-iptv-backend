@@ -23,7 +23,13 @@ export type UserSource = {
   readonly status: SourceStatus;
   /** Last connectivity classification (`status_reason`); null when healthy/pending. */
   readonly statusReason: SourceTestReason | null;
+  /** Catalog item count when known (sync_delta projection). */
+  readonly itemCount: number | null;
+  /** Last successful ingest time (sync_delta projection). */
+  readonly lastIngestedAt: Date | null;
   readonly syncVersion: number;
+  /** Account change_seq when this row last changed (ADR-009 / BE-062). */
+  readonly changeSeq: number;
   readonly deletedAt: Date | null;
   readonly createdAt: Date;
   readonly updatedAt: Date;

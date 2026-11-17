@@ -138,6 +138,7 @@ export class NodeHttpServer implements HttpServer {
     let request: HttpRequest = {
       method,
       url: url.pathname,
+      query: Object.fromEntries(url.searchParams.entries()),
       headers: req.headers,
       body,
       params: matched.params,

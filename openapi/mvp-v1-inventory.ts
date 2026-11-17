@@ -137,7 +137,7 @@ export const MVP_V1_OPERATIONS: readonly MvpOperation[] = [
     method: 'GET',
     path: '/api/v1/sync/state',
     operationId: 'getSyncState',
-    implemented: false,
+    implemented: true,
   },
   {
     method: 'POST',

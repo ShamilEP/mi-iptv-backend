@@ -46,6 +46,7 @@ import { UpdateSource } from './application/sources/update-source.js';
 import { ValidateSourceUrl } from './application/sources/validate-source-url.js';
 import { AcceptBatchedSyncEvents } from './application/sync/accept-batched-sync-events.js';
 import { GetProfileSettings } from './application/sync/get-profile-settings.js';
+import { GetSyncState } from './application/sync/get-sync-state.js';
 import { ListFavorites } from './application/sync/list-favorites.js';
 import { ListPlaybackHistory } from './application/sync/list-playback-history.js';
 import { SetFavorite } from './application/sync/set-favorite.js';
@@ -75,6 +76,7 @@ import { NodeSourceHttpClient } from './infrastructure/http/node-source-http-cli
 import { JsonConsoleLogger } from './infrastructure/logging/json-console-logger.js';
 import { NodeDnsResolver } from './infrastructure/net/node-dns-resolver.js';
 import { InMemoryAccountRepository } from './infrastructure/persistence/in-memory-account-repository.js';
+import { InMemoryAccountSyncClock } from './infrastructure/persistence/in-memory-account-sync-clock.js';
 import { InMemoryDeviceRepository } from './infrastructure/persistence/in-memory-device-repository.js';
 import { InMemoryFavoriteSyncRepository } from './infrastructure/persistence/in-memory-favorite-sync-repository.js';
 import { InMemoryPlaybackSyncRepository } from './infrastructure/persistence/in-memory-playback-sync-repository.js';
@@ -210,17 +212,22 @@ async function bootstrap(): Promise<void> {
     credentialKmsKey.keyId,
   );
 
+  // BE-062: shared per-account change_seq / tombstone_floor for delta pull.
+  const accountSyncClock = new InMemoryAccountSyncClock();
+
   const sourceRepository = new InMemorySourceRepository();
   const listSources = new ListSources(sourceRepository);
   const createSource = new CreateSource(
     sourceRepository,
     sourceCredentialCipher,
+    accountSyncClock,
   );
   const updateSource = new UpdateSource(
     sourceRepository,
     sourceCredentialCipher,
+    accountSyncClock,
   );
-  const deleteSource = new DeleteSource(sourceRepository);
+  const deleteSource = new DeleteSource(sourceRepository, accountSyncClock);
 
   // BE-041: SSRF-safe source URL validation / fetch (wired for sources ingest).
   const sourceHttpGuard = loadSourceHttpGuardConfig(process.env);
@@ -277,6 +284,7 @@ async function bootstrap(): Promise<void> {
   const syncLogRepository = new InMemorySyncLogRepository();
   const playbackSyncRepository = new InMemoryPlaybackSyncRepository(
     syncLogRepository,
+    accountSyncClock,
   );
   const upsertPlaybackState = new UpsertPlaybackState(
     playbackSyncRepository,
@@ -284,6 +292,7 @@ async function bootstrap(): Promise<void> {
   );
   const favoriteSyncRepository = new InMemoryFavoriteSyncRepository(
     syncLogRepository,
+    accountSyncClock,
   );
   const listFavorites = new ListFavorites(
     favoriteSyncRepository,
@@ -314,6 +323,12 @@ async function bootstrap(): Promise<void> {
     upsertPlaybackState,
     setFavorite,
     upsertProfileSettings,
+  );
+  const getSyncState = new GetSyncState(
+    accountSyncClock,
+    playbackSyncRepository,
+    favoriteSyncRepository,
+    sourceRepository,
   );
 
   // BE-105: per-profile watch history (separate from Continue Watching).
@@ -474,6 +489,8 @@ async function bootstrap(): Promise<void> {
     getProfileSettings,
     upsertProfileSettings,
     acceptBatchedSyncEvents,
+    getSyncState,
+    syncClock: accountSyncClock,
   })) {
     httpServer.register(route);
   }
@@ -527,6 +544,7 @@ async function bootstrap(): Promise<void> {
     favoriteSyncPersistence: 'in-memory',
     favoriteSyncReady: Boolean(setFavorite),
     syncBatchReady: Boolean(acceptBatchedSyncEvents),
+    syncStateReady: Boolean(getSyncState),
     sourceCredentialsAutomaticCmkRotation:
       credentialKmsKey.automaticCmkRotation,
     sourceHttpMaxRedirects: sourceHttpGuard.maxRedirects,

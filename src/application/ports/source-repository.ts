@@ -5,6 +5,8 @@ export type NewUserSource = Omit<
   'syncVersion' | 'createdAt' | 'updatedAt' | 'deletedAt'
 > & {
   readonly deletedAt?: Date | null;
+  readonly itemCount?: number | null;
+  readonly lastIngestedAt?: Date | null;
 };
 
 export interface SourceRepository {

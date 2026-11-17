@@ -7,7 +7,10 @@ export type HttpRouteAuth = 'public' | 'required';
 
 export type HttpRequest = {
   readonly method: HttpMethod | string;
+  /** Pathname only (no query string). */
   readonly url: string;
+  /** Parsed query string key/values (BE-062 sync state, pagination). */
+  readonly query?: Readonly<Record<string, string | undefined>>;
   readonly headers: Readonly<Record<string, string | string[] | undefined>>;
   /** Parsed JSON body for POST/PATCH/PUT when Content-Type is JSON. */
   readonly body?: unknown;

@@ -1,3 +1,4 @@
+import type { AccountSyncClock } from '../../application/ports/account-sync-clock.js';
 import type {
   ApplyPlaybackWriteInput,
   ApplyPlaybackWriteResult,
@@ -10,15 +11,20 @@ import { InMemorySyncLogRepository } from './in-memory-sync-log-repository.js';
 
 /**
  * Sprint 0 in-memory playback + SyncLog store for BE-061 / BE-065.
- * Replace with a Postgres adapter wrapping `app.upsert_playback_state`.
+ * Prefer a shared `AccountSyncClock` so GET /sync/state can merge entity streams.
  */
 export class InMemoryPlaybackSyncRepository implements PlaybackSyncRepository {
   private readonly playback = new Map<string, PlaybackState>();
   private readonly changeSeqByAccount = new Map<string, number>();
   private readonly syncLog: SyncLogRepository;
+  private readonly clock: AccountSyncClock | null;
 
-  constructor(syncLog: SyncLogRepository = new InMemorySyncLogRepository()) {
+  constructor(
+    syncLog: SyncLogRepository = new InMemorySyncLogRepository(),
+    clock: AccountSyncClock | null = null,
+  ) {
     this.syncLog = syncLog;
+    this.clock = clock;
   }
 
   async findSyncEvent(
@@ -74,7 +80,7 @@ export class InMemoryPlaybackSyncRepository implements PlaybackSyncRepository {
     let changeSeq: number | null = null;
 
     if (input.accepted) {
-      changeSeq = nextChangeSeq(this.changeSeqByAccount, input.accountId);
+      changeSeq = await this.allocateChangeSeq(input.accountId);
       if (playback === null) {
         playback = {
           profileId: input.profileId,
@@ -156,17 +162,17 @@ export class InMemoryPlaybackSyncRepository implements PlaybackSyncRepository {
     this.changeSeqByAccount.delete(accountId);
     return count;
   }
+
+  private async allocateChangeSeq(accountId: string): Promise<number> {
+    if (this.clock !== null) {
+      return this.clock.nextChangeSeq(accountId);
+    }
+    const next = (this.changeSeqByAccount.get(accountId) ?? 0) + 1;
+    this.changeSeqByAccount.set(accountId, next);
+    return next;
+  }
 }
 
 function playbackKey(profileId: string, contentId: string): string {
   return `${profileId}:${contentId}`;
-}
-
-function nextChangeSeq(
-  counters: Map<string, number>,
-  accountId: string,
-): number {
-  const next = (counters.get(accountId) ?? 0) + 1;
-  counters.set(accountId, next);
-  return next;
 }

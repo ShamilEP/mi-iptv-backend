@@ -1,6 +1,7 @@
 import { randomUUID } from 'node:crypto';
 import { DomainError } from '../../domain/shared/domain-error.js';
 import { isMutableSourceKind } from '../../domain/sources/user-source.js';
+import type { AccountSyncClock } from '../ports/account-sync-clock.js';
 import type { SourceCredentialCipher } from '../ports/source-credential-cipher.js';
 import type { SourceRepository } from '../ports/source-repository.js';
 import {
@@ -25,6 +26,7 @@ export class CreateSource {
   constructor(
     private readonly sources: SourceRepository,
     private readonly cipher: SourceCredentialCipher,
+    private readonly syncClock?: AccountSyncClock,
   ) {}
 
   async execute(input: CreateSourceInput): Promise<SourcePublicView> {
@@ -56,6 +58,10 @@ export class CreateSource {
       );
     }
 
+    const changeSeq =
+      this.syncClock !== undefined
+        ? await this.syncClock.nextChangeSeq(input.accountId)
+        : 0;
     const created = await this.sources.insert({
       id: randomUUID(),
       accountId: input.accountId,
@@ -68,6 +74,9 @@ export class CreateSource {
       enabled: true,
       status: 'pending',
       statusReason: null,
+      itemCount: null,
+      lastIngestedAt: null,
+      changeSeq,
     });
     return toSourcePublicView(created);
   }

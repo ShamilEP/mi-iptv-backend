@@ -1,5 +1,7 @@
+import type { AccountSyncClock } from '../../../application/ports/account-sync-clock.js';
 import type { AcceptBatchedSyncEvents } from '../../../application/sync/accept-batched-sync-events.js';
 import type { GetProfileSettings } from '../../../application/sync/get-profile-settings.js';
+import type { GetSyncState } from '../../../application/sync/get-sync-state.js';
 import type { ListFavorites } from '../../../application/sync/list-favorites.js';
 import type { ListPlaybackHistory } from '../../../application/sync/list-playback-history.js';
 import type { SetFavorite } from '../../../application/sync/set-favorite.js';
@@ -11,6 +13,7 @@ import type {
   HttpRoute,
 } from '../../../application/ports/http-server.js';
 import { handleAcceptBatchedSyncEvents } from './sync-events-route.js';
+import { createSyncStateRoute } from './sync-state-route.js';
 import {
   SYNC_JSON_HEADERS,
   asObject,
@@ -33,8 +36,20 @@ export function createSyncRoutes(deps: {
   readonly getProfileSettings: GetProfileSettings;
   readonly upsertProfileSettings: UpsertProfileSettings;
   readonly acceptBatchedSyncEvents: AcceptBatchedSyncEvents;
+  /** BE-062 — omit in focused unit tests that do not exercise delta pull. */
+  readonly getSyncState?: GetSyncState;
+  readonly syncClock?: AccountSyncClock;
 }): readonly HttpRoute[] {
-  return [
+  const routes: HttpRoute[] = [];
+  if (deps.getSyncState !== undefined && deps.syncClock !== undefined) {
+    routes.push(
+      createSyncStateRoute({
+        getSyncState: deps.getSyncState,
+        syncClock: deps.syncClock,
+      }),
+    );
+  }
+  routes.push(
     {
       method: 'POST',
       path: '/api/v1/sync/playback-state',
@@ -75,7 +90,8 @@ export function createSyncRoutes(deps: {
       handler: (request) =>
         handleAcceptBatchedSyncEvents(request, deps.acceptBatchedSyncEvents),
     },
-  ];
+  );
+  return routes;
 }
 
 async function handleUpsertPlaybackState(
