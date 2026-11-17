@@ -63,7 +63,7 @@ jobs:
 
       - name: Download package artifact (optional)
         if: steps.creds.outputs.present == 'true' && inputs.aab_path == ''
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           name: ${{ inputs.artifact_name }}
           path: dist/play
