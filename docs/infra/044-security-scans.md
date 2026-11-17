@@ -19,6 +19,7 @@ Workflow: `.github/workflows/security-scans.yml`
 | Dependencies | **`npm audit`** | `--audit-level=high` after `npm ci` (no new npm packages) |
 | Image | **Trivy** | `docker build` then scan local image `mi-iptv-backend:scan` |
 | SAST | **CodeQL** | `javascript-typescript` analyze; uploads SARIF when GitHub supports it |
+| Authenticated DAST | **SEC-051** | `npm run security:dast` (live ephemeral API: `/auth` + sources) |
 
 Triggers (aligned with INF-040):
 
@@ -45,6 +46,8 @@ Moderate npm advisories (e.g. current `minimatch` via ESLint toolchain) are repo
 
 ```bash
 npm run security:deps
+# SEC-051 authenticated DAST (ephemeral /auth + sources harness):
+npm run security:dast
 # Optional local image scan (requires Docker + Trivy):
 # docker build -t mi-iptv-backend:scan .
 # trivy image --severity HIGH,CRITICAL --exit-code 1 mi-iptv-backend:scan
