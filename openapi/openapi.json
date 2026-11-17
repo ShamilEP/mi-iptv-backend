@@ -3065,7 +3065,8 @@
           "osVersion",
           "pushTokenConfigured",
           "pairedAt",
-          "lastSeenAt"
+          "lastSeenAt",
+          "connectionStatus"
         ],
         "properties": {
           "id": {
@@ -3124,6 +3125,14 @@
               "null"
             ],
             "format": "date-time"
+          },
+          "connectionStatus": {
+            "type": "string",
+            "enum": [
+              "online",
+              "offline"
+            ],
+            "description": "Live WSS presence (BE-076). Independent of lastSeenAt HTTP heartbeat."
           }
         }
       },

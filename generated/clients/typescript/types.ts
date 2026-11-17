@@ -61,6 +61,7 @@ export type DevicePublic = {
   readonly "pushTokenConfigured": boolean;
   readonly "pairedAt": string;
   readonly "lastSeenAt": string;
+  readonly "connectionStatus": "online" | "offline";
 };
 
 export type RegisterDeviceRequest = {

@@ -27,7 +27,7 @@ async function buildStack() {
   const bus = new RedisRealtimeDeviceBus(redis);
   const fanOut = new FanOutDeviceCommand(bus);
   const push = new InMemoryPushNotifier();
-  const register = new RegisterDevice(devices);
+  const register = new RegisterDevice(devices, presence);
   const sendToTv = new SendToTv(devices, commands, presence, fanOut, push);
   const flush = new FlushPendingDeviceCommands(commands, fanOut);
 
@@ -181,7 +181,10 @@ describe('BE-080 send-to-tv', () => {
   it('rejects sender mismatch, foreign target, and non-play actions', async () => {
     const api = await buildStack();
     const foreignAccount = randomUUID();
-    const foreignTv = await new RegisterDevice(api.devices).execute({
+    const foreignTv = await new RegisterDevice(
+      api.devices,
+      api.presence,
+    ).execute({
       accountId: foreignAccount,
       deviceType: 'tv',
       platform: 'android_tv',

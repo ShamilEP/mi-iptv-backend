@@ -6,6 +6,7 @@ import {
   isDeviceType,
 } from '../../domain/devices/device.js';
 import type { DeviceRepository } from '../ports/device-repository.js';
+import type { DeviceSocketPresence } from '../ports/device-socket-presence.js';
 import {
   toDevicePublicView,
   type DevicePublicView,
@@ -23,7 +24,10 @@ export type RegisterDeviceInput = {
 };
 
 export class RegisterDevice {
-  constructor(private readonly devices: DeviceRepository) {}
+  constructor(
+    private readonly devices: DeviceRepository,
+    private readonly presence: DeviceSocketPresence,
+  ) {}
 
   async execute(input: RegisterDeviceInput): Promise<DevicePublicView> {
     if (!isDeviceType(input.deviceType)) {
@@ -56,7 +60,14 @@ export class RegisterDevice {
       lastSeenAt: now,
       revokedAt: null,
     });
-    return toDevicePublicView(created);
+    const statuses = await this.presence.getConnectionStatuses(
+      created.accountId,
+      [created.id],
+    );
+    return toDevicePublicView(
+      created,
+      statuses.get(created.id) ?? 'offline',
+    );
   }
 }
 
