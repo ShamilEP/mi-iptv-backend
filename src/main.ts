@@ -109,7 +109,10 @@ import type { IncomingMessage } from 'node:http';
 import type { Duplex } from 'node:stream';
 import { createAccountRoutes } from './presentation/http/routes/account-routes.js';
 import { createAuthRoutes } from './presentation/http/routes/auth-routes.js';
+import { IngestQoeEvents } from './application/diagnostics/ingest-qoe-events.js';
+import { InMemoryQoeEventRepository } from './infrastructure/persistence/in-memory-qoe-event-repository.js';
 import { createDevicesRoutes } from './presentation/http/routes/devices-routes.js';
+import { createDiagnosticsRoutes } from './presentation/http/routes/diagnostics-routes.js';
 import { createHealthRoute } from './presentation/http/routes/health-route.js';
 import { createProfilesHistoryRoutes } from './presentation/http/routes/profiles-history-routes.js';
 import { createProfilesParentalRoutes } from './presentation/http/routes/profiles-parental-routes.js';
@@ -565,6 +568,13 @@ async function bootstrap(): Promise<void> {
     httpServer.register(route);
   }
 
+  // BE-090: anonymous QoE batch ingest (in-memory until telemetry.qoe_events).
+  const qoeEventRepository = new InMemoryQoeEventRepository();
+  const ingestQoeEvents = new IngestQoeEvents(qoeEventRepository);
+  for (const route of createDiagnosticsRoutes({ ingestQoeEvents })) {
+    httpServer.register(route);
+  }
+
   await httpServer.listen(config.port);
   logger.info('Mi IPTV backend listening', {
     trace_id: null,
@@ -617,6 +627,8 @@ async function bootstrap(): Promise<void> {
     favoriteSyncReady: Boolean(setFavorite),
     syncBatchReady: Boolean(acceptBatchedSyncEvents),
     syncStateReady: Boolean(getSyncState),
+    qoeIngestReady: Boolean(ingestQoeEvents),
+    qoeIngestPersistence: 'in-memory',
     realtimeGatewayReady: Boolean(realtimeGateway),
     realtimePubSubFanOutReady: Boolean(fanOutDeviceCommand),
     sendToTvReady: Boolean(sendToTv),

@@ -207,6 +207,11 @@ export const ROUTE_CATALOG: readonly RouteCatalogEntry[] = [
     operationId: 'acceptBatchedSyncEvents',
   },
   {
+    method: 'POST',
+    path: '/api/v1/diagnostics/qoe',
+    operationId: 'ingestQoeEvents',
+  },
+  {
     method: 'GET',
     path: '/realtime',
     operationId: 'realtimeHandshake',
