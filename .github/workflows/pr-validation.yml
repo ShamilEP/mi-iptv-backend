@@ -45,6 +45,9 @@ jobs:
       - name: OpenAPI vs code
         run: npm run openapi:verify
 
+      - name: OpenAPI implementation contract (BE-122)
+        run: npm run openapi:implementation-contract
+
   contract:
     name: OpenAPI contract tests
     runs-on: ubuntu-latest
@@ -67,6 +70,9 @@ jobs:
 
       - name: OpenAPI contract tests (mock)
         run: npm run openapi:contract-test
+
+      - name: OpenAPI implementation contract (BE-122)
+        run: npm run openapi:implementation-contract
 
   apps:
     name: Apps unit tests

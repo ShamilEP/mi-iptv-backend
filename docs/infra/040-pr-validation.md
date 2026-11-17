@@ -17,8 +17,9 @@ Run **lint**, **format**, **unit tests**, and **OpenAPI-vs-code** checks on ever
 | Lint | `npm run lint` | Backend ESLint |
 | Typecheck | `npm run typecheck` | Backend `tsc --noEmit` |
 | Unit tests | `npm test` | Backend `tests/unit` |
-| OpenAPI vs code | `npm run openapi:verify` | `openapi/openapi.json` ↔ `route-catalog` |
+| OpenAPI vs code | `npm run openapi:verify` | `openapi/openapi.json` ↔ `route-catalog` ↔ inventory |
 | OpenAPI contract tests | workflow job `contract` → `npm run openapi:contract-test` | Mock-backed MVP ops (INF-045) |
+| OpenAPI implementation contract | `npm run openapi:implementation-contract` (BE-122) | Route modules / operationIds / 2xx schemas vs freeze |
 | Apps | workflow job `apps` | Skips when `apps/` absent (TV/companion live in other repos; packaging = INF-041) |
 | DB migrations + seeds | workflow job `migrations` | Postgres 16 service; `db:migrate` then DEV/QA `db:seed` (BE-007) |
 
@@ -39,7 +40,7 @@ Node **22** (matches `package.json` engines). No AWS credentials required for PR
 | `src/presentation/http/route-catalog.ts` | Paths/methods registered by the presentation layer |
 | `scripts/verify-openapi.ts` | Fails if catalog and OpenAPI diverge (no extra npm packages; uses existing `tsx`) |
 
-Current surface: `GET /health` (Infra §2.2 health check). Expand both files together when adding `/api/v1` routes.
+Implemented surface is tracked in `ROUTE_CATALOG` and `openapi/mvp-v1-inventory.ts` (BE-003 freeze + BE-122). Expand OpenAPI, inventory, catalog, and route modules together.
 
 ### Apps note
 
