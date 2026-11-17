@@ -213,7 +213,7 @@ export const MVP_V1_OPERATIONS: readonly MvpOperation[] = [
     method: 'POST',
     path: '/api/v1/diagnostics/qoe',
     operationId: 'ingestQoeEvents',
-    implemented: false,
+    implemented: true,
   },
   {
     method: 'GET',
