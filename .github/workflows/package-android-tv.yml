@@ -60,7 +60,7 @@ jobs:
 
       - name: Set up Android SDK
         if: steps.path.outputs.present == 'true'
-        uses: android-actions/setup-android@v3
+        uses: android-actions/setup-android@v4
 
       - name: Decode keystore (optional)
         if: steps.path.outputs.present == 'true' && env.ANDROID_KEYSTORE_BASE64 != ''
