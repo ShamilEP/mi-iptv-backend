@@ -26,7 +26,8 @@ export class CreateSource {
   constructor(
     private readonly sources: SourceRepository,
     private readonly cipher: SourceCredentialCipher,
-    private readonly syncClock?: AccountSyncClock,
+    /** Required so peers observe the create on GET /sync/state (BE-064 / ADR-009). */
+    private readonly syncClock: AccountSyncClock,
   ) {}
 
   async execute(input: CreateSourceInput): Promise<SourcePublicView> {
@@ -58,10 +59,7 @@ export class CreateSource {
       );
     }
 
-    const changeSeq =
-      this.syncClock !== undefined
-        ? await this.syncClock.nextChangeSeq(input.accountId)
-        : 0;
+    const changeSeq = await this.syncClock.nextChangeSeq(input.accountId);
     const created = await this.sources.insert({
       id: randomUUID(),
       accountId: input.accountId,

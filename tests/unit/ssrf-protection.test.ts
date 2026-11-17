@@ -16,10 +16,12 @@ import { ValidateSourceUrl } from '../../src/application/sources/validate-source
 import { SsrfGuardError } from '../../src/domain/sources/ssrf-guard-error.js';
 import { Aes256GcmSourceCredentialCipher } from '../../src/infrastructure/crypto/aes256-gcm-source-credential-cipher.js';
 import { HttpXtreamCodesClient } from '../../src/infrastructure/catalog/http-xtream-codes-client.js';
+import { InMemoryAccountSyncClock } from '../../src/infrastructure/persistence/in-memory-account-sync-clock.js';
 import { InMemorySourceRepository } from '../../src/infrastructure/persistence/in-memory-source-repository.js';
 
 const accountId = '11111111-1111-1111-1111-111111111111';
 const publicIp = '93.184.216.34';
+const syncClock = () => new InMemoryAccountSyncClock();
 
 class MapDns implements DnsResolver {
   constructor(private readonly map: Record<string, readonly string[]>) {}
@@ -342,7 +344,7 @@ describe('SEC-031 SSRF protection — source test path', () => {
       randomBytes(32),
       'key-dev',
     );
-    const created = await new CreateSource(repo, cipher).execute({
+    const created = await new CreateSource(repo, cipher, syncClock()).execute({
       accountId,
       kind: 'm3u',
       name: 'Evil',
@@ -377,7 +379,7 @@ describe('SEC-031 SSRF protection — source test path', () => {
       randomBytes(32),
       'key-dev',
     );
-    const created = await new CreateSource(repo, cipher).execute({
+    const created = await new CreateSource(repo, cipher, syncClock()).execute({
       accountId,
       kind: 'm3u',
       name: 'Redirect',

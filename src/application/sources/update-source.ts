@@ -28,7 +28,8 @@ export class UpdateSource {
   constructor(
     private readonly sources: SourceRepository,
     private readonly cipher: SourceCredentialCipher,
-    private readonly syncClock?: AccountSyncClock,
+    /** Required so peers observe the patch on GET /sync/state (BE-064 / ADR-009). */
+    private readonly syncClock: AccountSyncClock,
   ) {}
 
   async execute(input: UpdateSourceInput): Promise<SourcePublicView> {
@@ -64,10 +65,7 @@ export class UpdateSource {
       );
     }
 
-    const changeSeq =
-      this.syncClock !== undefined
-        ? await this.syncClock.nextChangeSeq(input.accountId)
-        : existing.changeSeq;
+    const changeSeq = await this.syncClock.nextChangeSeq(input.accountId);
     const saved = await this.sources.save({
       ...existing,
       name,

@@ -1,3 +1,4 @@
+import { assertSourceDeltaHasNoSecrets } from '../../domain/sources/source-sync.js';
 import type { UserSource } from '../../domain/sources/user-source.js';
 import type { Favorite } from '../../domain/sync/favorite.js';
 import type { PlaybackState } from '../../domain/sync/playback-state.js';
@@ -36,25 +37,27 @@ export function toFavoriteDelta(row: Favorite): SyncDeltaChange {
   };
 }
 
-/** Metadata-only — never credentials / ciphertext (ADR-009 / SEC). */
+/** Metadata-only — never credentials / ciphertext (ADR-009 / BE-064). */
 export function toSourceDelta(row: UserSource): SyncDeltaChange {
+  const payload: Record<string, unknown> = {
+    id: row.id,
+    kind: row.kind,
+    name: row.name,
+    uriRef: row.uriRef,
+    priority: row.priority,
+    enabled: row.enabled,
+    status: row.status,
+    statusReason: row.statusReason,
+    itemCount: row.itemCount,
+    lastIngestedAt:
+      row.lastIngestedAt !== null ? row.lastIngestedAt.toISOString() : null,
+    syncVersion: row.syncVersion,
+  };
+  assertSourceDeltaHasNoSecrets(payload);
   return {
     entity: 'source',
     seq: row.changeSeq,
     deleted: row.deletedAt !== null,
-    payload: {
-      id: row.id,
-      kind: row.kind,
-      name: row.name,
-      uriRef: row.uriRef,
-      priority: row.priority,
-      enabled: row.enabled,
-      status: row.status,
-      statusReason: row.statusReason,
-      itemCount: row.itemCount,
-      lastIngestedAt:
-        row.lastIngestedAt !== null ? row.lastIngestedAt.toISOString() : null,
-      syncVersion: row.syncVersion,
-    },
+    payload,
   };
 }

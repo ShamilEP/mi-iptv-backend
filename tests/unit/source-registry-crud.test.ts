@@ -6,6 +6,7 @@ import { DeleteSource } from '../../src/application/sources/delete-source.js';
 import { ListSources } from '../../src/application/sources/list-sources.js';
 import { UpdateSource } from '../../src/application/sources/update-source.js';
 import { Aes256GcmSourceCredentialCipher } from '../../src/infrastructure/crypto/aes256-gcm-source-credential-cipher.js';
+import { InMemoryAccountSyncClock } from '../../src/infrastructure/persistence/in-memory-account-sync-clock.js';
 import { InMemorySourceRepository } from '../../src/infrastructure/persistence/in-memory-source-repository.js';
 
 const accountId = '11111111-1111-1111-1111-111111111111';
@@ -16,11 +17,12 @@ function buildUseCases() {
     randomBytes(32),
     'arn:aws:kms:us-east-1:000000000001:key/mock-dev-source-creds',
   );
+  const clock = new InMemoryAccountSyncClock();
   return {
-    create: new CreateSource(repo, cipher),
+    create: new CreateSource(repo, cipher, clock),
     list: new ListSources(repo),
-    update: new UpdateSource(repo, cipher),
-    remove: new DeleteSource(repo),
+    update: new UpdateSource(repo, cipher, clock),
+    remove: new DeleteSource(repo, clock),
   };
 }
 

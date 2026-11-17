@@ -30,6 +30,7 @@ import { InMemoryRedisClient } from '../../src/infrastructure/cache/in-memory-re
 import { RedisAccessTokenDenyList } from '../../src/infrastructure/cache/redis-access-token-deny-list.js';
 import { Aes256GcmSourceCredentialCipher } from '../../src/infrastructure/crypto/aes256-gcm-source-credential-cipher.js';
 import { NodeRs256AccessTokenService } from '../../src/infrastructure/crypto/node-rs256-access-token-service.js';
+import { InMemoryAccountSyncClock } from '../../src/infrastructure/persistence/in-memory-account-sync-clock.js';
 import { InMemoryDeviceCommandRepository } from '../../src/infrastructure/persistence/in-memory-device-command-repository.js';
 import { InMemoryDeviceRepository } from '../../src/infrastructure/persistence/in-memory-device-repository.js';
 import { InMemoryFavoriteSyncRepository } from '../../src/infrastructure/persistence/in-memory-favorite-sync-repository.js';
@@ -128,9 +129,10 @@ describe('SEC-015 IDOR / BOLA authorization', () => {
   it('rejects cross-account source mutation', async () => {
     const repo = new InMemorySourceRepository();
     const cipher = new Aes256GcmSourceCredentialCipher(dek, 'test-dek');
-    const create = new CreateSource(repo, cipher);
-    const update = new UpdateSource(repo, cipher);
-    const del = new DeleteSource(repo);
+    const clock = new InMemoryAccountSyncClock();
+    const create = new CreateSource(repo, cipher, clock);
+    const update = new UpdateSource(repo, cipher, clock);
+    const del = new DeleteSource(repo, clock);
 
     const victimSource = await create.execute({
       accountId: accountB,
