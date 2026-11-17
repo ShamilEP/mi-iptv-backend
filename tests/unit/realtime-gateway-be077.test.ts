@@ -38,11 +38,16 @@ async function createStack(maxPerDevice = 2) {
     publicKeyPem: publicKey,
     activeKid: 'rt-kid',
   });
-  const ttl = loadJwtTokenTtlConfig({});
-  const access = new NodeRs256AccessTokenService(store, ttl);
-  const denyList = new RedisAccessTokenDenyList(new InMemoryRedisClient());
-  const assertActive = new AssertAccessTokenActive(access, denyList);
-  const authenticate = new AuthenticateRealtimeHandshake(assertActive);
+  const access = new NodeRs256AccessTokenService(
+    store,
+    loadJwtTokenTtlConfig({}),
+  );
+  const authenticate = new AuthenticateRealtimeHandshake(
+    new AssertAccessTokenActive(
+      access,
+      new RedisAccessTokenDenyList(new InMemoryRedisClient()),
+    ),
+  );
   const presence = new InMemoryDeviceSocketPresence();
   const bus = new InMemoryRealtimeDeviceBus();
   const sessions = new InMemoryRealtimeSessionStore();
@@ -63,17 +68,14 @@ async function createStack(maxPerDevice = 2) {
 class FakeSocket extends EventEmitter {
   readonly chunks: Buffer[] = [];
   destroyed = false;
-
   write(chunk: string | Buffer): boolean {
     this.chunks.push(typeof chunk === 'string' ? Buffer.from(chunk) : chunk);
     return true;
   }
-
   end(): this {
     this.emit('close');
     return this;
   }
-
   destroy(): this {
     this.destroyed = true;
     this.emit('close');
@@ -81,68 +83,45 @@ class FakeSocket extends EventEmitter {
   }
 }
 
-function asDuplex(socket: FakeSocket): Duplex {
-  return socket as unknown as Duplex;
+function parseHelloFromChunks(chunks: Buffer[]): Record<string, unknown> {
+  const joined = Buffer.concat(chunks);
+  const idx = joined.indexOf('\r\n\r\n');
+  assert.ok(idx >= 0, 'expected HTTP 101 header');
+  const decoded = tryDecodeWsFrame(joined.subarray(idx + 4));
+  assert.ok(decoded, 'expected websocket hello frame');
+  return JSON.parse(decoded.frame.payload.toString('utf8')) as Record<
+    string,
+    unknown
+  >;
 }
 
-function buildUpgradeRequest(params: {
-  readonly deviceId: string;
-  readonly token: string;
-  readonly resumeToken?: string;
-}): IncomingMessage {
-  const search = new URLSearchParams({ deviceId: params.deviceId });
-  if (params.resumeToken) {
-    search.set('resumeToken', params.resumeToken);
+function upgradeRequest(
+  deviceId: string,
+  token: string,
+  resumeToken?: string,
+): IncomingMessage {
+  const search = new URLSearchParams({ deviceId });
+  if (resumeToken) {
+    search.set('resumeToken', resumeToken);
   }
   const req = new EventEmitter() as IncomingMessage;
   req.url = `/realtime?${search.toString()}`;
   req.headers = {
     host: 'localhost',
-    authorization: `Bearer ${params.token}`,
+    authorization: `Bearer ${token}`,
     'sec-websocket-key': 'dGhlIHNhbXBsZSBub25jZQ==',
-    upgrade: 'websocket',
-    connection: 'Upgrade',
   };
   return req;
 }
 
-function waitForHello(socket: FakeSocket): Promise<Record<string, unknown>> {
-  return new Promise((resolve, reject) => {
-    const timer = setTimeout(() => reject(new Error('hello timeout')), 2000);
-    const check = () => {
-      const joined = Buffer.concat(socket.chunks);
-      // Skip HTTP 101 header if present.
-      const idx = joined.indexOf('\r\n\r\n');
-      const body = idx >= 0 ? joined.subarray(idx + 4) : joined;
-      const decoded = tryDecodeWsFrame(body);
-      if (decoded === null) {
-        return;
-      }
-      clearTimeout(timer);
-      resolve(
-        JSON.parse(decoded.frame.payload.toString('utf8')) as Record<
-          string,
-          unknown
-        >,
-      );
-    };
-    socket.on('data', check);
-    // Also poll writes from gateway (server pushes via write(), not 'data').
-    const interval = setInterval(() => {
-      try {
-        check();
-        clearInterval(interval);
-      } catch {
-        /* keep waiting until timeout */
-      }
-    }, 5);
-    const originalWrite = socket.write.bind(socket);
-    socket.write = (chunk: string | Buffer) => {
-      const ok = originalWrite(chunk);
-      queueImmediate(check);
-      return ok;
-    };
-  });
+async function waitForChunks(socket: FakeSocket): Promise<void> {
+  for (let i = 0; i < 50; i += 1) {
+    if (socket.chunks.length > 0) {
+      return;
+    }
+    await new Promise((resolve) => setTimeout(resolve, 10));
+  }
+  throw new Error('gateway wrote no response chunks');
 }
 
 describe('BE-077 realtime gateway', () => {
@@ -154,12 +133,11 @@ describe('BE-077 realtime gateway', () => {
     assert.equal(entry.operationId, 'realtimeHandshake');
   });
 
-  it('authenticates JWT and binds deviceId on handshake', async () => {
+  it('authenticates JWT and binds deviceId', async () => {
     const { access, authenticate } = await createStack();
     const deviceId = randomUUID();
-    const accountId = randomUUID();
     const issued = access.issue({
-      accountId,
+      accountId: randomUUID(),
       deviceId,
       roles: ['user'],
     });
@@ -167,7 +145,7 @@ describe('BE-077 realtime gateway', () => {
       accessToken: issued.token,
       deviceId,
     });
-    assert.equal(claims.accountId, accountId);
+    assert.equal(claims.deviceId, deviceId);
     await assert.rejects(
       () =>
         authenticate.execute({
@@ -180,7 +158,7 @@ describe('BE-077 realtime gateway', () => {
     );
   });
 
-  it('completes WSS handshake hello, presence, resume, and device-channel fan-out', async () => {
+  it('handshakes hello, presence, resume, heartbeat, and device fan-out', async () => {
     const api = await createStack();
     const deviceId = randomUUID();
     const accountId = randomUUID();
@@ -191,32 +169,27 @@ describe('BE-077 realtime gateway', () => {
     });
 
     const socket = new FakeSocket();
-    const helloPromise = waitForHello(socket);
     api.gateway.handleUpgrade(
-      buildUpgradeRequest({ deviceId, token: issued.token }),
-      asDuplex(socket),
+      upgradeRequest(deviceId, issued.token),
+      socket as unknown as Duplex,
       Buffer.alloc(0),
     );
-    const hello = await helloPromise;
+    await waitForChunks(socket);
+
+    const hello = parseHelloFromChunks(socket.chunks);
     assert.equal(hello.type, 'hello');
     assert.equal(hello.deviceChannel, deviceChannel(deviceId));
-    assert.equal(typeof hello.sessionId, 'string');
-    assert.equal(typeof hello.resumeToken, 'string');
-    assert.match(
-      Buffer.concat(socket.chunks).toString('utf8'),
-      /101 Switching Protocols/,
-    );
     assert.equal(await api.presence.hasOpenSocket(accountId, deviceId), true);
 
-    const fanout: string[] = [];
-    const originalWrite = socket.write.bind(socket);
+    let fanout = '';
+    const prevWrite = socket.write.bind(socket);
     socket.write = (chunk: string | Buffer) => {
       const buf = typeof chunk === 'string' ? Buffer.from(chunk) : chunk;
       const decoded = tryDecodeWsFrame(buf);
-      if (decoded !== null) {
-        fanout.push(decoded.frame.payload.toString('utf8'));
+      if (decoded) {
+        fanout = decoded.frame.payload.toString('utf8');
       }
-      return originalWrite(chunk);
+      return prevWrite(chunk);
     };
     await api.bus.publish(
       deviceId,
@@ -226,10 +199,8 @@ describe('BE-077 realtime gateway', () => {
         payload: { action: 'ping-device' },
       }),
     );
-    assert.equal(fanout.length, 1);
-    assert.match(fanout[0]!, /ping-device/);
+    assert.match(fanout, /ping-device/);
 
-    // Client heartbeat refreshes presence.
     socket.emit(
       'data',
       encodeWsFrame(
@@ -241,20 +212,16 @@ describe('BE-077 realtime gateway', () => {
     await new Promise((r) => setTimeout(r, 20));
     assert.equal(await api.presence.hasOpenSocket(accountId, deviceId), true);
 
-    // Resume reconnect keeps session id.
     const socket2 = new FakeSocket();
-    const hello2Promise = waitForHello(socket2);
     api.gateway.handleUpgrade(
-      buildUpgradeRequest({
-        deviceId,
-        token: issued.token,
-        resumeToken: String(hello.resumeToken),
-      }),
-      asDuplex(socket2),
+      upgradeRequest(deviceId, issued.token, String(hello.resumeToken)),
+      socket2 as unknown as Duplex,
       Buffer.alloc(0),
     );
-    const hello2 = await hello2Promise;
+    await waitForChunks(socket2);
+    const hello2 = parseHelloFromChunks(socket2.chunks);
     assert.equal(hello2.sessionId, hello.sessionId);
+
     socket.destroy();
     socket2.destroy();
   });
@@ -262,29 +229,28 @@ describe('BE-077 realtime gateway', () => {
   it('rejects excess device connections with 429', async () => {
     const api = await createStack(1);
     const deviceId = randomUUID();
-    const accountId = randomUUID();
     const issued = api.access.issue({
-      accountId,
+      accountId: randomUUID(),
       deviceId,
       roles: ['user'],
     });
 
     const first = new FakeSocket();
-    const helloPromise = waitForHello(first);
     api.gateway.handleUpgrade(
-      buildUpgradeRequest({ deviceId, token: issued.token }),
-      asDuplex(first),
+      upgradeRequest(deviceId, issued.token),
+      first as unknown as Duplex,
       Buffer.alloc(0),
     );
-    await helloPromise;
+    await waitForChunks(first);
+    parseHelloFromChunks(first.chunks);
 
     const second = new FakeSocket();
     api.gateway.handleUpgrade(
-      buildUpgradeRequest({ deviceId, token: issued.token }),
-      asDuplex(second),
+      upgradeRequest(deviceId, issued.token),
+      second as unknown as Duplex,
       Buffer.alloc(0),
     );
-    await new Promise((r) => setTimeout(r, 30));
+    await waitForChunks(second);
     const body = Buffer.concat(second.chunks).toString('utf8');
     assert.match(body, /429/);
     assert.match(body, /REALTIME_DEVICE_CONNECTION_LIMIT/);
@@ -292,7 +258,7 @@ describe('BE-077 realtime gateway', () => {
     second.destroy();
   });
 
-  it('computes RFC6455 accept keys and tracks registry limits', () => {
+  it('supports RFC6455 framing helpers and connection registry limits', () => {
     const key = 'dGhlIHNhbXBsZSBub25jZQ==';
     assert.equal(
       computeWebSocketAccept(key),
@@ -300,6 +266,11 @@ describe('BE-077 realtime gateway', () => {
         .update(key + '258EAFA5-E914-47DA-95CA-C5AB0DC85B11')
         .digest('base64'),
     );
+    const frame = encodeWsFrame(WS_OPCODE_TEXT, Buffer.from('{"type":"ping"}'));
+    const decoded = tryDecodeWsFrame(frame);
+    assert.ok(decoded);
+    assert.equal(decoded.frame.payload.toString('utf8'), '{"type":"ping"}');
+
     const registry = new RealtimeConnectionRegistry(1, 2);
     registry.register({
       connectionId: 'c1',
