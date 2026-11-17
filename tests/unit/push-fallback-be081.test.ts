@@ -146,6 +146,7 @@ describe('POST /api/v1/devices/companion-status (BE-081)', () => {
       unlinkDevice: new UnlinkDevice(api.devices),
       deviceHeartbeat: new DeviceHeartbeat(api.devices),
       notifyCompanionStatusFallback: api.notify,
+      sendToTv: { execute: async () => ({}) } as never,
     });
     const route = routes.find(
       (entry) =>

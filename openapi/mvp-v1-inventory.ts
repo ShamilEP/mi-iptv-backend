@@ -206,7 +206,7 @@ export const MVP_V1_OPERATIONS: readonly MvpOperation[] = [
     method: 'POST',
     path: '/api/v1/devices/{id}/send-to-tv',
     operationId: 'sendToTv',
-    implemented: false,
+    implemented: true,
   },
 
   {
