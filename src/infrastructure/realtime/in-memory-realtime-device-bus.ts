@@ -9,14 +9,15 @@ import type {
 export class InMemoryRealtimeDeviceBus implements RealtimeDeviceBus {
   private readonly handlers = new Map<string, Set<RealtimeDeviceBusHandler>>();
 
-  async publish(deviceId: string, message: string): Promise<void> {
+  async publish(deviceId: string, message: string): Promise<number> {
     const set = this.handlers.get(deviceId);
     if (!set) {
-      return;
+      return 0;
     }
     for (const handler of [...set]) {
       handler(message);
     }
+    return set.size;
   }
 
   async subscribe(
