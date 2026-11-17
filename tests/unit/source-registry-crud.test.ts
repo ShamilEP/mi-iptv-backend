@@ -1,34 +1,12 @@
 import assert from 'node:assert/strict';
-import { randomBytes } from 'node:crypto';
 import { describe, it } from 'node:test';
-import { CreateSource } from '../../src/application/sources/create-source.js';
-import { DeleteSource } from '../../src/application/sources/delete-source.js';
-import { ListSources } from '../../src/application/sources/list-sources.js';
-import { UpdateSource } from '../../src/application/sources/update-source.js';
-import { Aes256GcmSourceCredentialCipher } from '../../src/infrastructure/crypto/aes256-gcm-source-credential-cipher.js';
-import { InMemoryAccountSyncClock } from '../../src/infrastructure/persistence/in-memory-account-sync-clock.js';
-import { InMemorySourceRepository } from '../../src/infrastructure/persistence/in-memory-source-repository.js';
+import { buildSourceRegistryApi } from '../helpers/source-use-cases.js';
 
 const accountId = '11111111-1111-1111-1111-111111111111';
 
-function buildUseCases() {
-  const repo = new InMemorySourceRepository();
-  const cipher = new Aes256GcmSourceCredentialCipher(
-    randomBytes(32),
-    'arn:aws:kms:us-east-1:000000000001:key/mock-dev-source-creds',
-  );
-  const clock = new InMemoryAccountSyncClock();
-  return {
-    create: new CreateSource(repo, cipher, clock),
-    list: new ListSources(repo),
-    update: new UpdateSource(repo, cipher, clock),
-    remove: new DeleteSource(repo, clock),
-  };
-}
-
 describe('Source registry CRUD (BE-040)', () => {
   it('creates, lists, prioritizes, deactivates, and deletes with masked secrets', async () => {
-    const api = buildUseCases();
+    const api = buildSourceRegistryApi();
     const created = await api.create.execute({
       accountId,
       kind: 'xtream',
@@ -64,7 +42,7 @@ describe('Source registry CRUD (BE-040)', () => {
   });
 
   it('rejects create without xtream credentials', async () => {
-    const api = buildUseCases();
+    const api = buildSourceRegistryApi();
     await assert.rejects(
       () =>
         api.create.execute({
@@ -78,7 +56,7 @@ describe('Source registry CRUD (BE-040)', () => {
   });
 
   it('creates M3U sources without credentials', async () => {
-    const api = buildUseCases();
+    const api = buildSourceRegistryApi();
     const created = await api.create.execute({
       accountId,
       kind: 'm3u',

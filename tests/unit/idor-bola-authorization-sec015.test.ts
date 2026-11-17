@@ -20,6 +20,7 @@ import { FanOutDeviceCommand } from '../../src/application/realtime/fan-out-devi
 import { CreateSource } from '../../src/application/sources/create-source.js';
 import { DeleteSource } from '../../src/application/sources/delete-source.js';
 import { UpdateSource } from '../../src/application/sources/update-source.js';
+import { createAllowingValidateSourceUrl } from '../helpers/source-use-cases.js';
 import { ListFavorites } from '../../src/application/sync/list-favorites.js';
 import { SetFavorite } from '../../src/application/sync/set-favorite.js';
 import { loadJwtTokenTtlConfig } from '../../src/config/jwt-tokens.js';
@@ -130,8 +131,9 @@ describe('SEC-015 IDOR / BOLA authorization', () => {
     const repo = new InMemorySourceRepository();
     const cipher = new Aes256GcmSourceCredentialCipher(dek, 'test-dek');
     const clock = new InMemoryAccountSyncClock();
-    const create = new CreateSource(repo, cipher, clock);
-    const update = new UpdateSource(repo, cipher, clock);
+    const validateSourceUrl = createAllowingValidateSourceUrl();
+    const create = new CreateSource(repo, cipher, clock, validateSourceUrl);
+    const update = new UpdateSource(repo, cipher, clock, validateSourceUrl);
     const del = new DeleteSource(repo, clock);
 
     const victimSource = await create.execute({

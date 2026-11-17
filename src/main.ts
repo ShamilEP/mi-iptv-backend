@@ -234,21 +234,22 @@ async function bootstrap(): Promise<void> {
 
   const sourceRepository = new InMemorySourceRepository();
   const listSources = new ListSources(sourceRepository);
+  // BE-041 / SEC-033: SSRF-safe source URL validation on create/update + fetch.
+  const sourceHttpGuard = loadSourceHttpGuardConfig(process.env);
+  const validateSourceUrl = new ValidateSourceUrl(new NodeDnsResolver());
   const createSource = new CreateSource(
     sourceRepository,
     sourceCredentialCipher,
     accountSyncClock,
+    validateSourceUrl,
   );
   const updateSource = new UpdateSource(
     sourceRepository,
     sourceCredentialCipher,
     accountSyncClock,
+    validateSourceUrl,
   );
   const deleteSource = new DeleteSource(sourceRepository, accountSyncClock);
-
-  // BE-041: SSRF-safe source URL validation / fetch (wired for sources ingest).
-  const sourceHttpGuard = loadSourceHttpGuardConfig(process.env);
-  const validateSourceUrl = new ValidateSourceUrl(new NodeDnsResolver());
   const fetchSourceUrlSafely = new FetchSourceUrlSafely(
     validateSourceUrl,
     new NodeSourceHttpClient(),

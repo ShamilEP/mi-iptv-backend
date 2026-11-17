@@ -12,9 +12,14 @@ import { SsrfGuardError } from '../../src/domain/sources/ssrf-guard-error.js';
 import { Aes256GcmSourceCredentialCipher } from '../../src/infrastructure/crypto/aes256-gcm-source-credential-cipher.js';
 import { InMemoryAccountSyncClock } from '../../src/infrastructure/persistence/in-memory-account-sync-clock.js';
 import { InMemorySourceRepository } from '../../src/infrastructure/persistence/in-memory-source-repository.js';
+import { createAllowingValidateSourceUrl } from '../helpers/source-use-cases.js';
 
 const accountId = '11111111-1111-1111-1111-111111111111';
 const syncClock = () => new InMemoryAccountSyncClock();
+const createSource = (
+  repo: InMemorySourceRepository,
+  cipher: Aes256GcmSourceCredentialCipher,
+) => new CreateSource(repo, cipher, syncClock(), createAllowingValidateSourceUrl());
 
 function stubFetch(
   impl: FetchSourceUrlSafely['execute'],
@@ -50,7 +55,7 @@ describe('TestSource', () => {
       randomBytes(32),
       'key-dev',
     );
-    const created = await new CreateSource(repo, cipher, syncClock()).execute({
+    const created = await createSource(repo, cipher).execute({
       accountId,
       kind: 'm3u',
       name: 'List',
@@ -108,7 +113,7 @@ describe('TestSource', () => {
       randomBytes(32),
       'key-dev',
     );
-    const created = await new CreateSource(repo, cipher, syncClock()).execute({
+    const created = await createSource(repo, cipher).execute({
       accountId,
       kind: 'xtream',
       name: 'Panel',
@@ -136,7 +141,7 @@ describe('TestSource', () => {
     assert.equal(result.reason, 'auth_failed');
     assert.equal(result.source.status, 'error');
     assert.equal(result.source.statusReason, 'auth_failed');
-    assert.equal(result.source.uriRef, 'https://panel.example.com');
+    assert.equal(result.source.uriRef, 'https://panel.example.com/');
     assert.equal(result.source.name, 'Panel');
     assert.equal(result.source.credentialsConfigured, true);
     assert.equal(result.source.password, null);
@@ -148,7 +153,7 @@ describe('TestSource', () => {
       randomBytes(32),
       'key-dev',
     );
-    const created = await new CreateSource(repo, cipher, syncClock()).execute({
+    const created = await createSource(repo, cipher).execute({
       accountId,
       kind: 'm3u',
       name: 'Slow',

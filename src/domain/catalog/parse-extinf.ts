@@ -1,7 +1,13 @@
 /**
  * Parse an `#EXTINF:` line into duration, display title, and IPTV attributes.
  * Tolerates missing/malformed attributes (returns nulls) — caller decides skips.
+ * Titles / group labels are normalized (SEC-033).
  */
+
+import {
+  normalizeDisplayText,
+  normalizeOptionalDisplayText,
+} from './display-text.js';
 
 const ATTR_PATTERN =
   /(tvg-id|tvg-name|tvg-logo|group-title)\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s,]+))/gi;
@@ -33,12 +39,13 @@ export function parseExtInfLine(line: string): ExtInfAttributes | null {
   const durationSec = parseDuration(meta);
   const attrs = extractAttributes(meta);
 
+  const rawTitle = title.length > 0 ? title : (attrs['tvg-name'] ?? 'Untitled');
   return {
-    tvgId: attrs['tvg-id'] ?? null,
-    tvgName: attrs['tvg-name'] ?? null,
+    tvgId: normalizeOptionalDisplayText(attrs['tvg-id'] ?? null),
+    tvgName: normalizeOptionalDisplayText(attrs['tvg-name'] ?? null),
     tvgLogo: attrs['tvg-logo'] ?? null,
-    groupTitle: attrs['group-title'] ?? null,
-    title: title.length > 0 ? title : (attrs['tvg-name'] ?? 'Untitled'),
+    groupTitle: normalizeOptionalDisplayText(attrs['group-title'] ?? null),
+    title: normalizeDisplayText(rawTitle) || 'Untitled',
     durationSec,
   };
 }
