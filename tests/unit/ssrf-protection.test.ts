@@ -13,6 +13,7 @@ import { FetchSourceUrlSafely } from '../../src/application/sources/fetch-source
 import { CreateSource } from '../../src/application/sources/create-source.js';
 import { TestSource } from '../../src/application/sources/test-source.js';
 import { ValidateSourceUrl } from '../../src/application/sources/validate-source-url.js';
+import { createAllowingValidateSourceUrl } from '../helpers/source-use-cases.js';
 import { SsrfGuardError } from '../../src/domain/sources/ssrf-guard-error.js';
 import { Aes256GcmSourceCredentialCipher } from '../../src/infrastructure/crypto/aes256-gcm-source-credential-cipher.js';
 import { HttpXtreamCodesClient } from '../../src/infrastructure/catalog/http-xtream-codes-client.js';
@@ -344,7 +345,7 @@ describe('SEC-031 SSRF protection — source test path', () => {
       randomBytes(32),
       'key-dev',
     );
-    const created = await new CreateSource(repo, cipher, syncClock()).execute({
+    const created = await new CreateSource(repo, cipher, syncClock(), createAllowingValidateSourceUrl()).execute({
       accountId,
       kind: 'm3u',
       name: 'Evil',
@@ -379,7 +380,7 @@ describe('SEC-031 SSRF protection — source test path', () => {
       randomBytes(32),
       'key-dev',
     );
-    const created = await new CreateSource(repo, cipher, syncClock()).execute({
+    const created = await new CreateSource(repo, cipher, syncClock(), createAllowingValidateSourceUrl()).execute({
       accountId,
       kind: 'm3u',
       name: 'Redirect',

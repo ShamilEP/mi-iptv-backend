@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import { randomUUID } from 'node:crypto';
 import { describe, it } from 'node:test';
 import { CreateSource } from '../../src/application/sources/create-source.js';
+import { createAllowingValidateSourceUrl } from '../helpers/source-use-cases.js';
 import { DeleteSource } from '../../src/application/sources/delete-source.js';
 import { GetSyncState } from '../../src/application/sync/get-sync-state.js';
 import { parseSyncStateQuery } from '../../src/application/sync/parse-sync-state-query.js';
@@ -42,7 +43,12 @@ async function buildStack() {
     randomBytes(32),
     'key-dev',
   );
-  const createSource = new CreateSource(sources, cipher, clock);
+  const createSource = new CreateSource(
+    sources,
+    cipher,
+    clock,
+    createAllowingValidateSourceUrl(),
+  );
   const deleteSource = new DeleteSource(sources, clock);
   const upsertPlayback = new UpsertPlaybackState(playback, profiles);
   const setFavorite = new SetFavorite(favorites, profiles);

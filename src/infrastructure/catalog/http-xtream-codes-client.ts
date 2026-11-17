@@ -10,6 +10,7 @@ import type {
   XtreamSeriesItem,
   XtreamVodStream,
 } from '../../domain/catalog/xtream-catalog.js';
+import { normalizeDisplayText } from '../../domain/catalog/display-text.js';
 import { XtreamError } from '../../domain/catalog/xtream-error.js';
 import {
   buildXtreamPlayerApiUrl,
@@ -224,7 +225,10 @@ function parseCategories(payload: unknown): readonly XtreamCategory[] {
     if (categoryId === null || categoryName === null) {
       continue;
     }
-    categories.push({ categoryId, categoryName });
+    categories.push({
+      categoryId,
+      categoryName: normalizeDisplayText(categoryName) || categoryName,
+    });
   }
   return categories;
 }
@@ -248,7 +252,7 @@ function parseLiveStreams(
     }
     streams.push({
       streamId,
-      name,
+      name: normalizeDisplayText(name) || name,
       categoryId: asNullableString(item['category_id']),
       streamIcon: asNullableString(item['stream_icon']),
       epgChannelId: asNullableString(item['epg_channel_id']),
@@ -285,7 +289,7 @@ function parseVodStreams(
     const containerExtension = asNullableString(item['container_extension']);
     streams.push({
       streamId,
-      name,
+      name: normalizeDisplayText(name) || name,
       categoryId: asNullableString(item['category_id']),
       streamIcon: asNullableString(item['stream_icon']),
       containerExtension,
@@ -318,7 +322,7 @@ function parseSeries(payload: unknown): readonly XtreamSeriesItem[] {
     }
     series.push({
       seriesId,
-      name,
+      name: normalizeDisplayText(name) || name,
       categoryId: asNullableString(item['category_id']),
       cover: asNullableString(item['cover']),
     });

@@ -4,9 +4,7 @@ import { readFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { describe, it } from 'node:test';
-import { CreateSource } from '../../src/application/sources/create-source.js';
 import { DeleteSource } from '../../src/application/sources/delete-source.js';
-import { UpdateSource } from '../../src/application/sources/update-source.js';
 import { GetSyncState } from '../../src/application/sync/get-sync-state.js';
 import { toSourceDelta } from '../../src/application/sync/sync-delta-public-view.js';
 import {
@@ -20,6 +18,11 @@ import { InMemoryFavoriteSyncRepository } from '../../src/infrastructure/persist
 import { InMemoryPlaybackSyncRepository } from '../../src/infrastructure/persistence/in-memory-playback-sync-repository.js';
 import { InMemorySourceRepository } from '../../src/infrastructure/persistence/in-memory-source-repository.js';
 import { createSyncRoutes } from '../../src/presentation/http/routes/sync-routes.js';
+import {
+  createAllowingValidateSourceUrl,
+} from '../helpers/source-use-cases.js';
+import { CreateSource } from '../../src/application/sources/create-source.js';
+import { UpdateSource } from '../../src/application/sources/update-source.js';
 
 const docPath = join(
   dirname(fileURLToPath(import.meta.url)),
@@ -35,8 +38,9 @@ function buildStack() {
     randomBytes(32),
     'be064-dek',
   );
-  const create = new CreateSource(sources, cipher, clock);
-  const update = new UpdateSource(sources, cipher, clock);
+  const validateSourceUrl = createAllowingValidateSourceUrl();
+  const create = new CreateSource(sources, cipher, clock, validateSourceUrl);
+  const update = new UpdateSource(sources, cipher, clock, validateSourceUrl);
   const remove = new DeleteSource(sources, clock);
   const getSyncState = new GetSyncState(
     clock,

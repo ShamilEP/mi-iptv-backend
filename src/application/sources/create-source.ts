@@ -1,4 +1,5 @@
 import { randomUUID } from 'node:crypto';
+import { normalizeDisplayText } from '../../domain/catalog/display-text.js';
 import { DomainError } from '../../domain/shared/domain-error.js';
 import { isMutableSourceKind } from '../../domain/sources/user-source.js';
 import type { AccountSyncClock } from '../ports/account-sync-clock.js';
@@ -8,6 +9,7 @@ import {
   toSourcePublicView,
   type SourcePublicView,
 } from './source-public-view.js';
+import type { ValidateSourceUrl } from './validate-source-url.js';
 
 export type CreateSourceInput = {
   readonly accountId: string;
@@ -28,6 +30,8 @@ export class CreateSource {
     private readonly cipher: SourceCredentialCipher,
     /** Required so peers observe the create on GET /sync/state (BE-064 / ADR-009). */
     private readonly syncClock: AccountSyncClock,
+    /** SEC-033 / BE-041: reject SSRF targets before persist. */
+    private readonly validateSourceUrl: ValidateSourceUrl,
   ) {}
 
   async execute(input: CreateSourceInput): Promise<SourcePublicView> {
@@ -37,7 +41,7 @@ export class CreateSource {
         'SOURCE_KIND_INVALID',
       );
     }
-    const name = input.name.trim();
+    const name = normalizeDisplayText(input.name);
     const uriRef = input.uriRef.trim();
     if (name === '' || uriRef === '') {
       throw new DomainError(
@@ -45,6 +49,8 @@ export class CreateSource {
         'SOURCE_INPUT_INVALID',
       );
     }
+
+    const validated = await this.validateSourceUrl.execute(uriRef);
 
     let credentialsEncrypted: Uint8Array | null = null;
     let encKeyId: string | null = null;
@@ -65,7 +71,7 @@ export class CreateSource {
       accountId: input.accountId,
       kind: input.kind,
       name,
-      uriRef,
+      uriRef: validated.url.href,
       credentialsEncrypted,
       encKeyId,
       priority: input.priority ?? 100,

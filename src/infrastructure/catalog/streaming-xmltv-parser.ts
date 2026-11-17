@@ -4,6 +4,7 @@ import type {
   XmltvProgramme,
 } from '../../domain/catalog/xmltv-guide.js';
 import { XmltvParseError } from '../../domain/catalog/xmltv-parse-error.js';
+import { normalizeOptionalDisplayText } from '../../domain/catalog/display-text.js';
 import {
   DEFAULT_XMLTV_PARSER_LIMITS,
   type XmltvParserLimits,
@@ -139,7 +140,7 @@ export function parseXmltvGuideStreaming(
     const nameMatch = DISPLAY_NAME.exec(body);
     channels.push({
       id: idMatch[1],
-      displayName: nameMatch?.[1]?.trim() || null,
+      displayName: normalizeOptionalDisplayText(nameMatch?.[1] ?? null),
     });
   }
 
@@ -175,7 +176,7 @@ export function parseXmltvGuideStreaming(
       channelId,
       start,
       stop,
-      title: titleMatch?.[1]?.trim() || null,
+      title: normalizeOptionalDisplayText(titleMatch?.[1] ?? null),
     });
   }
 }

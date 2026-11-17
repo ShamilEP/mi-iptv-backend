@@ -1,3 +1,4 @@
+import { normalizeDisplayText } from '../../domain/catalog/display-text.js';
 import { DomainError } from '../../domain/shared/domain-error.js';
 import type { AccountSyncClock } from '../ports/account-sync-clock.js';
 import type { SourceCredentialCipher } from '../ports/source-credential-cipher.js';
@@ -6,6 +7,7 @@ import {
   toSourcePublicView,
   type SourcePublicView,
 } from './source-public-view.js';
+import type { ValidateSourceUrl } from './validate-source-url.js';
 
 export type UpdateSourceInput = {
   readonly accountId: string;
@@ -30,6 +32,8 @@ export class UpdateSource {
     private readonly cipher: SourceCredentialCipher,
     /** Required so peers observe the patch on GET /sync/state (BE-064 / ADR-009). */
     private readonly syncClock: AccountSyncClock,
+    /** SEC-033 / BE-041: reject SSRF targets when uriRef changes. */
+    private readonly validateSourceUrl: ValidateSourceUrl,
   ) {}
 
   async execute(input: UpdateSourceInput): Promise<SourcePublicView> {
@@ -55,10 +59,23 @@ export class UpdateSource {
       encKeyId = encrypted.keyId;
     }
 
-    const name = input.name !== undefined ? input.name.trim() : existing.name;
-    const uriRef =
-      input.uriRef !== undefined ? input.uriRef.trim() : existing.uriRef;
-    if (name === '' || (uriRef !== null && uriRef === '')) {
+    const name =
+      input.name !== undefined
+        ? normalizeDisplayText(input.name)
+        : existing.name;
+    let uriRef = existing.uriRef;
+    if (input.uriRef !== undefined) {
+      const trimmed = input.uriRef.trim();
+      if (trimmed === '') {
+        throw new DomainError(
+          'name and uriRef must not be empty',
+          'SOURCE_INPUT_INVALID',
+        );
+      }
+      const validated = await this.validateSourceUrl.execute(trimmed);
+      uriRef = validated.url.href;
+    }
+    if (name === '') {
       throw new DomainError(
         'name and uriRef must not be empty',
         'SOURCE_INPUT_INVALID',
