@@ -1,11 +1,12 @@
 /**
- * Per-device realtime fan-out (ADR-007 `dev:{deviceId}`).
- * In-process for Sprint 0; Redis Pub/Sub adapter can replace later.
+ * Per-device realtime fan-out (ADR-007 / BE-078 `dev:{deviceId}`).
+ * Redis Pub/Sub routes commands to whichever BFF node holds the TV socket.
  */
 export type RealtimeDeviceBusHandler = (message: string) => void;
 
 export interface RealtimeDeviceBus {
-  publish(deviceId: string, message: string): Promise<void>;
+  /** Returns subscriber count that received the message (Redis PUBLISH semantics). */
+  publish(deviceId: string, message: string): Promise<number>;
   subscribe(
     deviceId: string,
     handler: RealtimeDeviceBusHandler,

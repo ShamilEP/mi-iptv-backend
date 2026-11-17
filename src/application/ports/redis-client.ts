@@ -6,6 +6,8 @@ export type RedisSetOptions = {
   readonly ttlSeconds?: number;
 };
 
+export type RedisSubscribeHandler = (message: string) => void;
+
 export interface RedisClient {
   get(key: string): Promise<string | null>;
   set(key: string, value: string, options?: RedisSetOptions): Promise<void>;
@@ -17,7 +19,16 @@ export interface RedisClient {
    * `-2` = missing key; `-1` = no expiry (Redis convention).
    */
   ttl(key: string): Promise<number>;
+  /** Returns the number of subscribers that received the message. */
   publish(channel: string, message: string): Promise<number>;
+  /**
+   * Subscribe to a Pub/Sub channel. Returns an unsubscribe function.
+   * ioredis uses a dedicated subscriber connection behind this adapter.
+   */
+  subscribe(
+    channel: string,
+    handler: RedisSubscribeHandler,
+  ): Promise<() => void>;
   ping(): Promise<string>;
   close(): Promise<void>;
 }

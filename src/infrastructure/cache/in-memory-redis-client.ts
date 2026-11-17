@@ -1,6 +1,7 @@
 import type {
   RedisClient,
   RedisSetOptions,
+  RedisSubscribeHandler,
 } from '../../application/ports/redis-client.js';
 
 type Entry = {
@@ -10,9 +11,11 @@ type Entry = {
 
 /**
  * Process-local Redis stand-in for Sprint 0 / unit tests when `REDIS_URL` is unset.
+ * Pub/Sub is process-local (shared instance simulates multi-node fan-out in tests).
  */
 export class InMemoryRedisClient implements RedisClient {
   private readonly store = new Map<string, Entry>();
+  private readonly subscribers = new Map<string, Set<RedisSubscribeHandler>>();
 
   async get(key: string): Promise<string | null> {
     const entry = this.store.get(key);
@@ -92,8 +95,34 @@ export class InMemoryRedisClient implements RedisClient {
     return Math.ceil(remainingMs / 1000);
   }
 
-  async publish(_channel: string, _message: string): Promise<number> {
-    return 0;
+  async publish(channel: string, message: string): Promise<number> {
+    const set = this.subscribers.get(channel);
+    if (!set) {
+      return 0;
+    }
+    for (const handler of [...set]) {
+      handler(message);
+    }
+    return set.size;
+  }
+
+  async subscribe(
+    channel: string,
+    handler: RedisSubscribeHandler,
+  ): Promise<() => void> {
+    const set = this.subscribers.get(channel) ?? new Set<RedisSubscribeHandler>();
+    set.add(handler);
+    this.subscribers.set(channel, set);
+    return () => {
+      const current = this.subscribers.get(channel);
+      if (!current) {
+        return;
+      }
+      current.delete(handler);
+      if (current.size === 0) {
+        this.subscribers.delete(channel);
+      }
+    };
   }
 
   async ping(): Promise<string> {
@@ -102,5 +131,6 @@ export class InMemoryRedisClient implements RedisClient {
 
   async close(): Promise<void> {
     this.store.clear();
+    this.subscribers.clear();
   }
 }

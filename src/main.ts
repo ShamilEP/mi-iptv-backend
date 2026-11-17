@@ -89,10 +89,11 @@ import { InMemorySourceRepository } from './infrastructure/persistence/in-memory
 import { InMemorySettingsSyncRepository } from './infrastructure/persistence/in-memory-settings-sync-repository.js';
 import { InMemoryWatchHistoryRepository } from './infrastructure/persistence/in-memory-watch-history-repository.js';
 import { InMemoryPushNotifier } from './infrastructure/push/in-memory-push-notifier.js';
+import { FanOutDeviceCommand } from './application/realtime/fan-out-device-command.js';
 import { InMemoryDeviceSocketPresence } from './infrastructure/realtime/in-memory-device-socket-presence.js';
-import { InMemoryRealtimeDeviceBus } from './infrastructure/realtime/in-memory-realtime-device-bus.js';
 import { InMemoryRealtimeSessionStore } from './infrastructure/realtime/in-memory-realtime-session-store.js';
 import { RedisDeviceSocketPresence } from './infrastructure/realtime/redis-device-socket-presence.js';
+import { RedisRealtimeDeviceBus } from './infrastructure/realtime/redis-realtime-device-bus.js';
 import { EnvJwtSigningKeyStore } from './infrastructure/secrets/env-jwt-signing-key-store.js';
 import { EnvSecretStore } from './infrastructure/secrets/env-secret-store.js';
 import { StaticCredentialEncryptionKeyCatalog } from './infrastructure/secrets/static-credential-encryption-key-catalog.js';
@@ -291,12 +292,14 @@ async function bootstrap(): Promise<void> {
     pushNotifier,
   );
 
-  // BE-077: authenticated WSS gateway (per-device channels, heartbeat, resume, limits).
+  // BE-077 / BE-078: authenticated WSS + Redis Pub/Sub fan-out on session Redis
+  // (`dev:{deviceId}`). InMemoryRedisClient when REDIS_URL unset.
   const realtimeConfig = loadRealtimeGatewayConfig(process.env);
   const authenticateRealtimeHandshake = new AuthenticateRealtimeHandshake(
     assertAccessTokenActive,
   );
-  const realtimeDeviceBus = new InMemoryRealtimeDeviceBus();
+  const realtimeDeviceBus = new RedisRealtimeDeviceBus(sessionRedis);
+  const fanOutDeviceCommand = new FanOutDeviceCommand(realtimeDeviceBus);
   const realtimeSessionStore = new InMemoryRealtimeSessionStore();
   const realtimeGateway = new NodeRealtimeGateway({
     authenticate: authenticateRealtimeHandshake,
@@ -580,6 +583,7 @@ async function bootstrap(): Promise<void> {
     syncBatchReady: Boolean(acceptBatchedSyncEvents),
     syncStateReady: Boolean(getSyncState),
     realtimeGatewayReady: Boolean(realtimeGateway),
+    realtimePubSubFanOutReady: Boolean(fanOutDeviceCommand),
     realtimeNodeId: realtimeConfig.nodeId,
     realtimeMaxConnectionsPerDevice: realtimeConfig.maxConnectionsPerDevice,
     realtimeMaxConnectionsPerAccount: realtimeConfig.maxConnectionsPerAccount,
