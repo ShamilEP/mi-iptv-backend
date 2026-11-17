@@ -15,6 +15,7 @@ Run **OpenAPI contract tests in CI** and **host the mock/docs stack** so TV, com
 | --- | --- | --- |
 | Contract tests | `npm run openapi:contract-test` | Hits every MVP operation on the BE-004 mock; asserts 2xx + JSON object bodies |
 | Verify | `npm run openapi:verify` | Inventory ↔ OpenAPI ↔ route catalog (INF-040) |
+| Implementation contract | `npm run openapi:implementation-contract` | Implementation drift vs freeze (BE-122) |
 | Combined host | `npm run contract:serve` / `Dockerfile.api-mock` | Swagger UI + mock on one port (`8080`) |
 | CI workflow | `.github/workflows/api-mock.yml` | Contract tests, docs artifact, mock image smoke, optional ECR + Pages |
 | PR gate | `.github/workflows/pr-validation.yml` job `contract` | Same contract tests on every PR |

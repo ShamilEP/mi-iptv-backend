@@ -47,6 +47,9 @@ jobs:
       - name: OpenAPI contract tests (mock)
         run: npm run openapi:contract-test
 
+      - name: OpenAPI implementation contract (BE-122)
+        run: npm run openapi:implementation-contract
+
       - name: Upload docs + OpenAPI artifact
         uses: actions/upload-artifact@v4
         with:
