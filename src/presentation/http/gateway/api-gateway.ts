@@ -19,13 +19,19 @@ const JSON_HEADERS = {
   'content-type': 'application/json; charset=utf-8',
 } as const;
 
+export type ApiGatewayContinue = {
+  readonly request: HttpRequest;
+  /** Merged onto the route response (BE-008). */
+  readonly rateLimitHeaders?: Readonly<Record<string, string>>;
+};
+
 export type ApiGateway = {
   readonly maxJsonBodyBytes: number;
   beforeHandler(
     request: HttpRequest,
     route: HttpRoute,
     traceId: string,
-  ): Promise<HttpResponse | { readonly request: HttpRequest }>;
+  ): Promise<HttpResponse | ApiGatewayContinue>;
 };
 
 export type CreateApiGatewayInput = {
@@ -35,7 +41,7 @@ export type CreateApiGatewayInput = {
 };
 
 /**
- * API Gateway / BFF pipeline: versioning gate, validation, JWT, rate-limit (BE-006).
+ * API Gateway / BFF pipeline: versioning gate, validation, JWT, rate-limit (BE-006 / BE-008).
  */
 export function createApiGateway(input: CreateApiGatewayInput): ApiGateway {
   return {
@@ -73,6 +79,7 @@ export function createApiGateway(input: CreateApiGatewayInput): ApiGateway {
         claims = auth.claims;
       }
 
+      let rateLimitHeaders: Readonly<Record<string, string>> | undefined;
       const skipRateLimit = isUnversionedPublicPath(request.url);
       if (!skipRateLimit) {
         const limited = await runRateLimitHook(
@@ -81,22 +88,25 @@ export function createApiGateway(input: CreateApiGatewayInput): ApiGateway {
           claims,
           traceId,
         );
-        if (limited !== null) {
-          return limited;
+        if (!limited.ok) {
+          return limited.response;
         }
+        rateLimitHeaders = limited.headers;
       }
 
-      if (claims === null) {
-        return { request };
-      }
+      const continuedRequest =
+        claims === null
+          ? request
+          : {
+              ...request,
+              auth: claims,
+              accountId: claims.accountId,
+            };
 
-      return {
-        request: {
-          ...request,
-          auth: claims,
-          accountId: claims.accountId,
-        },
-      };
+      if (rateLimitHeaders === undefined) {
+        return { request: continuedRequest };
+      }
+      return { request: continuedRequest, rateLimitHeaders };
     },
   };
 }

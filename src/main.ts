@@ -202,11 +202,12 @@ async function bootstrap(): Promise<void> {
     jwtTtl.accessTokenTtlSeconds,
   );
 
-  // BE-006: API Gateway / BFF hooks (JWT, validation, global rate limit).
+  // BE-006 / BE-008: API Gateway hooks (JWT, validation, global rate limit).
   const apiGatewayConfig = loadApiGatewayConfig(process.env);
   const apiRateLimitGuard = new ApiRateLimitGuard(
     sessionRedis,
     apiGatewayConfig.rateLimitMaxRequests,
+    apiGatewayConfig.rateLimitAnonymousMaxRequests,
     apiGatewayConfig.rateLimitWindowSeconds,
   );
   const apiGateway = createApiGateway({
@@ -583,6 +584,8 @@ async function bootstrap(): Promise<void> {
     accessTokenDenyListReady: Boolean(accessTokenDenyList),
     apiGatewayReady: Boolean(apiGateway),
     apiRateLimitMaxRequests: apiGatewayConfig.rateLimitMaxRequests,
+    apiRateLimitAnonymousMaxRequests:
+      apiGatewayConfig.rateLimitAnonymousMaxRequests,
     apiRateLimitWindowSeconds: apiGatewayConfig.rateLimitWindowSeconds,
     apiMaxJsonBodyBytes: apiGatewayConfig.maxJsonBodyBytes,
     sessionRedisMode: secrets.redisUrl ? 'ioredis' : 'in-memory',

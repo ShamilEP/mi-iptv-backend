@@ -39,7 +39,7 @@ async function createGatewayStack(rateLimitMax = 100) {
   const redis = new InMemoryRedisClient();
   const denyList = new RedisAccessTokenDenyList(redis);
   const assertActive = new AssertAccessTokenActive(access, denyList);
-  const rateLimit = new ApiRateLimitGuard(redis, rateLimitMax, 60);
+  const rateLimit = new ApiRateLimitGuard(redis, rateLimitMax, 20, 60);
   const gateway = createApiGateway({
     assertAccessTokenActive: assertActive,
     apiRateLimitGuard: rateLimit,
