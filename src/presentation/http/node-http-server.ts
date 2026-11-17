@@ -4,6 +4,7 @@ import type {
   HttpRequest,
   HttpRoute,
   HttpServer,
+  HttpUpgradeHandler,
 } from '../../application/ports/http-server.js';
 import type { Logger } from '../../application/ports/logger.js';
 import { buildErrorEnvelope } from '../../domain/api/error-envelope.js';
@@ -22,6 +23,7 @@ import { matchRoutePath } from './match-route-path.js';
 export class NodeHttpServer implements HttpServer {
   private readonly routes: HttpRoute[] = [];
   private server: http.Server | undefined;
+  private upgradeHandler: HttpUpgradeHandler | undefined;
 
   constructor(
     private readonly logger?: Logger,
@@ -32,10 +34,22 @@ export class NodeHttpServer implements HttpServer {
     this.routes.push(route);
   }
 
+  setUpgradeHandler(handler: HttpUpgradeHandler): void {
+    this.upgradeHandler = handler;
+  }
+
   listen(port: number): Promise<void> {
     return new Promise((resolve, reject) => {
       this.server = http.createServer((req, res) => {
         void this.handle(req, res);
+      });
+
+      this.server.on('upgrade', (req, socket, head) => {
+        if (this.upgradeHandler === undefined) {
+          socket.destroy();
+          return;
+        }
+        this.upgradeHandler(req, socket, head);
       });
 
       this.server.once('error', reject);

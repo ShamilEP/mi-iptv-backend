@@ -45,8 +45,18 @@ export type HttpRoute = {
   readonly auth?: HttpRouteAuth;
 };
 
+/** Optional HTTP upgrade hook (BE-077 WSS `/realtime`). */
+export type HttpUpgradeHandler = (
+  // Keep transport types opaque in the port — Node adapter supplies IncomingMessage/Duplex.
+  request: unknown,
+  socket: unknown,
+  head: unknown,
+) => void;
+
 export interface HttpServer {
   register(route: HttpRoute): void;
   listen(port: number): Promise<void>;
   close(): Promise<void>;
+  /** Register a single upgrade handler (e.g. authenticated WebSocket). */
+  setUpgradeHandler?(handler: HttpUpgradeHandler): void;
 }

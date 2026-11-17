@@ -201,4 +201,9 @@ export const ROUTE_CATALOG: readonly RouteCatalogEntry[] = [
     path: '/api/v1/sync/events',
     operationId: 'acceptBatchedSyncEvents',
   },
+  {
+    method: 'GET',
+    path: '/realtime',
+    operationId: 'realtimeHandshake',
+  },
 ] as const;
