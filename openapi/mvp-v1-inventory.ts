@@ -226,6 +226,6 @@ export const MVP_V1_OPERATIONS: readonly MvpOperation[] = [
     method: 'GET',
     path: '/realtime',
     operationId: 'realtimeHandshake',
-    implemented: false,
+    implemented: true,
   },
 ] as const;

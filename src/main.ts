@@ -37,6 +37,7 @@ import { AssertAccessTokenActive } from './application/auth/assert-access-token-
 import { ApiRateLimitGuard } from './application/gateway/api-rate-limit-guard.js';
 import { GetHealthStatus } from './application/health/get-health-status.js';
 import type { JwtSigningKeyStore } from './application/ports/jwt-signing-key-store.js';
+import { AuthenticateRealtimeHandshake } from './application/realtime/authenticate-realtime-handshake.js';
 import { CreateSource } from './application/sources/create-source.js';
 import { DeleteSource } from './application/sources/delete-source.js';
 import { FetchSourceUrlSafely } from './application/sources/fetch-source-url-safely.js';
@@ -58,6 +59,7 @@ import { loadJwtTokenTtlConfig } from './config/jwt-tokens.js';
 import { loadM3uParserLimits } from './config/m3u-parser.js';
 import { loadXmltvParserLimits } from './config/xmltv-parser.js';
 import { loadPasswordHashParams } from './config/password-hashing.js';
+import { loadRealtimeGatewayConfig } from './config/realtime.js';
 import { loadSourceHttpGuardConfig } from './config/source-http-guard.js';
 import { createIoredisRedisClientFromUrl } from './infrastructure/cache/ioredis-redis-client.js';
 import { InMemoryRedisClient } from './infrastructure/cache/in-memory-redis-client.js';
@@ -88,12 +90,18 @@ import { InMemorySettingsSyncRepository } from './infrastructure/persistence/in-
 import { InMemoryWatchHistoryRepository } from './infrastructure/persistence/in-memory-watch-history-repository.js';
 import { InMemoryPushNotifier } from './infrastructure/push/in-memory-push-notifier.js';
 import { InMemoryDeviceSocketPresence } from './infrastructure/realtime/in-memory-device-socket-presence.js';
+import { InMemoryRealtimeDeviceBus } from './infrastructure/realtime/in-memory-realtime-device-bus.js';
+import { InMemoryRealtimeSessionStore } from './infrastructure/realtime/in-memory-realtime-session-store.js';
+import { RedisDeviceSocketPresence } from './infrastructure/realtime/redis-device-socket-presence.js';
 import { EnvJwtSigningKeyStore } from './infrastructure/secrets/env-jwt-signing-key-store.js';
 import { EnvSecretStore } from './infrastructure/secrets/env-secret-store.js';
 import { StaticCredentialEncryptionKeyCatalog } from './infrastructure/secrets/static-credential-encryption-key-catalog.js';
 import { StaticKmsKeyResolver } from './infrastructure/secrets/static-kms-key-resolver.js';
 import { createApiGateway } from './presentation/http/gateway/api-gateway.js';
 import { NodeHttpServer } from './presentation/http/node-http-server.js';
+import { NodeRealtimeGateway } from './presentation/realtime/node-realtime-gateway.js';
+import type { IncomingMessage } from 'node:http';
+import type { Duplex } from 'node:stream';
 import { createAccountRoutes } from './presentation/http/routes/account-routes.js';
 import { createAuthRoutes } from './presentation/http/routes/auth-routes.js';
 import { createDevicesRoutes } from './presentation/http/routes/devices-routes.js';
@@ -272,13 +280,32 @@ async function bootstrap(): Promise<void> {
   const registerDevice = new RegisterDevice(deviceRepository);
   const unlinkDevice = new UnlinkDevice(deviceRepository);
   const deviceHeartbeat = new DeviceHeartbeat(deviceRepository);
-  const deviceSocketPresence = new InMemoryDeviceSocketPresence();
+  // BE-077: Redis presence when REDIS_URL set; otherwise in-memory.
+  const deviceSocketPresence = secrets.redisUrl
+    ? new RedisDeviceSocketPresence(sessionRedis)
+    : new InMemoryDeviceSocketPresence();
   const pushNotifier = new InMemoryPushNotifier();
   const notifyCompanionStatusFallback = new NotifyCompanionStatusFallback(
     deviceRepository,
     deviceSocketPresence,
     pushNotifier,
   );
+
+  // BE-077: authenticated WSS gateway (per-device channels, heartbeat, resume, limits).
+  const realtimeConfig = loadRealtimeGatewayConfig(process.env);
+  const authenticateRealtimeHandshake = new AuthenticateRealtimeHandshake(
+    assertAccessTokenActive,
+  );
+  const realtimeDeviceBus = new InMemoryRealtimeDeviceBus();
+  const realtimeSessionStore = new InMemoryRealtimeSessionStore();
+  const realtimeGateway = new NodeRealtimeGateway({
+    authenticate: authenticateRealtimeHandshake,
+    presence: deviceSocketPresence,
+    bus: realtimeDeviceBus,
+    sessions: realtimeSessionStore,
+    config: realtimeConfig,
+    logger,
+  });
 
   // BE-061/BE-063/BE-065: sync writes + shared SyncLog (in-memory until Postgres).
   const syncLogRepository = new InMemorySyncLogRepository();
@@ -422,6 +449,13 @@ async function bootstrap(): Promise<void> {
 
   const getHealthStatus = new GetHealthStatus();
   const httpServer = new NodeHttpServer(logger, apiGateway);
+  httpServer.setUpgradeHandler((request, socket, head) => {
+    realtimeGateway.handleUpgrade(
+      request as IncomingMessage,
+      socket as Duplex,
+      head as Buffer,
+    );
+  });
 
   httpServer.register(createHealthRoute(getHealthStatus));
   for (const route of createAuthRoutes({
@@ -545,6 +579,10 @@ async function bootstrap(): Promise<void> {
     favoriteSyncReady: Boolean(setFavorite),
     syncBatchReady: Boolean(acceptBatchedSyncEvents),
     syncStateReady: Boolean(getSyncState),
+    realtimeGatewayReady: Boolean(realtimeGateway),
+    realtimeNodeId: realtimeConfig.nodeId,
+    realtimeMaxConnectionsPerDevice: realtimeConfig.maxConnectionsPerDevice,
+    realtimeMaxConnectionsPerAccount: realtimeConfig.maxConnectionsPerAccount,
     sourceCredentialsAutomaticCmkRotation:
       credentialKmsKey.automaticCmkRotation,
     sourceHttpMaxRedirects: sourceHttpGuard.maxRedirects,
