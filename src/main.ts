@@ -29,9 +29,11 @@ import { FetchXtreamCatalog } from './application/catalog/fetch-xtream-catalog.j
 import { ParseM3uPlaylist } from './application/catalog/parse-m3u-playlist.js';
 import { ParseXmltvGuide } from './application/catalog/parse-xmltv-guide.js';
 import { DeviceHeartbeat } from './application/devices/device-heartbeat.js';
+import { FlushPendingDeviceCommands } from './application/devices/flush-pending-device-commands.js';
 import { ListDevices } from './application/devices/list-devices.js';
 import { NotifyCompanionStatusFallback } from './application/devices/notify-companion-status-fallback.js';
 import { RegisterDevice } from './application/devices/register-device.js';
+import { SendToTv } from './application/devices/send-to-tv.js';
 import { UnlinkDevice } from './application/devices/unlink-device.js';
 import { AssertAccessTokenActive } from './application/auth/assert-access-token-active.js';
 import { ApiRateLimitGuard } from './application/gateway/api-rate-limit-guard.js';
@@ -79,6 +81,7 @@ import { JsonConsoleLogger } from './infrastructure/logging/json-console-logger.
 import { NodeDnsResolver } from './infrastructure/net/node-dns-resolver.js';
 import { InMemoryAccountRepository } from './infrastructure/persistence/in-memory-account-repository.js';
 import { InMemoryAccountSyncClock } from './infrastructure/persistence/in-memory-account-sync-clock.js';
+import { InMemoryDeviceCommandRepository } from './infrastructure/persistence/in-memory-device-command-repository.js';
 import { InMemoryDeviceRepository } from './infrastructure/persistence/in-memory-device-repository.js';
 import { InMemoryFavoriteSyncRepository } from './infrastructure/persistence/in-memory-favorite-sync-repository.js';
 import { InMemoryPlaybackSyncRepository } from './infrastructure/persistence/in-memory-playback-sync-repository.js';
@@ -277,6 +280,7 @@ async function bootstrap(): Promise<void> {
 
   // BE-075 / BE-081: devices + push fallback when no realtime socket.
   const deviceRepository = new InMemoryDeviceRepository();
+  const deviceCommandRepository = new InMemoryDeviceCommandRepository();
   const listDevices = new ListDevices(deviceRepository);
   const registerDevice = new RegisterDevice(deviceRepository);
   const unlinkDevice = new UnlinkDevice(deviceRepository);
@@ -300,6 +304,18 @@ async function bootstrap(): Promise<void> {
   );
   const realtimeDeviceBus = new RedisRealtimeDeviceBus(sessionRedis);
   const fanOutDeviceCommand = new FanOutDeviceCommand(realtimeDeviceBus);
+  const flushPendingDeviceCommands = new FlushPendingDeviceCommands(
+    deviceCommandRepository,
+    fanOutDeviceCommand,
+  );
+  // BE-080: send-to-TV (queue + live fan-out + push wake).
+  const sendToTv = new SendToTv(
+    deviceRepository,
+    deviceCommandRepository,
+    deviceSocketPresence,
+    fanOutDeviceCommand,
+    pushNotifier,
+  );
   const realtimeSessionStore = new InMemoryRealtimeSessionStore();
   const realtimeGateway = new NodeRealtimeGateway({
     authenticate: authenticateRealtimeHandshake,
@@ -307,6 +323,7 @@ async function bootstrap(): Promise<void> {
     bus: realtimeDeviceBus,
     sessions: realtimeSessionStore,
     config: realtimeConfig,
+    flushPendingCommands: flushPendingDeviceCommands,
     logger,
   });
 
@@ -515,6 +532,7 @@ async function bootstrap(): Promise<void> {
     unlinkDevice,
     deviceHeartbeat,
     notifyCompanionStatusFallback,
+    sendToTv,
   })) {
     httpServer.register(route);
   }
@@ -584,6 +602,7 @@ async function bootstrap(): Promise<void> {
     syncStateReady: Boolean(getSyncState),
     realtimeGatewayReady: Boolean(realtimeGateway),
     realtimePubSubFanOutReady: Boolean(fanOutDeviceCommand),
+    sendToTvReady: Boolean(sendToTv),
     realtimeNodeId: realtimeConfig.nodeId,
     realtimeMaxConnectionsPerDevice: realtimeConfig.maxConnectionsPerDevice,
     realtimeMaxConnectionsPerAccount: realtimeConfig.maxConnectionsPerAccount,

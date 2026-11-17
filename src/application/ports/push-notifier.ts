@@ -1,12 +1,12 @@
 import type { DevicePlatform } from '../../domain/devices/device.js';
-import type { CompanionStatusKind } from '../../domain/devices/companion-status.js';
 
 export type PushNotificationPayload = {
   readonly deviceId: string;
   readonly platform: DevicePlatform;
   /** Opaque device token — never log. */
   readonly pushToken: string;
-  readonly status: CompanionStatusKind;
+  /** Companion status kind, or `send_to_tv` wake (BE-080). */
+  readonly status: string;
   readonly title: string;
   readonly body: string;
   readonly data: Readonly<Record<string, string>>;

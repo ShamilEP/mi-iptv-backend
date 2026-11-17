@@ -2,6 +2,7 @@ import { randomUUID } from 'node:crypto';
 import type { IncomingMessage } from 'node:http';
 import type { Duplex } from 'node:stream';
 import { URL } from 'node:url';
+import type { FlushPendingDeviceCommands } from '../../application/devices/flush-pending-device-commands.js';
 import type { AuthenticateRealtimeHandshake } from '../../application/realtime/authenticate-realtime-handshake.js';
 import { RealtimeConnectionRegistry } from '../../application/realtime/realtime-connection-registry.js';
 import type { DeviceSocketPresence } from '../../application/ports/device-socket-presence.js';
@@ -39,6 +40,8 @@ export class NodeRealtimeGateway {
       readonly bus: RealtimeDeviceBus;
       readonly sessions: RealtimeSessionStore;
       readonly config: RealtimeGatewayConfig;
+      /** Optional: flush queued send-to-TV commands after handshake (BE-080). */
+      readonly flushPendingCommands?: FlushPendingDeviceCommands;
       readonly logger?: Logger;
     },
   ) {
@@ -155,6 +158,18 @@ export class NodeRealtimeGateway {
         serverTimestamp: toServerTimestamp(new Date()),
       };
       this.sendText(socket, JSON.stringify(hello));
+
+      if (this.deps.flushPendingCommands) {
+        void this.deps.flushPendingCommands
+          .execute(claims.accountId, claims.deviceId)
+          .catch((error: unknown) => {
+            this.deps.logger?.warn('Realtime pending command flush failed', {
+              trace_id: null,
+              account_id: claims.accountId,
+              errorName: error instanceof Error ? error.name : 'UnknownError',
+            });
+          });
+      }
 
       let buffer: Buffer = Buffer.alloc(0);
       socket.on('data', (chunk: Buffer) => {

@@ -3,6 +3,7 @@ import type { DeviceHeartbeat } from '../../../application/devices/device-heartb
 import type { ListDevices } from '../../../application/devices/list-devices.js';
 import type { NotifyCompanionStatusFallback } from '../../../application/devices/notify-companion-status-fallback.js';
 import type { RegisterDevice } from '../../../application/devices/register-device.js';
+import type { SendToTv } from '../../../application/devices/send-to-tv.js';
 import type { UnlinkDevice } from '../../../application/devices/unlink-device.js';
 import type {
   HttpRequest,
@@ -20,6 +21,7 @@ export function createDevicesRoutes(deps: {
   readonly unlinkDevice: UnlinkDevice;
   readonly deviceHeartbeat: DeviceHeartbeat;
   readonly notifyCompanionStatusFallback: NotifyCompanionStatusFallback;
+  readonly sendToTv: SendToTv;
 }): readonly HttpRoute[] {
   return [
     {
@@ -47,6 +49,11 @@ export function createDevicesRoutes(deps: {
       method: 'POST',
       path: '/api/v1/devices/{id}/heartbeat',
       handler: (request) => handleHeartbeat(request, deps.deviceHeartbeat),
+    },
+    {
+      method: 'POST',
+      path: '/api/v1/devices/{id}/send-to-tv',
+      handler: (request) => handleSendToTv(request, deps.sendToTv),
     },
   ];
 }
@@ -199,6 +206,61 @@ async function handleHeartbeat(
   }
 }
 
+async function handleSendToTv(
+  request: HttpRequest,
+  sendToTv: SendToTv,
+): Promise<HttpResponse> {
+  const accountId = requireAccountId(request);
+  if (typeof accountId !== 'string') {
+    return accountId;
+  }
+  const authenticatedDeviceId = request.auth?.deviceId;
+  if (
+    authenticatedDeviceId === undefined ||
+    authenticatedDeviceId === null ||
+    authenticatedDeviceId.trim() === ''
+  ) {
+    return {
+      statusCode: 401,
+      headers: JSON_HEADERS,
+      body: {
+        error: 'Bearer access token required',
+        code: 'AUTH_ACCESS_INVALID',
+      },
+    };
+  }
+  const senderDeviceId = request.params?.id;
+  if (!senderDeviceId) {
+    return {
+      statusCode: 400,
+      headers: JSON_HEADERS,
+      body: { error: 'Device id required' },
+    };
+  }
+  const body = asObject(request.body);
+  if (!body) {
+    return {
+      statusCode: 400,
+      headers: JSON_HEADERS,
+      body: { error: 'JSON object body required' },
+    };
+  }
+  try {
+    const result = await sendToTv.execute({
+      accountId,
+      authenticatedDeviceId,
+      senderDeviceId,
+      targetDeviceId: String(body.targetDeviceId ?? ''),
+      contentId: String(body.contentId ?? ''),
+      sourceId: String(body.sourceId ?? ''),
+      action: String(body.action ?? ''),
+    });
+    return { statusCode: 202, headers: JSON_HEADERS, body: result };
+  } catch (error: unknown) {
+    return mapDomainError(error);
+  }
+}
+
 function requireAccountId(request: HttpRequest): string | HttpResponse {
   if (request.accountId === undefined || request.accountId === null) {
     return {
@@ -215,7 +277,12 @@ function requireAccountId(request: HttpRequest): string | HttpResponse {
 
 function mapDomainError(error: unknown): HttpResponse {
   if (error instanceof DomainError) {
-    const statusCode = error.code === 'DEVICE_NOT_FOUND' ? 404 : 400;
+    const statusCode =
+      error.code === 'DEVICE_NOT_FOUND'
+        ? 404
+        : error.code === 'SEND_TO_TV_SENDER_MISMATCH'
+          ? 403
+          : 400;
     return {
       statusCode,
       headers: JSON_HEADERS,

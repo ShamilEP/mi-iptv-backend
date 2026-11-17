@@ -162,6 +162,11 @@ export const ROUTE_CATALOG: readonly RouteCatalogEntry[] = [
     operationId: 'deviceHeartbeat',
   },
   {
+    method: 'POST',
+    path: '/api/v1/devices/{id}/send-to-tv',
+    operationId: 'sendToTv',
+  },
+  {
     method: 'GET',
     path: '/api/v1/sync/state',
     operationId: 'getSyncState',
