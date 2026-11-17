@@ -2,7 +2,8 @@ import { DomainError } from '../shared/domain-error.js';
 
 /**
  * Offline outbox drain (SRS §7 / local `outbox` entity set).
- * Sources remain out of batch until BE-064.
+ * Sources are intentionally excluded (ADR-009 / BE-064): mutate via `/sources`
+ * CRUD and pull metadata on `GET /sync/state`.
  */
 export const BATCHED_SYNC_ENTITIES = [
   'playback_state',

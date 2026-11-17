@@ -18,4 +18,4 @@
 1. Reject empty / oversized batches (`SYNC_BATCH_INVALID` / `SYNC_BATCH_TOO_LARGE`).
 2. Process events in array order via existing `UpsertPlaybackState` / `SetFavorite`.
 3. Per-event idempotency on `(accountId, clientEventId)` unchanged.
-4. MVP entities match the client outbox: `playback_state` and `favorite` (sources wait on BE-064).
+4. MVP entities match the client outbox: `playback_state`, `favorite`, and `setting`. Sources stay on `/sources` CRUD + `/sync/state` (ADR-009 / BE-064).

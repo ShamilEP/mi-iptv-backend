@@ -10,6 +10,6 @@
 | Secrets | Never in deltas or API responses |
 | Full list | `GET /sources` |
 
-Implementation: **BE-062** (delta HTTP) + **BE-064** (source sync semantics on CRUD).
+Implementation: **BE-062** (delta HTTP) + **BE-064** (source sync semantics on CRUD — see `064-source-sync-semantics.md`).
 
 Note: numbered `023-*.md` is reserved for **BE-023** JWT issuance (`023-jwt-issuance-and-keys.md`).

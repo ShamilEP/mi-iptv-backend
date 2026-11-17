@@ -10,9 +10,11 @@ import type { M3uParseResult } from '../../src/domain/catalog/m3u-entry.js';
 import { XtreamError } from '../../src/domain/catalog/xtream-error.js';
 import { SsrfGuardError } from '../../src/domain/sources/ssrf-guard-error.js';
 import { Aes256GcmSourceCredentialCipher } from '../../src/infrastructure/crypto/aes256-gcm-source-credential-cipher.js';
+import { InMemoryAccountSyncClock } from '../../src/infrastructure/persistence/in-memory-account-sync-clock.js';
 import { InMemorySourceRepository } from '../../src/infrastructure/persistence/in-memory-source-repository.js';
 
 const accountId = '11111111-1111-1111-1111-111111111111';
+const syncClock = () => new InMemoryAccountSyncClock();
 
 function stubFetch(
   impl: FetchSourceUrlSafely['execute'],
@@ -48,7 +50,7 @@ describe('TestSource', () => {
       randomBytes(32),
       'key-dev',
     );
-    const created = await new CreateSource(repo, cipher).execute({
+    const created = await new CreateSource(repo, cipher, syncClock()).execute({
       accountId,
       kind: 'm3u',
       name: 'List',
@@ -106,7 +108,7 @@ describe('TestSource', () => {
       randomBytes(32),
       'key-dev',
     );
-    const created = await new CreateSource(repo, cipher).execute({
+    const created = await new CreateSource(repo, cipher, syncClock()).execute({
       accountId,
       kind: 'xtream',
       name: 'Panel',
@@ -146,7 +148,7 @@ describe('TestSource', () => {
       randomBytes(32),
       'key-dev',
     );
-    const created = await new CreateSource(repo, cipher).execute({
+    const created = await new CreateSource(repo, cipher, syncClock()).execute({
       accountId,
       kind: 'm3u',
       name: 'Slow',

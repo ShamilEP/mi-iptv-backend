@@ -5,7 +5,8 @@ import type { SourceRepository } from '../ports/source-repository.js';
 export class DeleteSource {
   constructor(
     private readonly sources: SourceRepository,
-    private readonly syncClock?: AccountSyncClock,
+    /** Required so peers observe the tombstone on GET /sync/state (BE-064 / ADR-009). */
+    private readonly syncClock: AccountSyncClock,
   ) {}
 
   async execute(accountId: string, sourceId: string): Promise<void> {
@@ -20,12 +21,10 @@ export class DeleteSource {
       );
     }
 
-    const changeSeq =
-      this.syncClock !== undefined
-        ? await this.syncClock.nextChangeSeq(accountId)
-        : existing.changeSeq;
+    const changeSeq = await this.syncClock.nextChangeSeq(accountId);
     await this.sources.save({
       ...existing,
+      // Clear ciphertext on soft-delete — never leave secrets on tombstoned rows.
       credentialsEncrypted: null,
       encKeyId: null,
       enabled: false,

@@ -130,6 +130,19 @@ function parseBatchedEvent(
   }
 
   const entityRaw = requiredString(body.entity);
+  if (entityRaw !== null && entityRaw === 'source') {
+    return {
+      error: {
+        statusCode: 400,
+        headers: SYNC_JSON_HEADERS,
+        body: {
+          error:
+            'Sources sync via /sources CRUD and GET /sync/state — not /sync/events',
+          code: 'SOURCE_SYNC_BATCH_FORBIDDEN',
+        },
+      },
+    };
+  }
   if (entityRaw === null || !isBatchedSyncEntity(entityRaw)) {
     return {
       error: {
