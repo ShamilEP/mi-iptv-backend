@@ -37,6 +37,8 @@ export class InMemorySourceRepository implements SourceRepository {
     const now = new Date();
     const row: UserSource = {
       ...source,
+      itemCount: source.itemCount ?? null,
+      lastIngestedAt: source.lastIngestedAt ?? null,
       syncVersion: 1,
       deletedAt: source.deletedAt ?? null,
       createdAt: now,

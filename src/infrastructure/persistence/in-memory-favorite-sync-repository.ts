@@ -1,3 +1,4 @@
+import type { AccountSyncClock } from '../../application/ports/account-sync-clock.js';
 import type {
   ApplyFavoriteWriteInput,
   ApplyFavoriteWriteResult,
@@ -10,15 +11,20 @@ import { InMemorySyncLogRepository } from './in-memory-sync-log-repository.js';
 
 /**
  * Sprint 0 in-memory favorites + SyncLog store for BE-063 / BE-065.
- * Replace with a Postgres adapter wrapping `app.set_favorite`.
+ * Prefer a shared `AccountSyncClock` so GET /sync/state can merge entity streams.
  */
 export class InMemoryFavoriteSyncRepository implements FavoriteSyncRepository {
   private readonly favorites = new Map<string, Favorite>();
   private readonly changeSeqByAccount = new Map<string, number>();
   private readonly syncLog: SyncLogRepository;
+  private readonly clock: AccountSyncClock | null;
 
-  constructor(syncLog: SyncLogRepository = new InMemorySyncLogRepository()) {
+  constructor(
+    syncLog: SyncLogRepository = new InMemorySyncLogRepository(),
+    clock: AccountSyncClock | null = null,
+  ) {
     this.syncLog = syncLog;
+    this.clock = clock;
   }
 
   async findSyncEvent(
@@ -74,7 +80,7 @@ export class InMemoryFavoriteSyncRepository implements FavoriteSyncRepository {
   async applyFavoriteWrite(
     input: ApplyFavoriteWriteInput,
   ): Promise<ApplyFavoriteWriteResult> {
-    const changeSeq = nextChangeSeq(this.changeSeqByAccount, input.accountId);
+    const changeSeq = await this.allocateChangeSeq(input.accountId);
     const existing = await this.findFavorite(
       input.accountId,
       input.profileId,
@@ -159,17 +165,17 @@ export class InMemoryFavoriteSyncRepository implements FavoriteSyncRepository {
     this.changeSeqByAccount.delete(accountId);
     return count;
   }
+
+  private async allocateChangeSeq(accountId: string): Promise<number> {
+    if (this.clock !== null) {
+      return this.clock.nextChangeSeq(accountId);
+    }
+    const next = (this.changeSeqByAccount.get(accountId) ?? 0) + 1;
+    this.changeSeqByAccount.set(accountId, next);
+    return next;
+  }
 }
 
 function favoriteKey(profileId: string, itemId: string): string {
   return `${profileId}:${itemId}`;
-}
-
-function nextChangeSeq(
-  counters: Map<string, number>,
-  accountId: string,
-): number {
-  const next = (counters.get(accountId) ?? 0) + 1;
-  counters.set(accountId, next);
-  return next;
 }

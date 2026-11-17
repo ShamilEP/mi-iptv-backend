@@ -194,6 +194,9 @@ describe('BE-013 account deletion and export', () => {
       enabled: true,
       status: 'ok',
       statusReason: null,
+      itemCount: null,
+      lastIngestedAt: null,
+      changeSeq: 1,
     });
     await favorites.applyFavoriteWrite({
       accountId,
@@ -352,6 +355,9 @@ describe('BE-013 account deletion and export', () => {
       enabled: true,
       status: 'pending',
       statusReason: null,
+      itemCount: null,
+      lastIngestedAt: null,
+      changeSeq: 1,
     });
     const favoriteEventId = randomUUID();
     const playbackEventId = randomUUID();

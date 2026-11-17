@@ -1,4 +1,5 @@
 import { DomainError } from '../../domain/shared/domain-error.js';
+import type { AccountSyncClock } from '../ports/account-sync-clock.js';
 import type { SourceCredentialCipher } from '../ports/source-credential-cipher.js';
 import type { SourceRepository } from '../ports/source-repository.js';
 import {
@@ -27,6 +28,7 @@ export class UpdateSource {
   constructor(
     private readonly sources: SourceRepository,
     private readonly cipher: SourceCredentialCipher,
+    private readonly syncClock?: AccountSyncClock,
   ) {}
 
   async execute(input: UpdateSourceInput): Promise<SourcePublicView> {
@@ -62,6 +64,10 @@ export class UpdateSource {
       );
     }
 
+    const changeSeq =
+      this.syncClock !== undefined
+        ? await this.syncClock.nextChangeSeq(input.accountId)
+        : existing.changeSeq;
     const saved = await this.sources.save({
       ...existing,
       name,
@@ -71,6 +77,7 @@ export class UpdateSource {
       credentialsEncrypted,
       encKeyId,
       syncVersion: existing.syncVersion + 1,
+      changeSeq,
       updatedAt: new Date(),
     });
     return toSourcePublicView(saved);

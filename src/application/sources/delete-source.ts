@@ -1,8 +1,12 @@
 import { DomainError } from '../../domain/shared/domain-error.js';
+import type { AccountSyncClock } from '../ports/account-sync-clock.js';
 import type { SourceRepository } from '../ports/source-repository.js';
 
 export class DeleteSource {
-  constructor(private readonly sources: SourceRepository) {}
+  constructor(
+    private readonly sources: SourceRepository,
+    private readonly syncClock?: AccountSyncClock,
+  ) {}
 
   async execute(accountId: string, sourceId: string): Promise<void> {
     const existing = await this.sources.findById(accountId, sourceId);
@@ -16,6 +20,10 @@ export class DeleteSource {
       );
     }
 
+    const changeSeq =
+      this.syncClock !== undefined
+        ? await this.syncClock.nextChangeSeq(accountId)
+        : existing.changeSeq;
     await this.sources.save({
       ...existing,
       credentialsEncrypted: null,
@@ -23,6 +31,7 @@ export class DeleteSource {
       enabled: false,
       deletedAt: new Date(),
       syncVersion: existing.syncVersion + 1,
+      changeSeq,
       updatedAt: new Date(),
     });
   }
