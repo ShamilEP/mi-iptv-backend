@@ -4,7 +4,8 @@ Node.js + TypeScript backend for Mi IPTV / Media Center. Follow Clean Architectu
 
 ## Rules (authoritative)
 
-Project rules live in `.cursor/rules/`. Obey them on every change.
+Project rules live in `.agents/rules/` (and mirrored in `.cursor/rules/`). Obey them on every change.
+When executing tasks from the project tracker, activate the `execute-next-task` skill and verify work with the `verifier` subagent.
 
 ## Hard constraints
 
